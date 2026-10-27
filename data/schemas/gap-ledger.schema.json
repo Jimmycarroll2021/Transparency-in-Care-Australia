@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Transparency gap ledger",
+  "description": "Enforced by .claude/hooks/validate_ledger.py, which also checks rules JSON Schema cannot express (validated gaps need official evidence; no em or en dashes).",
+  "type": "object",
+  "required": ["last_updated", "gaps"],
+  "properties": {
+    "last_updated": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "description", "status", "confidence", "tractability", "evidence", "next_action", "last_reviewed"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^GAP-\\d{3}$" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "status": { "enum": ["hypothesis", "validated", "rejected", "closed_by_government"] },
+          "closed_by": { "type": "string", "description": "Required when status is closed_by_government" },
+          "confidence": { "enum": ["High", "Medium", "Low"] },
+          "tractability": { "enum": ["aggregation", "campaign_or_foi", "partial", "unknown"] },
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["claim", "source_url", "source_type"],
+              "properties": {
+                "claim": { "type": "string" },
+                "source_url": { "type": "string", "pattern": "^https://" },
+                "source_type": { "enum": ["official_register", "official_report", "parliamentary", "media", "academic", "other"] },
+                "retrieved": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+                "verify": { "type": "boolean", "description": "true if the claim still needs checking against a primary source" }
+              }
+            }
+          },
+          "open_questions": { "type": "array", "items": { "type": "string" } },
+          "next_action": { "type": "string" },
+          "last_reviewed": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" }
+        }
+      }
+    }
+  }
+}

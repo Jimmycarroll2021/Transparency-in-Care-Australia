@@ -1,0 +1,21 @@
+# Secrets
+.env
+.env.*
+
+# Personal Claude settings
+.claude/settings.local.json
+CLAUDE.local.md
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ruff_cache/
+
+# Node
+node_modules/
+.next/
+
+# OS
+.DS_Store
+Thumbs.db
