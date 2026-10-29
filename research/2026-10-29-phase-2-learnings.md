@@ -86,6 +86,21 @@ What the join taught us:
   count. Both lists in `enforcement-join-report.json` are internal only until the legal review.
 - **Duplicates in source** (19 rows) are kept, numbered by `occurrence`, and excluded from counts.
 
+## South Australia and the provider-name stage (later the same day)
+
+- `parse_sa_enforcement.py`: 12 ESB register pages (current plus 2013 to 2022-23), 436 rows,
+  SE- on 262 and PR- on 322. Pre-2022 pages print no keys. The page slugged 2022-23 actually
+  holds 303 entries dated to October 2026 [Verify This]. The yearly summary table (681 actions in
+  2025-26 against 45 published current entries) is the denominator; published rows are a subset.
+- Provider-name stage in the join (unique normalised legal or trading name within state, never on
+  withheld rows, never where a key is printed): Commonwealth 0 to 28.4 per cent, Queensland 20.3
+  to 47.8 per cent. SA joined 82.8 per cent on first run.
+- Overall: 2,611 actions across five jurisdictions, 70.4 per cent joined. 1,072 of 18,186
+  services and 730 of 10,073 providers have at least one joined action in the 24 months to
+  28 October 2026.
+- Queensland prints no location at all; its suburb stays null by design rather than inferred
+  from a place word in the service name.
+
 ## Next
 
 1. Join: `scrapers/join_enforcement.py` that stacks the four jurisdiction tables, attaches the

@@ -1,7 +1,7 @@
 {
   "output": "data/processed/enforcement-actions-all.csv",
-  "written_at": "2026-10-29T08:11:33.171616+00:00",
-  "rows": 2175,
+  "written_at": "2026-10-29T08:24:19.907942+00:00",
+  "rows": 2611,
   "schema": "data/schemas/enforcement-action.schema.json",
   "raw_inputs": [
     "data/processed/acecqa-services-latest.csv",
@@ -10,6 +10,7 @@
     "data/processed/cth-ccs-enforcement-actions.csv",
     "data/processed/nsw-enforcement-actions.csv",
     "data/processed/qld-enforcement-actions.csv",
+    "data/processed/sa-enforcement-actions.csv",
     "data/processed/vecra-enforcement-actions.csv",
     "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
     "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json",
@@ -39,6 +40,20 @@
     "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-services-enforcement-action-information-2025-2026.pdf",
     "data/raw/nsw-enforcement/2026-10-29T0719Z-q3-provider-enforcement-action-information-2024-2025.pdf",
     "data/raw/qld-enforcement/2026-10-29T0723Z.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-current-compliance-action.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2013.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2014.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2015.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2016.html",
+    "data/raw/sa-enforcement/2026-10-29T0821Z-historical-compliance-action-2017.html",
+    "data/raw/sa-enforcement/2026-10-29T0821Z-historical-compliance-action-2018.html",
+    "data/raw/sa-enforcement/2026-10-29T0821Z-historical-compliance-action-2019.html",
+    "data/raw/sa-enforcement/2026-10-29T0821Z-historical-compliance-action-2020.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-historical-compliance-action-2021.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2022.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-historical-compliance-action-2022-23.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-copyright-disclaimer.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-historical-index.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-january-march-2026.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-april-may-2026.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-june-2026.html",
@@ -47,5 +62,5 @@
     "data/raw/vecra-enforcement/2026-10-29T0721Z-summary-table.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-index.html"
   ],
-  "notes": "Built from acecqa-services-latest.csv, acecqa-providers-latest.csv, provider-profile.csv, cth-ccs-enforcement-actions.csv, nsw-enforcement-actions.csv, qld-enforcement-actions.csv, vecra-enforcement-actions.csv. Window: 24 calendar months ending 2026-10-28 (the ACECQA snapshot date), inclusive of 2024-10-29. Counts are of published enforcement actions of every type; action_type columns stay separate and prosecutions are not breaches. Rows flagged 'duplicate row in source' are kept but not counted. Coverage: NSW from Jan 2025, VIC from Jan 2026, QLD from 2017 (no keys), CTH rolling 12 months; SA, WA, TAS, NT, ACT not yet collected. Absence of an action is not evidence of safety. Names of providers withheld as likely individuals stay null. ACECQA content is not openly licensed: internal use only. join_key_kind is the join that succeeded (none when unjoined); match_confidence unmatched means no join. occurrence numbers rows sharing a record_id. abn is carried from 'ccs_identifier: ABN' notes for the Phase 4 ABR stage (null where the subject is withheld)."
+  "notes": "Built from acecqa-services-latest.csv, acecqa-providers-latest.csv, provider-profile.csv, cth-ccs-enforcement-actions.csv, nsw-enforcement-actions.csv, qld-enforcement-actions.csv, sa-enforcement-actions.csv, vecra-enforcement-actions.csv. Window: 24 calendar months ending 2026-10-28 (the ACECQA snapshot date), inclusive of 2024-10-29. Counts are of published enforcement actions of every type; action_type columns stay separate and prosecutions are not breaches. Rows flagged 'duplicate row in source' are kept but not counted. Coverage: NSW from Jan 2025, VIC from Jan 2026, QLD from 2017 (no keys), CTH rolling 12 months; SA, WA, TAS, NT, ACT not yet collected. Absence of an action is not evidence of safety. Names of providers withheld as likely individuals stay null. ACECQA content is not openly licensed: internal use only. join_key_kind is the join that succeeded (none when unjoined); match_confidence unmatched means no join. occurrence numbers rows sharing a record_id. abn is carried from 'ccs_identifier: ABN' notes for the Phase 4 ABR stage (null where the subject is withheld)."
 }
