@@ -76,7 +76,7 @@ def spine():
         svc("SE-00000004", "PR-00000002", "Sunny Days", suburb="Indooroopilly"),
         svc("SE-00000005", "PR-00000002", "Unique Kids", suburb="Toowong"),
         svc("SE-00000006", "PR-00000003", "Unique Kids", state="NSW", suburb="Toowong"),
-        svc("SE-00000007", "PR-00000003", "Quiet Place", state="WA", suburb="Perth"),
+        svc("SE-00000007", "PR-00000003", "Quiet Place", state="NT", suburb="Darwin"),
     ]
     profiles = [
         prof("PR-00000001", "Gems Pty Ltd", 2),
@@ -249,8 +249,8 @@ def test_zero_count_rows_for_services_without_actions(spine):
     assert all(s2[f"count_{t}"] == 0 and s2[f"last24m_{t}"] == 0 for t in TYPES)
     assert s2["first_action_date"] is None
     assert "not evidence of safety" in s2["coverage_note"]
-    wa = next(r for r in service_rows if r["service_approval_number"] == "SE-00000007")
-    assert wa["jurisdictions_publishing"] == "WA register: not yet collected"
+    nt = next(r for r in service_rows if r["service_approval_number"] == "SE-00000007")
+    assert nt["jurisdictions_publishing"] == "NT register: not yet collected"
     assert len(provider_rows) == len(spine.profiles)
 
 

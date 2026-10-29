@@ -161,6 +161,7 @@ COVERAGE = {
     "CTH": "CTH register: rolling 12 months plus past registers",
     "SA": "SA register: current compliance action (HTML, per-service sections)",
     "TAS": "TAS register: published enforcement actions under National Law",
+    "WA": "WA register: 2013 onward (live ECRU register, finalised actions)",
 }
 NOT_COLLECTED = "{state} register: not yet collected"
 SAFETY_SENTENCE = "Absence of an action is not evidence of safety."

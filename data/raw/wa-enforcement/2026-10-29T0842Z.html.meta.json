@@ -1,0 +1,13 @@
+{
+  "source": "wa-enforcement",
+  "url": "https://www.wa.gov.au/government/document-collections/education-and-care-regulatory-unit-enforcement-actions",
+  "final_url": "https://www.wa.gov.au/government/document-collections/education-and-care-regulatory-unit-enforcement-actions",
+  "status": 200,
+  "fetched_at": "2026-10-29T08:43:05.876567+00:00",
+  "content_type": "text/html;charset=utf-8",
+  "last_modified": null,
+  "etag": null,
+  "bytes": 1542889,
+  "sha256": "f2d3b00c7cd00c78cb4ac68e21513b564076bd0659449bd5ef65d8d2523cd6b4",
+  "user_agent": "Playwright/Chromium Headless"
+}
