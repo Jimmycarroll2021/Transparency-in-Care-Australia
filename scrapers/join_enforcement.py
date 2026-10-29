@@ -21,7 +21,20 @@ Join rules
   unique name-only match is accepted (name_only). Several candidates: left unmatched, with the
   candidate count in join_note. Rows whose subject was withheld as an individual are never name
   matched; they join by key only.
-- join_key_kind is the kind of join that succeeded (service, provider, name_match) or none.
+- Provider-name stage (third, last): a row still unmatched, with no printed SE-/PR- key and a
+  non-null provider_name, is matched to ACECQA providers by normalised Legal Name or Trading Name,
+  restricted to the row's state when it has one (a provider is "in" a state if its registered
+  State or any of its services is there). Accepted only when exactly one provider matches
+  (provider_name_unique); several matches leave the row unmatched with the count in join_note.
+  Rows with a printed key are never name matched (a key absent from the spine means a ceased or
+  unlisted approval, and a name match could attach a different provider). Providers and rows
+  withheld as likely individuals are never matched. A row that also has a service_name is then
+  pinned to one of that provider's services when the normalised ServiceName is unique
+  (provider_and_service_name); the key is set on the joined output only, never on the source row.
+- abn: the 11 digits of a printed "ccs_identifier: ABN ..." note, carried for the Phase 4 ABR
+  stage. ACECQA has no ABN, so it cannot be matched here. Null where the subject is withheld.
+- join_key_kind is the kind of join that succeeded (service, provider, name_match,
+  provider_name_match) or none.
 
 Counting rules (CLAUDE.md rules 5, 6, 7)
 - Every count carries its window. "Last 24 months" ends on the ACECQA snapshot's
@@ -84,6 +97,7 @@ ACTION_GLOB = "*-enforcement-actions.csv"
 
 WINDOW_MONTHS = 24
 NAME_MATCH_JURISDICTIONS = {"QLD"}
+STATES = {"NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"}
 DUPLICATE_NOTE = "duplicate row in source"
 TOP_N = 20
 UNMATCHED_EXAMPLES = 10
@@ -91,6 +105,8 @@ UNMATCHED_EXAMPLES = 10
 CONFIDENCE_EXACT = "exact_key"
 CONFIDENCE_NAME_SUBURB = "name_and_suburb"
 CONFIDENCE_NAME_ONLY = "name_only"
+CONFIDENCE_PROVIDER_NAME = "provider_name_unique"
+CONFIDENCE_PROVIDER_AND_SERVICE = "provider_and_service_name"
 CONFIDENCE_NONE = "unmatched"
 
 ACTION_COLUMNS = [
@@ -135,7 +151,7 @@ JOIN_COLUMNS = [
     "provider_service_count",
     "counted_in_totals",
 ]
-ALL_COLUMNS = ["record_id", "occurrence"] + ACTION_COLUMNS[1:] + JOIN_COLUMNS
+ALL_COLUMNS = ["record_id", "occurrence"] + ACTION_COLUMNS[1:] + ["abn"] + JOIN_COLUMNS
 
 # Coverage of each register as the audits in research/ found it (2026-10-29).
 COVERAGE = {
@@ -176,6 +192,35 @@ def normalise_service_name(name: str | None) -> str:
     text = re.sub(r"[^A-Z0-9 ]+", " ", text)
     words = [w for w in text.split() if w not in _NAME_STOPWORDS]
     return " ".join(words)
+
+
+def normalise_provider_name(name: str | None) -> str:
+    """Upper case; strip punctuation; collapse spaces; drop a trailing ABN; canonicalise suffixes.
+
+    PTY LTD / PTY LIMITED / PROPRIETARY LIMITED -> PTY LTD, LIMITED -> LTD, INCORPORATED -> INC,
+    leading THE dropped. ATF and trust names are kept intact.
+    """
+    if not name:
+        return ""
+    text = name.upper().replace("&", " AND ")
+    text = re.sub(r"['’`]", "", text)
+    text = re.sub(r"[^A-Z0-9 ]+", " ", text)
+    text = " ".join(text.split())
+    text = re.sub(r"\s*\bABN\b.*$", "", text)
+    text = re.sub(r"\b(?:PTY LIMITED|PROPRIETARY LIMITED|PTY LTD)\b", "PTY LTD", text)
+    text = re.sub(r"\bLIMITED\b", "LTD", text)
+    text = re.sub(r"\bINCORPORATED\b", "INC", text)
+    text = re.sub(r"^THE\s+", "", text)
+    return text.strip()
+
+
+_ABN_NOTE = re.compile(r"ccs_identifier:\s*ABN\s*((?:\d\s?){11})(?!\d)", re.IGNORECASE)
+
+
+def extract_abn(notes: str | None) -> str | None:
+    """Eleven digits from a 'ccs_identifier: ABN ...' note, or None. Never invented."""
+    m = _ABN_NOTE.search(notes or "")
+    return re.sub(r"\D", "", m.group(1)) if m else None
 
 
 def normalise_suburb(value: str | None) -> str:
@@ -270,7 +315,12 @@ def transitive_inputs(paths: list[Path]) -> list[Path]:
 class Spine:
     """Lookups over the ACECQA services and the provider profile."""
 
-    def __init__(self, services: list[dict], profiles: list[dict]):
+    def __init__(
+        self,
+        services: list[dict],
+        profiles: list[dict],
+        providers: list[dict] | None = None,
+    ):
         self.services: dict[str, dict] = {}
         for row in services:
             se = row.get("service_approval_number") or normalise_se(
@@ -290,6 +340,46 @@ class Spine:
             state = (row.get("State") or "").strip().upper()
             if key and state:
                 self.by_name[state][key].append(row)
+        # provider -> its services, and the states each provider is present in
+        self.services_by_provider: dict[str, list[dict]] = defaultdict(list)
+        self.provider_states: dict[str, set] = defaultdict(set)
+        for row in self.services.values():
+            pr = self.service_pr(row)
+            if pr:
+                self.services_by_provider[pr].append(row)
+                state = (row.get("State") or "").strip().upper()
+                if state:
+                    self.provider_states[pr].add(state)
+        # normalised provider name -> set of PR numbers. Providers withheld as likely individuals
+        # are left out, so an individual's name can never be matched.
+        withheld = {
+            pr
+            for pr, prof in self.profiles.items()
+            if (prof.get("name_withheld") or "").strip().lower() == "true"
+        }
+        self.provider_names: dict[str, set] = defaultdict(set)
+        if providers is not None:
+            for row in providers:
+                pr = normalise_pr(
+                    row.get("provider_approval_number") or row.get("Provider Approval Number")
+                )
+                if not pr or pr in withheld:
+                    continue
+                for col in ("Legal Name", "Trading Name"):
+                    key = normalise_provider_name(row.get(col))
+                    if key:
+                        self.provider_names[key].add(pr)
+                state = (row.get("State") or "").strip().upper()
+                if state:
+                    self.provider_states[pr].add(state)
+        else:
+            for pr, prof in self.profiles.items():
+                if pr in withheld:
+                    continue
+                for col in ("legal_name", "trading_name"):
+                    key = normalise_provider_name(prof.get(col))
+                    if key:
+                        self.provider_names[key].add(pr)
 
     def service_pr(self, service: dict) -> str | None:
         return service.get("provider_approval_number") or normalise_pr(
@@ -327,6 +417,38 @@ def match_by_name(row: dict, spine: Spine, state: str) -> tuple[dict | None, str
             note += "; printed suburb differs from the ACECQA suburb"
         return candidates[0], CONFIDENCE_NAME_ONLY, note
     return None, CONFIDENCE_NONE, f"ambiguous: {len(candidates)} candidates share the name"
+
+
+def match_by_provider_name(row: dict, spine: Spine, state: str | None) -> tuple[str | None, str]:
+    """Return (provider PR or None, join_note). Accepts a match only when exactly one provider fits."""
+    key = normalise_provider_name(row.get("provider_name"))
+    if not key:
+        return None, "provider name empty after normalisation"
+    candidates = spine.provider_names.get(key, set())
+    if state:
+        candidates = {pr for pr in candidates if state in spine.provider_states.get(pr, set())}
+    where = f" in {state}" if state else ""
+    if not candidates:
+        return None, f"no provider{where} with this normalised name"
+    if len(candidates) > 1:
+        return None, f"ambiguous provider name: {len(candidates)} candidate providers{where}"
+    return next(iter(candidates)), f"unique provider name match{where}"
+
+
+def pin_service(row: dict, spine: Spine, pr: str, state: str | None) -> tuple[dict | None, str]:
+    """Pin a provider-matched row to one of the provider's services by unique normalised name."""
+    key = normalise_service_name(row.get("service_name"))
+    if not key:
+        return None, ""
+    services = spine.services_by_provider.get(pr, [])
+    if state:
+        services = [s for s in services if (s.get("State") or "").strip().upper() == state]
+    same = [s for s in services if normalise_service_name(s.get("ServiceName")) == key]
+    if len(same) == 1:
+        return same[0], "; service pinned by unique name among the provider's services"
+    if len(same) > 1:
+        return None, f"; service not pinned: {len(same)} of the provider's services share the name"
+    return None, "; service not pinned: no service of this provider has the printed name"
 
 
 def attach_service(out: dict, service: dict, spine: Spine) -> None:
@@ -367,6 +489,7 @@ def join_actions(actions: list[dict], spine: Spine) -> list[dict]:
         seen[out["record_id"]] += 1
         out["occurrence"] = seen[out["record_id"]]
         out["counted_in_totals"] = DUPLICATE_NOTE not in (out["notes"] or "")
+        out["abn"] = None if name_withheld_row(out) else extract_abn(out["notes"])
         out.update({c: None for c in JOIN_COLUMNS if c not in out})
         out.update(
             join_key_kind="none",
@@ -414,6 +537,34 @@ def join_actions(actions: list[dict], spine: Spine) -> list[dict]:
                     attach_service(out, service, spine)
         else:
             out["join_note"] = "no service or provider key printed"
+
+        # Third stage: provider name, for rows with no printed key that are still unmatched.
+        if (
+            out["match_confidence"] == CONFIDENCE_NONE
+            and not se
+            and not pr
+            and out["provider_name"]
+            and not name_withheld_row(out)
+        ):
+            state = (out["state"] or "").upper() or None
+            if state is None and jurisdiction in STATES:
+                state = jurisdiction
+            if state not in STATES:
+                state = None
+            matched_pr, note = match_by_provider_name(out, spine, state)
+            if matched_pr is None:
+                out["join_note"] = f"{out['join_note']}; provider name: {note}"
+            else:
+                out.update(
+                    join_key_kind="provider_name_match", match_confidence=CONFIDENCE_PROVIDER_NAME
+                )
+                out["join_note"] = note
+                attach_provider(out, matched_pr, spine.profiles[matched_pr])
+                service, pin_note = pin_service(out, spine, matched_pr, state)
+                if service is not None:
+                    out["match_confidence"] = CONFIDENCE_PROVIDER_AND_SERVICE
+                    attach_service(out, service, spine)
+                out["join_note"] += pin_note
         joined.append(out)
     return joined
 
@@ -482,6 +633,7 @@ def aggregate(
     services_with_any: defaultdict[str, set] = defaultdict(set)
     services_with_recent: defaultdict[str, set] = defaultdict(set)
     name_matched: Counter = Counter()
+    provider_name_matched: Counter = Counter()
 
     for row in joined:
         if not row["counted_in_totals"] or row["join_key_kind"] == "none":
@@ -490,10 +642,13 @@ def aggregate(
         when = parse_iso_date(row["date_issued"])
         recent = when is not None and window[0] <= when <= window[1]
         pr = row["acecqa_provider_approval_number"]
-        if row["join_key_kind"] in ("service", "name_match"):
-            se = row["acecqa_service_approval_number"]
+        by_name = row["match_confidence"] != CONFIDENCE_EXACT
+        se = row["acecqa_service_approval_number"]
+        if row["join_key_kind"] in ("service", "name_match") or (
+            row["join_key_kind"] == "provider_name_match" and se
+        ):
             service_tally.setdefault(se, Tally(types)).add(action_type, when, window)
-            if row["join_key_kind"] == "name_match":
+            if by_name:
                 name_matched[se] += 1
             if pr:
                 provider_tally.setdefault(pr, Tally(types)).add(action_type, when, window)
@@ -501,9 +656,13 @@ def aggregate(
                 services_with_any[pr].add(se)
                 if recent:
                     services_with_recent[pr].add(se)
+                if by_name:
+                    provider_name_matched[pr] += 1
         elif pr:  # provider-level action
             provider_tally.setdefault(pr, Tally(types)).add(action_type, when, window)
             provider_provider_level[pr] += 1
+            if by_name:
+                provider_name_matched[pr] += 1
 
     window_cols = {"window_start": window[0].isoformat(), "window_end": window[1].isoformat()}
     blank = Tally(types).columns()
@@ -567,6 +726,7 @@ def aggregate(
                 "services_with_any_action_last_24_months": len(services_with_recent[pr]),
                 "service_level_actions": provider_service_level[pr],
                 "provider_level_actions": provider_provider_level[pr],
+                "actions_matched_by_name": provider_name_matched[pr],
                 **window_cols,
                 **cols,
                 "actions_last_24_months_per_service": (
@@ -616,6 +776,7 @@ def provider_columns(types: list[str]) -> list[str]:
             "services_with_any_action_last_24_months",
             "service_level_actions",
             "provider_level_actions",
+            "actions_matched_by_name",
             "window_start",
             "window_end",
         ]
@@ -705,8 +866,12 @@ def build_report(
                 "joined_by_name": 0,
                 "joined_by_name_and_suburb": 0,
                 "joined_by_name_only": 0,
+                "joined_by_provider_name": 0,
+                "joined_by_provider_name_unpinned": 0,
+                "joined_by_provider_and_service_name": 0,
                 "unmatched": 0,
                 "unmatched_ambiguous_name": 0,
+                "unmatched_ambiguous_provider_name": 0,
                 "duplicate_rows_not_counted": 0,
                 "unmatched_reasons": {},
                 "unmatched_examples": [],
@@ -723,21 +888,30 @@ def build_report(
         elif confidence in (CONFIDENCE_NAME_SUBURB, CONFIDENCE_NAME_ONLY):
             s["joined_by_name"] += 1
             s[f"joined_by_{confidence}"] += 1
+        elif confidence in (CONFIDENCE_PROVIDER_NAME, CONFIDENCE_PROVIDER_AND_SERVICE):
+            s["joined_by_provider_name"] += 1
+            if confidence == CONFIDENCE_PROVIDER_NAME:
+                s["joined_by_provider_name_unpinned"] += 1
+            else:
+                s["joined_by_provider_and_service_name"] += 1
         else:
             s["unmatched"] += 1
-            if (row["join_note"] or "").startswith("ambiguous"):
+            note = row["join_note"] or ""
+            if note.startswith("ambiguous"):
                 s["unmatched_ambiguous_name"] += 1
+            if "ambiguous provider name" in note:
+                s["unmatched_ambiguous_provider_name"] += 1
             reason = re.sub(
                 r"\b(?:SE|PR)-\d{8}\b", "<key>", row["join_note"] or "no reason recorded"
             )
-            reason = re.sub(r"\d+ candidates", "N candidates", reason)
+            reason = re.sub(r"\d+ candidate(?: provider)?s", "N candidates", reason)
             s["unmatched_reasons"][reason] = s["unmatched_reasons"].get(reason, 0) + 1
             if len(s["unmatched_examples"]) < UNMATCHED_EXAMPLES:
                 s["unmatched_examples"].append(
                     {"record_id": row["record_id"], "action_type": row["action_type"]}
                 )
     for s in per.values():
-        joined_n = s["joined_exact_key"] + s["joined_by_name"]
+        joined_n = s["joined_exact_key"] + s["joined_by_name"] + s["joined_by_provider_name"]
         s["match_rate"] = round(joined_n / s["rows_in"], 4) if s["rows_in"] else None
 
     total = len(joined)
@@ -787,6 +961,8 @@ def build_report(
             "Only NSW (from Jan 2025), VIC (from Jan 2026), QLD (from 2017, no keys) are collected; other states are not covered. "
             + SAFETY_SENTENCE,
             "Name-withheld providers are excluded from the top lists.",
+            "Rows joined by provider name (provider_name_unique, provider_and_service_name) carry no printed key: they are accepted only when exactly one ACECQA provider has the normalised name, but a name match is weaker evidence than a key. actions_matched_by_name on each table shows how many of a row's counts rest on a name.",
+            "Commonwealth CCS sanctions attach to the CCS approved provider, so a provider-name match is provider-level unless the service is pinned. ABNs are carried in enforcement-actions-all.csv for the Phase 4 ABR stage and are not matched here.",
         ],
     }
 
@@ -802,7 +978,7 @@ def discover_action_files() -> list[Path]:
 
 def main() -> None:
     action_files = discover_action_files()
-    for needed in (SERVICES_CSV, PROFILE_CSV):
+    for needed in (SERVICES_CSV, PROFILE_CSV, PROVIDERS_CSV):
         if not needed.exists():
             raise SystemExit(
                 f"missing {needed.relative_to(PROJECT_ROOT)}: "
@@ -814,7 +990,8 @@ def main() -> None:
 
     services = load_csv(SERVICES_CSV)
     profiles = load_csv(PROFILE_CSV)
-    spine = Spine(services, profiles)
+    providers = load_csv(PROVIDERS_CSV)
+    spine = Spine(services, profiles, providers)
     end = snapshot_date(services)
     if end is None:
         raise SystemExit("no usable snapshot_last_modified in the services spine")
@@ -831,10 +1008,7 @@ def main() -> None:
     cth_present = any(r["jurisdiction"] == "CTH" and r["join_key_kind"] != "none" for r in joined)
     service_rows, provider_rows = aggregate(joined, spine, types, window, cth_present)
 
-    inputs = [SERVICES_CSV]
-    if PROVIDERS_CSV.exists():
-        inputs.append(PROVIDERS_CSV)
-    inputs += [PROFILE_CSV, *action_files]
+    inputs = [SERVICES_CSV, PROVIDERS_CSV, PROFILE_CSV, *action_files]
     raw_inputs = transitive_inputs(inputs)
 
     base_note = (
@@ -855,7 +1029,8 @@ def main() -> None:
         schema="data/schemas/enforcement-action.schema.json",
         notes=base_note
         + " join_key_kind is the join that succeeded (none when unjoined); match_confidence "
-        "unmatched means no join. occurrence numbers rows sharing a record_id.",
+        "unmatched means no join. occurrence numbers rows sharing a record_id. abn is carried from "
+        "'ccs_identifier: ABN' notes for the Phase 4 ABR stage (null where the subject is withheld).",
     )
     write_processed(
         "enforcement-by-service",
@@ -883,11 +1058,14 @@ def main() -> None:
     log.info("wrote %s", REPORT_JSON.relative_to(PROJECT_ROOT))
     for j, s in report["per_jurisdiction"].items():
         log.info(
-            "%s: %d rows, %d exact key, %d by name, %d unmatched (match rate %s)",
+            "%s: %d rows, %d exact key, %d by service name, %d by provider name "
+            "(%d pinned to a service), %d unmatched (match rate %s)",
             j,
             s["rows_in"],
             s["joined_exact_key"],
             s["joined_by_name"],
+            s["joined_by_provider_name"],
+            s["joined_by_provider_and_service_name"],
             s["unmatched"],
             s["match_rate"],
         )

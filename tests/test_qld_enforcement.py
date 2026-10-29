@@ -225,3 +225,27 @@ def test_rows_conform_to_schema():
             if pattern and r[key] is not None:
                 assert re.search(pattern, r[key]), (key, r[key])
         assert isinstance(r["legal_references"], list)
+
+
+def test_location_columns_stay_null_because_the_register_prints_no_location():
+    """The register's four columns carry no suburb, state or address (checked against the
+    2026-10-29 snapshot). A trailing place name in a service name (for example 'Kidspace
+    Caloundra') is part of the service name, not a printed location, so it is not split off."""
+    rows = parse_register(FIXTURE)
+    assert rows
+    for row in rows:
+        assert row["suburb"] is None
+        assert row["state"] is None
+        assert row["address"] is None
+        assert row["postcode"] is None
+    named = [r for r in rows if r["service_name"] and "Natural Elements" in r["service_name"]]
+    assert named[0]["service_name"] == "Natural Elements Early Learning Centre"
+
+
+def test_location_is_populated_only_when_the_register_prints_it():
+    html = f"""<html><body><h2>2026</h2><table>{HEADER}
+    <tr><td><p>Example Learning Pty Ltd</p><p>Example Learning Centre</p></td><td>01/02/2026</td>
+    <td><a href="/docs/example.pdf">Suspension of service approval</a></td><td>N/A</td></tr>
+    </table></body></html>"""
+    (row,) = parse_register(html)
+    assert (row["suburb"], row["state"], row["address"]) == (None, None, None)

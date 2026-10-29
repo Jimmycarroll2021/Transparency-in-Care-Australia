@@ -312,3 +312,244 @@ def test_transitive_inputs_follow_provenance(tmp_path, monkeypatch):
     (tmp_path / "b.provenance.json").write_text('{"raw_inputs": ["raw/two.gz", "raw/one.gz"]}')
     got = je.transitive_inputs([tmp_path / "a.csv"])
     assert [p.name for p in got] == ["a.csv", "b.csv", "one.gz", "two.gz"]
+
+
+# ---------------------------------------------------------------------------
+# Provider-name stage
+# ---------------------------------------------------------------------------
+
+
+def provider(pr, legal, trading="", state="NSW"):
+    return {
+        "provider_approval_number": pr,
+        "Legal Name": legal,
+        "Trading Name": trading,
+        "State": state,
+    }
+
+
+@pytest.fixture
+def pspine():
+    services = [
+        svc("SE-00000101", "PR-00000101", "Bright Start Kindy", state="NSW", suburb="Manly"),
+        svc("SE-00000102", "PR-00000101", "Bright Start Annex", state="NSW", suburb="Dee Why"),
+        svc("SE-00000103", "PR-00000101", "Bright Start Annex", state="NSW", suburb="Collaroy"),
+        svc("SE-00000104", "PR-00000101", "Bright Start Kindy", state="VIC", suburb="Carlton"),
+        svc("SE-00000201", "PR-00000201", "Twin Care", state="NSW"),
+        svc("SE-00000301", "PR-00000301", "Twin Care", state="NSW"),
+        svc("SE-00000401", "PR-00000401", "Southern Cross Kids", state="VIC"),
+        svc("SE-00000501", "PR-00000501", "Sole Trader Care", state="NSW"),
+        svc("SE-00000601", "PR-00000601", "Cross Border Care", state="QLD"),
+    ]
+    profiles = [
+        prof("PR-00000101", "Bright Start Pty Ltd", 4, states="NSW, VIC"),
+        prof("PR-00000201", "Twin Holdings Pty Ltd", 1, states="NSW"),
+        prof("PR-00000301", "Twin Holdings Proprietary Limited", 1, states="NSW"),
+        prof("PR-00000401", "Southern Cross Kids Inc", 1, states="VIC"),
+        prof("PR-00000501", None, 1, withheld="true", form="likely_individual", states="NSW"),
+        prof("PR-00000601", "Cross Border Pty Ltd", 1, states="QLD"),
+    ]
+    providers = [
+        provider("PR-00000101", "THE BRIGHT START PTY. LIMITED", "Bright Start Kindy", "NSW"),
+        provider("PR-00000201", "Twin Holdings Pty Ltd", "", "NSW"),
+        provider("PR-00000301", "TWIN HOLDINGS PROPRIETARY LIMITED", "", "NSW"),
+        provider("PR-00000401", "Southern Cross Kids Incorporated", "", "VIC"),
+        provider("PR-00000501", "Placeholder Person Name", "", "NSW"),
+        provider("PR-00000601", "Cross Border Pty Ltd", "", "QLD"),
+    ]
+    return je.Spine(services, profiles, providers)
+
+
+def pact(name, *, rid="p1", jur="CTH", state="", service="", notes="", **kw):
+    row = act(rid=rid, jur=jur, state=state, notes=notes, name=service, **kw)
+    row["provider_name"] = name
+    return row
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("The Bright Start Pty. Limited", "BRIGHT START PTY LTD"),
+        ("Bright Start Proprietary Limited ABN 12 345 678 901", "BRIGHT START PTY LTD"),
+        ("Bright Start Pty Ltd", "BRIGHT START PTY LTD"),
+        ("Kids Club Incorporated", "KIDS CLUB INC"),
+        ("Acme Services Limited", "ACME SERVICES LTD"),
+        ("Corp Pty Ltd ATF Smith Family Trust", "CORP PTY LTD ATF SMITH FAMILY TRUST"),
+        ("Kids & Co's  Care", "KIDS AND COS CARE"),
+        (None, ""),
+    ],
+)
+def test_normalise_provider_name(raw, expected):
+    assert je.normalise_provider_name(raw) == expected
+
+
+def test_provider_name_unique_match(pspine):
+    (row,) = je.join_actions([pact("Bright Start Pty Ltd", state="NSW")], pspine)
+    assert row["join_key_kind"] == "provider_name_match"
+    assert row["match_confidence"] == "provider_name_unique"
+    assert row["acecqa_provider_approval_number"] == "PR-00000101"
+    assert row["acecqa_provider_legal_name"] == "Bright Start Pty Ltd"
+    assert row["acecqa_service_approval_number"] is None
+    # the source row's own key columns stay empty
+    assert row["service_approval_number"] is None
+    assert row["provider_approval_number"] is None
+
+
+def test_provider_name_match_on_trading_name(pspine):
+    (row,) = je.join_actions([pact("BRIGHT START KINDY", state="NSW")], pspine)
+    assert row["acecqa_provider_approval_number"] == "PR-00000101"
+
+
+def test_provider_name_ambiguous_left_unmatched_with_count(pspine):
+    # PR-00000201 and PR-00000301 normalise to the same name
+    (row,) = je.join_actions([pact("Twin Holdings Pty Ltd")], pspine)
+    assert row["join_key_kind"] == "none"
+    assert row["match_confidence"] == "unmatched"
+    assert row["acecqa_provider_approval_number"] is None
+    assert "ambiguous provider name: 2 candidate providers" in row["join_note"]
+    rows = je.join_actions([pact("Twin Holdings Pty Ltd")], pspine)
+    report = je.build_report(rows, [], [], TYPES, WINDOW, [], [])
+    assert report["per_jurisdiction"]["CTH"]["unmatched_ambiguous_provider_name"] == 1
+
+
+def test_provider_name_withheld_provider_never_matched(pspine):
+    # A name equal to a withheld (likely individual) provider's legal name is never matched.
+    (row,) = je.join_actions([pact("Placeholder Person Name", state="NSW")], pspine)
+    assert row["match_confidence"] == "unmatched"
+    assert row["acecqa_provider_approval_number"] is None
+
+
+def test_withheld_row_and_null_provider_name_not_attempted(pspine):
+    rows = je.join_actions(
+        [
+            pact(
+                "Bright Start Pty Ltd",
+                rid="a",
+                notes="provider name withheld; subject is an individual",
+            ),
+            pact(None, rid="b"),
+        ],
+        pspine,
+    )
+    assert [r["match_confidence"] for r in rows] == ["unmatched", "unmatched"]
+    assert all("provider name:" not in r["join_note"] for r in rows)
+
+
+def test_provider_name_state_restriction(pspine):
+    # Southern Cross Kids Inc only operates in VIC
+    (vic,) = je.join_actions([pact("Southern Cross Kids Incorporated", state="VIC")], pspine)
+    assert vic["acecqa_provider_approval_number"] == "PR-00000401"
+    (nsw,) = je.join_actions([pact("Southern Cross Kids Inc", state="NSW")], pspine)
+    assert nsw["match_confidence"] == "unmatched"
+    assert "no provider in NSW" in nsw["join_note"]
+    # no state: unrestricted
+    (none,) = je.join_actions([pact("Southern Cross Kids Inc")], pspine)
+    assert none["acecqa_provider_approval_number"] == "PR-00000401"
+    # a QLD-register row takes QLD from its jurisdiction when state is blank
+    (qld,) = je.join_actions([pact("Southern Cross Kids Inc", jur="QLD")], pspine)
+    assert qld["match_confidence"] == "unmatched"
+    # a provider registered in one state counts as present where its services are
+    (cross,) = je.join_actions([pact("Bright Start Pty Ltd", state="VIC")], pspine)
+    assert cross["acecqa_provider_approval_number"] == "PR-00000101"
+
+
+def test_provider_and_service_pin(pspine):
+    (row,) = je.join_actions(
+        [pact("Bright Start Pty Ltd", state="NSW", service="Bright Start Kindy Pty Ltd")], pspine
+    )
+    assert row["match_confidence"] == "provider_and_service_name"
+    assert row["join_key_kind"] == "provider_name_match"
+    assert row["acecqa_service_approval_number"] == "SE-00000101"
+    assert row["acecqa_provider_approval_number"] == "PR-00000101"
+    assert row["service_approval_number"] is None  # never set on the source columns
+
+
+def test_service_pin_needs_unique_name_within_state(pspine):
+    # two NSW services share the name: provider match kept, service not pinned
+    (row,) = je.join_actions(
+        [pact("Bright Start Pty Ltd", state="NSW", service="Bright Start Annex")], pspine
+    )
+    assert row["match_confidence"] == "provider_name_unique"
+    assert row["acecqa_service_approval_number"] is None
+    assert "not pinned: 2" in row["join_note"]
+    # no state: the same name is also shared by the unrelated-state service, so still unpinned
+    (row,) = je.join_actions([pact("Bright Start Pty Ltd", service="Bright Start Kindy")], pspine)
+    assert row["match_confidence"] == "provider_name_unique"
+    assert row["acecqa_service_approval_number"] is None
+    # a service the provider does not run is not pinned
+    (row,) = je.join_actions([pact("Bright Start Pty Ltd", service="Twin Care")], pspine)
+    assert row["match_confidence"] == "provider_name_unique"
+    assert row["acecqa_service_approval_number"] is None
+
+
+def test_key_matched_and_service_matched_rows_skip_provider_stage(pspine):
+    keyed = pact("Bright Start Pty Ltd", se="SE-09999999", state="NSW")
+    (row,) = je.join_actions([keyed], pspine)
+    assert row["match_confidence"] == "unmatched"  # key absent from spine: not name matched
+    assert row["join_note"] == "service key SE-09999999 not in the spine"
+    (row,) = je.join_actions([pact("Whoever", se="SE-00000101")], pspine)
+    assert row["match_confidence"] == "exact_key"
+
+
+def test_qld_provider_stage_runs_after_service_name_stage(pspine):
+    # service name unknown, provider known: provider-name match; a service-name hit wins first
+    (a,) = je.join_actions(
+        [pact("Cross Border Pty Ltd", jur="QLD", service="Not A Real Service")], pspine
+    )
+    assert a["join_key_kind"] == "provider_name_match"
+    assert a["match_confidence"] == "provider_name_unique"
+    assert a["acecqa_provider_approval_number"] == "PR-00000601"
+    (b,) = je.join_actions(
+        [pact("Some Other Name", jur="QLD", service="Cross Border Care")], pspine
+    )
+    assert b["join_key_kind"] == "name_match"
+    assert b["match_confidence"] == "name_only"
+
+
+def test_abn_carried_through_and_withheld_rows_have_none(pspine):
+    with_abn = pact(
+        "Bright Start Pty Ltd",
+        rid="a",
+        notes="service_type: X; ccs_identifier: ABN 12345678901; end_date: 1 May 2027",
+    )
+    spaced = pact("Other Pty Ltd", rid="b", notes="ccs_identifier: ABN 12 345 678 901")
+    withheld = pact(
+        None,
+        rid="c",
+        notes="provider name withheld; subject is an individual; ccs_identifier: ABN 12345678901",
+    )
+    short = pact("Short Pty Ltd", rid="d", notes="ccs_identifier: ABN 1234567")
+    plain = pact("Plain Pty Ltd", rid="e", notes="end_date: 1 May 2027")
+    rows = je.join_actions([with_abn, spaced, withheld, short, plain], pspine)
+    assert [r["abn"] for r in rows] == ["12345678901", "12345678901", None, None, None]
+    assert "abn" in je.ALL_COLUMNS
+
+
+def test_provider_name_match_is_provider_level_and_pin_is_service_level(pspine):
+    actions = [
+        pact("Bright Start Pty Ltd", rid="a", state="NSW", when="2026-05-05"),
+        pact(
+            "Bright Start Pty Ltd",
+            rid="b",
+            state="NSW",
+            service="Bright Start Kindy",
+            when="2026-05-06",
+        ),
+        pact("Bright Start Pty Ltd", rid="c", state="NSW", notes="duplicate row in source"),
+    ]
+    joined = je.join_actions(actions, pspine)
+    service_rows, provider_rows = je.aggregate(joined, pspine, TYPES, WINDOW, cth_present=True)
+    p = next(r for r in provider_rows if r["provider_approval_number"] == "PR-00000101")
+    assert p["provider_level_actions"] == 1
+    assert p["service_level_actions"] == 1
+    assert p["actions_total"] == 2  # duplicate not counted
+    assert p["actions_matched_by_name"] == 2
+    assert p["services_with_any_action_last_24_months"] == 1
+    s = next(r for r in service_rows if r["service_approval_number"] == "SE-00000101")
+    assert s["actions_total"] == 1 and s["actions_matched_by_name"] == 1
+    report = je.build_report(joined, service_rows, provider_rows, TYPES, WINDOW, [], [])
+    cth = report["per_jurisdiction"]["CTH"]
+    assert cth["joined_by_provider_name"] == 3
+    assert cth["joined_by_provider_and_service_name"] == 1
+    assert cth["joined_by_provider_name_unpinned"] == 2
+    assert cth["match_rate"] == 1.0
