@@ -1,0 +1,16 @@
+{
+  "source": "sa-enforcement",
+  "url": "https://www.esb.sa.gov.au/node/606",
+  "final_url": "https://www.esb.sa.gov.au/node/606",
+  "status": 200,
+  "fetched_at": "2026-10-29T08:19:36.863139+00:00",
+  "content_type": "text/html; charset=UTF-8",
+  "last_modified": null,
+  "etag": null,
+  "bytes": 45767,
+  "sha256": "afcfb7589d243705a3cab6bf760336bd12a3a0b0040ddc225a074da030058e50",
+  "user_agent": "TransparencyInCareAustralia/0.1 (+https://github.com/Jimmycarroll2021/Transparency-in-Care-Australia; jimmisound@gmail.com)",
+  "page_slug": "606",
+  "licence_note": "ESB copyright and disclaimer page (https://www.esb.sa.gov.au/copyright-disclaimer) states: 'All rights reserved.'. Not openly licensed. Used under the project owner's statement of 2026-10-29 that consent was obtained from the data owner (CLAUDE.md, Current phase).",
+  "discovered_from": "https://www.esb.sa.gov.au/node/606"
+}

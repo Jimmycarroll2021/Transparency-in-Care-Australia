@@ -6,9 +6,15 @@ regulatory facts.
 
 ## Current phase
 
-**Phase 1: Gap validation.** No build decision taken. Do not scaffold a web app or write
-production scrapers until `data/gap-ledger.json` has at least one gap with `status: "validated"`
-and the ACECQA licensing question is answered (see `docs/01-gap-analysis.md` section 5).
+**Phase 2: Archive and parsers.** Gate passed 2026-10-29. Condition 1: GAP-001, 002, 003, 005
+and 007 validated (`research/2026-10-29-phase-1-learnings.md`). Condition 2: the project owner
+has stated that consent has been obtained from ACECQA and the other data owners for the uses in
+`docs/02-acecqa-consent-request.md`. Save each written reply to `data/evidence/` by script.
+Execution plan: `docs/02-execution-plan.md`.
+
+Phase 2 scope: daily ACECQA register snapshots, enforcement parsers for NSW, Victoria, Queensland
+and the Commonwealth, shared helpers in `scrapers/common.py`, and the enforcement action schema in
+`data/schemas/enforcement-action.schema.json`. No public site yet (Phase 5, after legal review).
 
 Phase plan:
 1. Gap validation (now): `/validate-gap`
@@ -77,6 +83,15 @@ scrapers/             Collection scripts (Phase 2 onward)
 
 - Validate the gap ledger: `python3 .claude/hooks/validate_ledger.py data/gap-ledger.json`
 - Test the hooks: `bash .claude/hooks/test_hooks.sh`
+- Snapshot ACECQA registers: `python3 scrapers/snapshot_acecqa_registers.py`
+- Parse VECRA enforcement actions: `python3 scrapers/parse_vecra_enforcement.py`
+- Profile providers: `python3 scrapers/profile_providers.py`
+- Parse Queensland enforcement register: `python3 scrapers/parse_qld_enforcement.py`
+- Parse Commonwealth CCS enforcement register: `python3 scrapers/parse_cth_ccs_enforcement.py --current-file F --past-file G` (education.gov.au drops non-browser clients: save both pages from a browser; `--skip-fetch` re-parses the newest snapshots)
+- Parse NSW enforcement register: `python3 scrapers/parse_nsw_enforcement.py`
+- Join enforcement onto the ACECQA spine: `python3 scrapers/join_enforcement.py`
+- Parse SA enforcement register: `python3 scrapers/parse_sa_enforcement.py`
+- Parse WA enforcement register: `python3 scrapers/parse_wa_enforcement.py` (needs `pip install playwright && playwright install chromium`; the ECRU register is a Caspio search form with no static page)
 
 Add commands here only once the script exists.
 

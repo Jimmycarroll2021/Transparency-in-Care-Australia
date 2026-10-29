@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Enforcement action record",
+  "description": "One published enforcement action against an education and care service or approved provider, as parsed from an official register. One row per action per service. Person-level fields are never stored.",
+  "type": "object",
+  "required": [
+    "record_id",
+    "jurisdiction",
+    "source_register",
+    "source_document",
+    "captured_at",
+    "action_type",
+    "action_type_raw"
+  ],
+  "properties": {
+    "record_id": { "type": "string", "description": "Stable hash of jurisdiction, service or provider key, action_type_raw, date_issued_raw and reason." },
+    "jurisdiction": { "enum": ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT", "CTH"] },
+    "source_register": { "type": "string", "pattern": "^https://", "description": "Index page of the register." },
+    "source_document": { "type": "string", "pattern": "^https://", "description": "The page or file the row was parsed from." },
+    "source_snapshot": { "type": "string", "description": "Path under data/raw/ of the snapshot parsed." },
+    "captured_at": { "type": "string", "description": "ISO 8601 UTC time the snapshot was fetched." },
+    "service_approval_number": { "type": ["string", "null"], "pattern": "^SE-\\d{8}$" },
+    "service_approval_number_raw": { "type": ["string", "null"] },
+    "provider_approval_number": { "type": ["string", "null"], "pattern": "^PR-\\d{8}$" },
+    "provider_approval_number_raw": { "type": ["string", "null"] },
+    "service_name": { "type": ["string", "null"] },
+    "provider_name": { "type": ["string", "null"], "description": "Legal or trading name of the approved provider entity. Never an individual." },
+    "address": { "type": ["string", "null"] },
+    "suburb": { "type": ["string", "null"] },
+    "state": { "type": ["string", "null"] },
+    "postcode": { "type": ["string", "null"] },
+    "action_type": {
+      "enum": [
+        "condition_imposed",
+        "approval_amended",
+        "approval_suspended",
+        "approval_cancelled",
+        "compliance_notice",
+        "compliance_direction",
+        "emergency_action_notice",
+        "enforceable_undertaking",
+        "prohibition_notice",
+        "direction_to_exclude",
+        "infringement_notice",
+        "show_cause_notice",
+        "prosecution",
+        "ccs_sanction",
+        "other"
+      ],
+      "description": "Normalised category. Use 'other' and keep action_type_raw when unsure; never guess."
+    },
+    "action_type_raw": { "type": "string", "description": "Exactly as printed by the register." },
+    "reason": { "type": ["string", "null"], "description": "Reason text as printed. Free text. Must not contain individual names." },
+    "legal_references": { "type": "array", "items": { "type": "string" }, "description": "Section and regulation numbers cited, as printed." },
+    "date_issued": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "date_issued_raw": { "type": ["string", "null"] },
+    "period_label": { "type": ["string", "null"], "description": "Register period the row came from, e.g. '2025 Q2' or 'August 2026'." },
+    "notes": { "type": ["string", "null"], "description": "Parser warnings: duplicate rows, unparsable dates, missing keys." }
+  }
+}

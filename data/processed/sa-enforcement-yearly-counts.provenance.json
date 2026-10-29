@@ -1,0 +1,23 @@
+{
+  "output": "data/processed/sa-enforcement-yearly-counts.csv",
+  "written_at": "2026-10-29T08:23:38.334879+00:00",
+  "rows": 36,
+  "schema": null,
+  "raw_inputs": [
+    "data/raw/sa-enforcement/2026-10-29T0819Z-current-compliance-action.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2013.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2014.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2015.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2016.html",
+    "data/raw/sa-enforcement/2026-10-29T0821Z-historical-compliance-action-2017.html",
+    "data/raw/sa-enforcement/2026-10-29T0821Z-historical-compliance-action-2018.html",
+    "data/raw/sa-enforcement/2026-10-29T0821Z-historical-compliance-action-2019.html",
+    "data/raw/sa-enforcement/2026-10-29T0821Z-historical-compliance-action-2020.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-historical-compliance-action-2021.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2022.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-historical-compliance-action-2022-23.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-copyright-disclaimer.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-historical-index.html"
+  ],
+  "notes": "Summary table of statutory compliance actions issued by type and financial year, as printed on the ESB current compliance action page. count_raw keeps the printed cell. Counts are far larger than the number of per-service entries published on the pages, so most actions counted here have no published detail. Use as a denominator only with that caveat. Absence of an entry is not evidence of safety."
+}

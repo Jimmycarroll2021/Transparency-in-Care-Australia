@@ -1,0 +1,16 @@
+{
+  "source": "sa-enforcement",
+  "url": "https://www.esb.sa.gov.au/historical-compliance-action-2014",
+  "final_url": "https://www.esb.sa.gov.au/historical-compliance-action-2014",
+  "status": 200,
+  "fetched_at": "2026-10-29T08:22:02.737736+00:00",
+  "content_type": "text/html; charset=UTF-8",
+  "last_modified": null,
+  "etag": null,
+  "bytes": 58955,
+  "sha256": "d66e34d5185b45fd9e657b262888511e192020187844be87ee14e5a82d54fbe7",
+  "user_agent": "TransparencyInCareAustralia/0.1 (+https://github.com/Jimmycarroll2021/Transparency-in-Care-Australia; jimmisound@gmail.com)",
+  "page_slug": "historical-compliance-action-2014",
+  "licence_note": "ESB copyright and disclaimer page (https://www.esb.sa.gov.au/copyright-disclaimer) states: 'All rights reserved.'. Not openly licensed. Used under the project owner's statement of 2026-10-29 that consent was obtained from the data owner (CLAUDE.md, Current phase).",
+  "discovered_from": "https://www.esb.sa.gov.au/historical-compliance-action-2014"
+}

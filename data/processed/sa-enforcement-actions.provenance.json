@@ -1,0 +1,23 @@
+{
+  "output": "data/processed/sa-enforcement-actions.csv",
+  "written_at": "2026-10-29T08:23:38.333548+00:00",
+  "rows": 436,
+  "schema": "data/schemas/enforcement-action.schema.json",
+  "raw_inputs": [
+    "data/raw/sa-enforcement/2026-10-29T0819Z-current-compliance-action.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2013.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2014.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2015.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2016.html",
+    "data/raw/sa-enforcement/2026-10-29T0821Z-historical-compliance-action-2017.html",
+    "data/raw/sa-enforcement/2026-10-29T0821Z-historical-compliance-action-2018.html",
+    "data/raw/sa-enforcement/2026-10-29T0821Z-historical-compliance-action-2019.html",
+    "data/raw/sa-enforcement/2026-10-29T0821Z-historical-compliance-action-2020.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-historical-compliance-action-2021.html",
+    "data/raw/sa-enforcement/2026-10-29T0822Z-historical-compliance-action-2022.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-historical-compliance-action-2022-23.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-copyright-disclaimer.html",
+    "data/raw/sa-enforcement/2026-10-29T0819Z-historical-index.html"
+  ],
+  "notes": "South Australia ESB compliance actions under the National Law, parsed from the HTML current and historical pages (latest snapshot of each). ESB content is All rights reserved; used under the project owner's statement of consent. Pages before 2022 print no SE-/PR- numbers, so those rows cannot be joined on a key. legal_references is a JSON array. Provider names that may be individuals are withheld. Absence of an entry is not evidence of safety."
+}

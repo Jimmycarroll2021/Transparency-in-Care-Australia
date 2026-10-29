@@ -1,0 +1,16 @@
+{
+  "output": "data/processed/vecra-enforcement-monthly-counts.csv",
+  "written_at": "2026-10-29T07:22:30.264975+00:00",
+  "rows": 99,
+  "schema": null,
+  "raw_inputs": [
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-january-march-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-april-may-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-june-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-july-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-august-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0721Z-summary-table.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-index.html"
+  ],
+  "notes": "Summary table counts of all compliance actions by type per period, as printed. count_raw keeps the printed cell; a printed dash is read as 0 [Verify This]. Administrative actions (caution and compliance report letters) are counted here but their details are not published, so counts exceed published rows."
+}

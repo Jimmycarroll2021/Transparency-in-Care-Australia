@@ -1,0 +1,43 @@
+name: snapshot-acecqa
+
+# Daily snapshot of the ACECQA national registers (services and approved providers).
+#
+# Caveat: GitHub-hosted runners may receive HTTP 403 from acecqa.gov.au (Cloudflare bot
+# protection). If the fetch step fails three days running, the project owner should run
+# `python3 scrapers/snapshot_acecqa_registers.py` from their own machine and commit the result.
+# The job never retries with altered headers; it uses the project's honest User-Agent only.
+
+on:
+  schedule:
+    - cron: "15 19 * * *" # 19:15 UTC, about 05:15 AEST
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snapshot-acecqa
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Snapshot ACECQA registers
+        run: python3 scrapers/snapshot_acecqa_registers.py
+      - name: Commit new files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/raw/acecqa-* data/processed/acecqa-*.provenance.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "snapshot: ACECQA registers $(date -u +%Y-%m-%d)"
+            git push
+          fi

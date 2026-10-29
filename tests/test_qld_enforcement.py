@@ -1,0 +1,251 @@
+"""Tests for the Queensland enforcement register parser. No network."""
+
+import json
+import re
+from pathlib import Path
+
+from scrapers.parse_qld_enforcement import (
+    INDEX_URL,
+    INDIVIDUAL_NOTE,
+    NO_APPROVAL_NOTE,
+    map_action_type,
+    parse_date,
+    parse_register,
+)
+
+SCHEMA = json.loads(
+    (
+        Path(__file__).resolve().parent.parent / "data/schemas/enforcement-action.schema.json"
+    ).read_text()
+)
+
+HEADER = (
+    "<tr><th><p>Provider or individual name</p><p>Service name</p></th>"
+    "<th>Date of action</th><th>Details</th><th>Breaches (if applicable)</th></tr>"
+)
+
+FIXTURE = f"""
+<html><body>
+<h2>2026</h2>
+<table>{HEADER}
+<tr><td>​​Inspired Kids Family Day Care Pty Ltd</td><td>​25/9/2026</td>
+  <td><a href="/ececRegulation/Documents/cancellation-inspired-kids.pdf">Cancellation of provider approval</a></td>
+  <td>N/A​</td></tr>
+<tr><td><p>Lynnette Olwyn Boulton</p><p>Kidspace Caloundra</p></td><td>22/09/2026</td>
+  <td><p>Approved provider fined $8,000 for missing child</p>
+   <p><a href="/ececRegulation/Documents/prosecution-lynnette-olwyn-boulton.pdf">Prosecution</a><br/>
+   <a href="/sector-news/approved-provider-fined">Further information</a></p></td>
+  <td><p>NL s.165\u2014Offence relating to inadequately supervise children</p>
+      <p>NR r.99\u2014Children leaving the education and care premises</p></td></tr>
+<tr><td><p>East Coast Early Learning Pty Ltd</p><p>Natural Elements Early Learning Centre</p></td>
+  <td>0​4/09/2026</td>
+  <td><p>Approved provider fined $12,000 for missing child</p>
+   <p><a href="/docs/prosecution-east-coast.docx">Prosecution</a><br/>
+   <a href="/docs/prosecution-east-coast.pdf">Prosecution</a><br/>
+   <a href="/news/east-coast-fined">Further information</a></p></td>
+  <td><p>NL s.165\u2014Offence relating to inadequately supervise children</p></td></tr>
+<tr><td>Reena Kapoor</td><td>07/09/2026</td>
+  <td><a href="/docs/cancellation-reena-kapoor.pdf">Cancellation of provider approval</a></td><td>N/A</td></tr>
+<tr><td>Nova Star Childcare Pty Ltd</td><td>17/04/2026</td>
+  <td><a href="/docs/nova.pdf">Suspension of service approval\u2014lifted</a></td><td>N/A</td></tr>
+</table>
+<h2>2024</h2>
+<table>{HEADER}
+<tr><td>Oakhaul Pty Ltd</td><td>14/02/24</td><td><p>Approved provider was fined $23,000</p>
+  <p><a href="/docs/oakhaul.pdf">Prosecution</a></p></td><td>8 breaches</td></tr>
+<tr><td>G8 Education Limited</td><td>09/09/2024</td>
+  <td><a href="/docs/g8.pdf">Enforceable undertaking\u2014discharged</a></td><td>N/A</td></tr>
+</table>
+<h2>2022</h2>
+<table>{HEADER}
+<tr><td>Frogtastic Educational Kindergarten and Childcare</td><td>02/06/2022</td>
+  <td><a href="/docs/frog.docx">Cancellation of service approval</a></td><td>N/A</td></tr>
+<tr><td>Educator\u2014centre-based service</td><td>23/12/2022</td>
+  <td><a href="/docs/eu-educator.pdf">Enforceable undertaking</a></td>
+  <td><p>NL s.166\u2014Offence to use inappropriate discipline</p></td></tr>
+<tr><td><p>Fardowsa Labaale</p><p>Labaale Family Day Care</p></td><td>04/11/2022</td>
+  <td><a href="/docs/fardowsa-labaale-cancellation.pdf">Cancellation of provider approval</a></td>
+  <td>N/A</td></tr>
+<tr><td>Damon and Kylie Ferguson</td><td>24/01/2022</td>
+  <td><a href="/docs/ferguson.pdf">Compliance notice</a></td><td>N/A</td></tr>
+</table>
+<table><tr><th>Unrelated</th></tr><tr><td>ignore me</td></tr></table>
+</body></html>
+"""
+
+
+def rows():
+    return parse_register(
+        FIXTURE, page_url=INDEX_URL, captured_at="2026-10-29T07:00:00+00:00", source_snapshot="x"
+    )
+
+
+def by_date(raw):
+    return next(r for r in rows() if r["date_issued_raw"] == raw)
+
+
+def test_row_count_and_unrelated_table_ignored():
+    assert len(rows()) == 11
+
+
+def test_entity_row_with_zero_width_characters():
+    r = by_date("25/9/2026")
+    assert r["provider_name"] == "Inspired Kids Family Day Care Pty Ltd"
+    assert r["service_name"] is None
+    assert r["action_type"] == "approval_cancelled"
+    assert r["date_issued"] == "2026-09-25"
+    assert r["period_label"] == "2026"
+    assert r["legal_references"] == []
+    assert r["source_document"] == (
+        "https://earlychildhood.qld.gov.au/ececRegulation/Documents/cancellation-inspired-kids.pdf"
+    )
+
+
+def test_approval_numbers_are_null_and_noted():
+    for r in rows():
+        assert r["service_approval_number"] is None
+        assert r["provider_approval_number"] is None
+        assert NO_APPROVAL_NOTE in r["notes"]
+
+
+def test_zero_width_character_inside_date_is_removed():
+    r = by_date("04/09/2026")
+    assert r["date_issued"] == "2026-09-04"
+
+
+def test_prosecution_and_legal_references_and_prefers_pdf():
+    r = by_date("04/09/2026")
+    assert r["action_type"] == "prosecution"
+    assert r["action_type_raw"].startswith("Approved provider fined $12,000 for missing child")
+    assert r["reason"] == "Approved provider fined $12,000 for missing child"
+    assert r["source_document"].endswith("prosecution-east-coast.pdf")
+    assert "prosecution-east-coast.docx" in r["linked_documents"]
+    assert r["legal_references"] == [
+        "NL s.165\u2014Offence relating to inadequately supervise children"
+    ]
+
+
+def test_named_individual_is_withheld_everywhere():
+    r = by_date("22/09/2026")
+    assert r["provider_name"] is None
+    assert r["service_name"] == "Kidspace Caloundra"
+    assert INDIVIDUAL_NOTE in r["notes"]
+    assert r["source_document"] == INDEX_URL
+    assert r["linked_documents"] is None
+    assert r["action_type"] == "prosecution"
+    assert len(r["legal_references"]) == 2
+    blob = json.dumps(r).lower()
+    assert "boulton" not in blob and "lynnette" not in blob
+
+
+def test_sole_trader_without_marker_is_individual():
+    r = by_date("07/09/2026")
+    assert r["provider_name"] is None
+    assert INDIVIDUAL_NOTE in r["notes"]
+    assert "kapoor" not in json.dumps(r).lower()
+
+
+def test_service_name_repeating_the_individuals_name_is_withheld():
+    r = by_date("04/11/2022")
+    assert r["provider_name"] is None
+    assert r["service_name"] is None
+    assert "service name withheld" in r["notes"]
+    assert "labaale" not in json.dumps(r).lower()
+
+
+def test_two_named_individuals():
+    r = by_date("24/01/2022")
+    assert r["provider_name"] is None
+    assert INDIVIDUAL_NOTE in r["notes"]
+    assert "ferguson" not in json.dumps(r).lower()
+    assert r["action_type"] == "compliance_notice"
+
+
+def test_generic_role_row_keeps_no_name_and_notes_it():
+    r = by_date("23/12/2022")
+    assert r["provider_name"] is None
+    assert INDIVIDUAL_NOTE in r["notes"]
+    assert "generic role" in r["notes"]
+    assert r["action_type"] == "enforceable_undertaking"
+
+
+def test_single_business_name_is_service_only():
+    r = by_date("02/06/2022")
+    assert r["provider_name"] is None
+    assert r["service_name"] == "Frogtastic Educational Kindergarten and Childcare"
+    assert INDIVIDUAL_NOTE not in r["notes"]
+
+
+def test_ended_actions_are_not_mapped_to_new_actions():
+    lifted = by_date("17/04/2026")
+    assert lifted["action_type"] == "other"
+    assert lifted["action_type_raw"] == "Suspension of service approval\u2014lifted"
+    discharged = by_date("09/09/2024")
+    assert discharged["action_type"] == "other"
+
+
+def test_two_digit_year_and_free_text_breaches():
+    r = by_date("14/02/24")
+    assert r["date_issued"] == "2024-02-14"
+    assert "two-digit year" in r["notes"]
+    assert r["legal_references"] == []
+    assert "8 breaches" in r["notes"]
+
+
+def test_map_action_type_is_conservative():
+    assert map_action_type("Fined $500", prosecution_label=False)[0] == "other"
+    assert map_action_type("Infringement notice issued", prosecution_label=False)[0] == (
+        "infringement_notice"
+    )
+    assert map_action_type("Anything", prosecution_label=True)[0] == "prosecution"
+    assert map_action_type("Something new", prosecution_label=False)[0] == "other"
+
+
+def test_parse_date():
+    assert parse_date("25/9/2026")[0] == "2026-09-25"
+    assert parse_date("31/02/2026")[0] is None
+    assert parse_date("September 2026")[0] is None
+
+
+def test_record_ids_are_stable_and_unique():
+    a, b = rows(), rows()
+    assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
+    assert len({r["record_id"] for r in a}) == len(a)
+
+
+def test_rows_conform_to_schema():
+    props = SCHEMA["properties"]
+    for r in rows():
+        for key in SCHEMA["required"]:
+            assert r.get(key) not in (None, ""), key
+        assert r["jurisdiction"] == "QLD"
+        assert r["action_type"] in props["action_type"]["enum"]
+        for key in ("source_register", "source_document", "date_issued"):
+            pattern = props[key].get("pattern")
+            if pattern and r[key] is not None:
+                assert re.search(pattern, r[key]), (key, r[key])
+        assert isinstance(r["legal_references"], list)
+
+
+def test_location_columns_stay_null_because_the_register_prints_no_location():
+    """The register's four columns carry no suburb, state or address (checked against the
+    2026-10-29 snapshot). A trailing place name in a service name (for example 'Kidspace
+    Caloundra') is part of the service name, not a printed location, so it is not split off."""
+    rows = parse_register(FIXTURE)
+    assert rows
+    for row in rows:
+        assert row["suburb"] is None
+        assert row["state"] is None
+        assert row["address"] is None
+        assert row["postcode"] is None
+    named = [r for r in rows if r["service_name"] and "Natural Elements" in r["service_name"]]
+    assert named[0]["service_name"] == "Natural Elements Early Learning Centre"
+
+
+def test_location_is_populated_only_when_the_register_prints_it():
+    html = f"""<html><body><h2>2026</h2><table>{HEADER}
+    <tr><td><p>Example Learning Pty Ltd</p><p>Example Learning Centre</p></td><td>01/02/2026</td>
+    <td><a href="/docs/example.pdf">Suspension of service approval</a></td><td>N/A</td></tr>
+    </table></body></html>"""
+    (row,) = parse_register(html)
+    assert (row["suburb"], row["state"], row["address"]) == (None, None, None)

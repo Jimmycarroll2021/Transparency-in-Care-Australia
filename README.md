@@ -12,6 +12,11 @@ Research phase. No build decision taken.
 - [`docs/01-gap-analysis.md`](docs/01-gap-analysis.md) — what the Four Corners investigations found,
   a full inventory of public childcare data sources, the seven real gaps, the licensing blocker,
   and a recommendation.
+- [`docs/02-execution-plan.md`](docs/02-execution-plan.md): phases, workstreams, who does what,
+  and the five things only a human can do.
+- [`docs/02-acecqa-consent-request.md`](docs/02-acecqa-consent-request.md): the consent letter to
+  ACECQA, ready to send.
+- `research/`: dated spoke audits of every public register (format, join keys, licence, window).
 
 ## Short version
 

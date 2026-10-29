@@ -1,0 +1,14 @@
+{
+  "source": "nsw-enforcement",
+  "url": "https://education.nsw.gov.au/early-childhood-education/regulation-and-compliance/compliance-and-enforcement-actions/register-of-published-enforcement-actions",
+  "final_url": "https://education.nsw.gov.au/early-childhood-education/regulation-and-compliance/compliance-and-enforcement-actions/register-of-published-enforcement-actions",
+  "status": 200,
+  "fetched_at": "2026-10-29T07:17:46.342095+00:00",
+  "content_type": "text/html;charset=utf-8",
+  "last_modified": null,
+  "etag": null,
+  "bytes": 112523,
+  "sha256": "e32823fcf15b05969d96fd5b19b11b6b9a958e051fee0070ba279fccf3a1f515",
+  "user_agent": "TransparencyInCareAustralia/0.1 (+https://github.com/Jimmycarroll2021/Transparency-in-Care-Australia; jimmisound@gmail.com)",
+  "role": "index"
+}

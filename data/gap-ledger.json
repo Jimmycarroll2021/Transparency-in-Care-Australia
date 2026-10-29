@@ -1,11 +1,11 @@
 {
-  "last_updated": "2026-10-28",
+  "last_updated": "2026-10-29",
   "gaps": [
     {
       "id": "GAP-001",
-      "title": "Confirmed breaches are not published",
-      "description": "Only formal enforcement actions are published. Regulator findings of confirmed breach are not public in any jurisdiction, so a service can accumulate many confirmed breaches and still show a clean enforcement flag.",
-      "status": "hypothesis",
+      "title": "Confirmed breaches are not published per service",
+      "description": "Regulators publish formal enforcement actions and prosecutions per service, but not confirmed breach findings that did not lead to a formal action. Confirmed breaches are published only as aggregates: nationally by ACECQA and RoGS (222 confirmed breaches per 100 NQF approved services in 2024/25) and in Tasmania as quarterly counts of confirmed versus not confirmed breaches. No jurisdiction read so far publishes a confirmed breach count or list per service, so a service can accumulate confirmed breaches and still show no enforcement action. The NSW reforms of 23 October 2025 require a displayed 2-year history of formal actions and prosecutions, in which confirmed breach is not a category. NT, ACT and the Commonwealth register were not readable.",
+      "status": "validated",
       "confidence": "High",
       "tractability": "campaign_or_foi",
       "evidence": [
@@ -19,121 +19,272 @@
           "claim": "StartingBlocks shows six enforcement action types for the past two years, not breach findings.",
           "source_url": "https://www.esb.sa.gov.au/news/starting-blocks-transparency-updates",
           "source_type": "official_report",
-          "retrieved": "2026-10-28"
+          "retrieved": "2026-10-28",
+          "verify": false
+        },
+        {
+          "claim": "The NSW register lists enforcement actions for confirmed non-compliance (columns: service name, address, Service ID, nature of action, reason, date issued, details). Breaches confirmed without a formal action are not listed.",
+          "source_url": "https://education.nsw.gov.au/early-childhood-education/regulation-and-compliance/compliance-and-enforcement-actions/register-of-published-enforcement-actions",
+          "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "NSW services must display a 2-year compliance history of formal compliance actions and prosecutions plus the two most recent ratings, enforced from 20 November 2025. Confirmed breach is not a displayed category.",
+          "source_url": "https://education.nsw.gov.au/early-childhood-education/regulation-and-compliance/compliance-and-enforcement-actions/displaying-compliance-and-quality-history",
+          "source_type": "official_report",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "VECRA (Vic), Queensland and SA ESB registers publish only entries that led to a statutory sanction, with the sections breached as reasons; none publishes a separate list or count of confirmed breaches per service.",
+          "source_url": "https://vecra.vic.gov.au/enforcement-action",
+          "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "Tasmania publishes quarterly Excel aggregates of total breaches recorded as confirmed or not confirmed, and the top National Law sections and Regulations with confirmed breaches, with no service identifiers.",
+          "source_url": "https://decyp.tas.gov.au/about-us/policies-legislation-data/data-and-statistics/regulation-of-education-and-care-data/",
+          "source_type": "official_report",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "ACECQA reports national aggregate confirmed breach rates (222 per 100 approved services in 2024/25, 201 in 2023/24, 193 in 2022/23) and that 7.9% of reported serious incidents in 2024/25 were associated with a confirmed breach. No per-service figures.",
+          "source_url": "https://www.acecqa.gov.au/sites/default/files/2025-12/2025-NQF-Annual-Performance-Report.pdf",
+          "source_type": "official_report",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "RoGS 2026 reports 222.2 confirmed breaches per 100 NQF approved services nationally in 2024-25, by jurisdiction and service type only.",
+          "source_url": "https://www.pc.gov.au/ongoing/report-on-government-services/child-care-education-and-training/early-childhood-education-and-care/",
+          "source_type": "official_report",
+          "retrieved": "2026-10-29",
+          "verify": true
+        },
+        {
+          "claim": "Trade press reports that NSW LC Report 55 recommended publishing regulator internal risk ratings per service and that the NSW Government response of August 2026 rejected it. Report and response not read.",
+          "source_url": "https://thesector.com.au/article/nsw-ecec-inquiry-government-response-sector-reform",
+          "source_type": "media",
+          "retrieved": "2026-10-29",
+          "verify": true
         }
       ],
       "open_questions": [
-        "Does any state publish confirmed breach counts per service, even in aggregate?",
-        "What did the NSW parliamentary inquiry recommend on breach publication, and was it adopted in the October 2025 reforms?"
+        "What exactly do NSW LC Report 55 and the NSW Government response say on publishing breach findings or risk ratings? (parliament.nsw.gov.au returned 403)",
+        "Do the NT, ACT and Commonwealth registers publish any confirmed breach information? (403, not live, 503)",
+        "Do NSW, Victorian or Queensland quarterly regulatory data or annual reports give confirmed breach counts, even in aggregate?",
+        "Is there a National Law confidentiality provision that bars per-service publication of breach findings?",
+        "What did the July and October 2026 Education Ministers Meetings agree on transparency?"
       ],
-      "next_action": "register-auditor: confirm per jurisdiction whether confirmed breaches are published in any form.",
-      "last_reviewed": "2026-10-28"
+      "next_action": "source-researcher: obtain NSW LC Report 55, the NSW Government response and the July and October 2026 Education Ministers communiques from a reachable copy; then decide whether an FOI request for per-service confirmed breach counts (NSW first) is the campaign route.",
+      "last_reviewed": "2026-10-29"
     },
     {
       "id": "GAP-002",
       "title": "No joined national enforcement picture",
-      "description": "Enforcement actions are published by eight jurisdictions plus the Commonwealth in incompatible formats (NSW quarterly PDFs, Victorian monthly HTML pages, others), with no national join on the service approval number.",
-      "status": "hypothesis",
-      "confidence": "High",
-      "tractability": "aggregation",
+      "description": "Enforcement actions are published by state and territory regulators plus the Commonwealth in incompatible formats (NSW quarterly PDFs, Victorian monthly HTML, SA one long HTML page, Queensland HTML with linked documents, WA a search form), with inconsistent keys and licences and no bulk national dataset joined on the service approval number. Partly closed: StartingBlocks shows six enforcement action types per service for the past two years, so a parent can look up one service nationally, but it offers no bulk data, omits prosecutions and reasons, and ACECQA content is not openly licensed.",
+      "status": "validated",
+      "confidence": "Medium",
+      "tractability": "partial",
       "evidence": [
         {
-          "claim": "NSW publishes a register of enforcement actions as quarterly PDFs.",
+          "claim": "NSW publishes a register of enforcement actions as quarterly PDFs with a Service ID (SE-) column; no CSV or API; site licensed CC BY 4.0.",
           "source_url": "https://education.nsw.gov.au/early-childhood-education/regulation-and-compliance/compliance-and-enforcement-actions/register-of-published-enforcement-actions",
           "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "Victoria (VECRA) publishes enforcement actions as monthly HTML pages carrying SE- and PR- numbers in one text cell; site licensed CC BY 4.0; robots.txt disallows the archived PDF and Word files.",
+          "source_url": "https://www.vecra.vic.gov.au/enforcement-actions-august-2026",
+          "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "SA ESB publishes current compliance action as one HTML page with SE- and PR- numbers (inconsistent formatting); its copyright page states All rights reserved.",
+          "source_url": "https://www.esb.sa.gov.au/early-childhood/compliance-and-enforcement/current-compliance-action",
+          "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "The Queensland register of published enforcement actions is an HTML table with no SE- or PR- numbers, so it can only be joined by name and location.",
+          "source_url": "https://earlychildhood.qld.gov.au/regulation/compliance-and-enforcement/register-published-enforcement-actions",
+          "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "WA publishes enforcement actions through an HTML search list after finalisation; wa.gov.au terms permit personal and non-commercial use only. Whether rows carry SE- numbers is unconfirmed.",
+          "source_url": "https://www.wa.gov.au/government/document-collections/education-and-care-regulatory-unit-enforcement-actions",
+          "source_type": "official_register",
+          "retrieved": "2026-10-29",
           "verify": true
         },
         {
-          "claim": "Victoria (VECRA) publishes enforcement actions as monthly HTML pages.",
-          "source_url": "https://www.vecra.vic.gov.au/enforcement-actions-august-2026",
+          "claim": "The Commonwealth CCS enforcement action register (Family Assistance Law, a different regime) returned HTTP 503; columns, keys and licence unverified.",
+          "source_url": "https://www.education.gov.au/early-childhood/providers/compliance-and-enforcement/enforcement-action-register",
           "source_type": "official_register",
+          "retrieved": "2026-10-29",
           "verify": true
+        },
+        {
+          "claim": "StartingBlocks shows six enforcement action types per service for the past two years, which partly closes the per-service lookup need but is not bulk or openly licensed data.",
+          "source_url": "https://www.esb.sa.gov.au/news/starting-blocks-transparency-updates",
+          "source_type": "official_report",
+          "retrieved": "2026-10-28",
+          "verify": false
         }
       ],
       "open_questions": [
-        "Do all registers carry the SE-/PR- approval numbers needed for a clean join?",
-        "What are the licence terms on each state register?"
+        "Commonwealth register: columns, join keys, window and licence (503 on 2026-10-29).",
+        "NT and ACT: does a published register exist and what does it carry? (403 and not live)",
+        "Do WA and Tasmania register rows carry SE- or PR- numbers?",
+        "Do NSW provider enforcement and cancellation PDFs carry PR- numbers?",
+        "Will SA ESB and WA grant written consent for non-commercial republication?",
+        "Does the Queensland CC BY 4.0 statement on qed.qld.gov.au cover the earlychildhood.qld.gov.au register?"
       ],
-      "next_action": "register-auditor: build the per-jurisdiction format, key and licence matrix.",
-      "last_reviewed": "2026-10-28"
+      "next_action": "register-auditor: retry the Commonwealth, NT, ACT and Tasmania registers and confirm WA row keys; hub: draft consent requests to SA ESB and WA before any parser work in Phase 3.",
+      "last_reviewed": "2026-10-29"
     },
     {
       "id": "GAP-003",
       "title": "No public ownership graph",
-      "description": "StartingBlocks links services to their approved provider, but not approved providers to corporate groups, brands or owners across states and over time.",
-      "status": "hypothesis",
-      "confidence": "High",
-      "tractability": "aggregation",
+      "description": "StartingBlocks and the ACECQA register link services to their approved provider, but not approved providers to corporate groups, brands or owners across states and over time. The register CSVs carry no ABN, ACN or management type, so a provider can only be matched to the ABR by legal name, and parent company links sit in paid ASIC extracts. A StartingBlocks provider page was seen to show a large provider membership line, which may partly group providers (unverified).",
+      "status": "validated",
+      "confidence": "Medium",
+      "tractability": "partial",
       "evidence": [
         {
           "claim": "StartingBlocks added provider-linked services in September 2025; corporate group ownership is not shown.",
           "source_url": "https://www.acecqa.gov.au/latest-news/more-compliance-information-families-startingblocksgovau",
           "source_type": "official_report",
           "verify": true
+        },
+        {
+          "claim": "The ACECQA national register services CSV carries SE- and PR- numbers and ProviderLegalName but no ABN, ACN or provider management type; the providers CSV (10 columns) also has no ABN or ACN.",
+          "source_url": "https://www.acecqa.gov.au/sites/default/files/national-registers/services/Education-services-au-export.csv",
+          "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "The ABR bulk extract is published weekly as XML with ABN, entity type, legal and trading names and ACN, current data only; licence reported as CC BY 3.0 AU on data.gov.au (page returned 403).",
+          "source_url": "https://abr.business.gov.au/Tools/BulkExtract",
+          "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": true
+        },
+        {
+          "claim": "The ASIC company dataset is reported to be open (CC BY 3.0 AU, weekly) but company-level only; officeholders and ultimate holding company are available only through paid extracts.",
+          "source_url": "https://www.data.gov.au/data/dataset/asic-companies",
+          "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": true
         }
       ],
       "open_questions": [
-        "Do ACECQA provider records include ABN or ACN?",
-        "Can ASIC company relationships be obtained under an open licence without paid extracts?"
+        "What does the StartingBlocks large provider membership line show, and does ACECQA publish that grouping anywhere?",
+        "Will ACECQA add ABN or ACN and management type to the register under the consent request?",
+        "What share of providers match the ABR uniquely by normalised legal name and state?",
+        "Current ASIC extract fees and the number of providers that would need one."
       ],
-      "next_action": "register-auditor: check ABN presence in the ACECQA provider register and ABR/ASIC licence terms.",
-      "last_reviewed": "2026-10-28"
+      "next_action": "register-auditor: have a human open several StartingBlocks provider pages and record the large provider field; add ABN, ACN and management type to the ACECQA consent request.",
+      "last_reviewed": "2026-10-29"
     },
     {
       "id": "GAP-004",
       "title": "Services outside the NQF have no public list",
-      "description": "Four Corners reported 473 services operating outside the National Quality Framework, with no public list of which services they are or which instrument regulates each.",
+      "description": "Services regulated outside the National Quality Framework are not on the ACECQA national register, and no single public list says which services they are or which instrument regulates each. Queensland publishes a register of QEC (non-NQF) services as CSV; no equivalent was found for other states, but absence is not confirmed. The 473 and 142 figures come only from ABC reporting with no official origin found, so they cannot be used as a published count.",
       "status": "hypothesis",
       "confidence": "Medium",
       "tractability": "partial",
       "evidence": [
         {
-          "claim": "473 services operate outside the NQF; 142 are to be brought in.",
+          "claim": "Four Corners says it identified 473 services operating outside the NQF and that state governments will bring 142 of them in; no communique, estimates or Hansard origin was found.",
           "source_url": "https://www.abc.net.au/news/2026-10-26/monstrous-four-corners-childcare/107309190",
           "source_type": "media",
+          "retrieved": "2026-10-29",
           "verify": true
         },
         {
-          "claim": "Queensland publishes a licence register for non-NQF services as CSV.",
+          "claim": "Queensland publishes a register of approved QEC services under the Education and Care Services Act 2013 as a CSV on data.gov.au, updated annually; row count and licence not confirmed.",
           "source_url": "https://data.gov.au/data/dataset/child-care-licence-register",
           "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "SA ESB residual services page describes a modified National Law for in-home, occasional, rural and mobile care and nine former CCCFR services, with application forms but no public list of services.",
+          "source_url": "https://esb.sa.gov.au/early-childhood/residual-services",
+          "source_type": "official_report",
+          "retrieved": "2026-10-29",
           "verify": true
         }
       ],
       "open_questions": [
-        "Confirm 473 and 142 against the education ministers' communique.",
-        "Where do other states list their non-NQF services?"
+        "Is there an official source for 473 and 142 (Senate Estimates QoN, October 2026 Education Ministers communique)?",
+        "Do NSW, Victoria, WA, SA, Tasmania, ACT, NT or the Commonwealth (CCCFR) publish any list of non-NQF services?",
+        "How many rows does the Queensland QEC register hold and under what licence?"
       ],
-      "next_action": "source-researcher: find the official source for 473 and 142.",
-      "last_reviewed": "2026-10-28"
+      "next_action": "register-auditor: check each non-Queensland regulator for a non-NQF licence register; source-researcher: search Senate Estimates QoN and the October 2026 communique for 473 or 142. If no lists exist, validate on official absence; if they do, treat as aggregation.",
+      "last_reviewed": "2026-10-29"
     },
     {
       "id": "GAP-005",
       "title": "No per-service history",
-      "description": "Ratings, conditions and enforcement flags are published as current state, and enforcement actions drop off StartingBlocks after two years. No public per-service history exists.",
-      "status": "hypothesis",
-      "confidence": "High",
-      "tractability": "aggregation",
+      "description": "Ratings and conditions are published as current state plus at most one previous rating, and StartingBlocks enforcement displays cover two years. No public per-service time series exists. Partly closed: the ACECQA register CSV holds one previous rating set (month and year), NSW services must display their two most recent ratings and a 2-year compliance history, and some state registers keep older enforcement actions (NSW 5 years, Victoria from 2020, Queensland entries from 2017). A full history can only be built forward by dated snapshots, which ACECQA terms bar from republication without consent.",
+      "status": "validated",
+      "confidence": "Medium",
+      "tractability": "partial",
       "evidence": [
         {
           "claim": "StartingBlocks enforcement display covers actions issued in the past two years.",
           "source_url": "https://www.esb.sa.gov.au/news/starting-blocks-transparency-updates",
           "source_type": "official_report",
-          "retrieved": "2026-10-28"
+          "retrieved": "2026-10-28",
+          "verify": false
+        },
+        {
+          "claim": "The ACECQA services CSV carries current ratings and exactly one set of Previous rating columns (PreviousOverallRating, PreviousRatingsIssued), no earlier history. The file is regenerated daily (last-modified 28 Oct 2026 with ?nocache=) but the plain URL serves a CDN copy about 93 days old.",
+          "source_url": "https://www.acecqa.gov.au/sites/default/files/national-registers/services/Education-services-au-export.csv",
+          "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "NSW services must display a 2-year compliance history and the two most recent quality ratings.",
+          "source_url": "https://education.nsw.gov.au/early-childhood-education/regulation-and-compliance/compliance-and-enforcement-actions/displaying-compliance-and-quality-history",
+          "source_type": "official_report",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "The NSW enforcement register keeps information for 5 years from publication.",
+          "source_url": "https://education.nsw.gov.au/early-childhood-education/regulation-and-compliance/compliance-and-enforcement-actions/register-of-published-enforcement-actions",
+          "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": false
         }
       ],
       "open_questions": [
-        "Does ACECQA publish per-service historical ratings anywhere, including in NQF Snapshot data files?"
+        "Does a StartingBlocks service page show a rating history, and how far back?",
+        "Do the NQF Snapshot data workbooks contain any per-service rows?",
+        "Will ACECQA consent to storing and republishing dated snapshots of ratings?"
       ],
-      "next_action": "register-auditor: inspect NQF Snapshot data files for per-service history.",
-      "last_reviewed": "2026-10-28"
+      "next_action": "hub: include snapshot storage and republication in the ACECQA consent request; register-auditor: have a human record what a StartingBlocks service page and the Q2 2026 Snapshot workbook show. Daily nocache snapshots belong to Phase 2.",
+      "last_reviewed": "2026-10-29"
     },
     {
       "id": "GAP-006",
       "title": "Rating age is not surfaced as a risk signal",
-      "description": "StartingBlocks shows the last regulator visit date but not how old the rating is relative to the sector, so an old rating looks as strong as a recent one.",
+      "description": "StartingBlocks shows the last regulator visit date but not how old the rating is relative to the sector, so an old rating looks as strong as a recent one. The ingredients are public: the ACECQA register CSV carries RatingsIssued (month and year only) and Last Visit Date, so this is a presentation and analysis gap rather than missing data.",
       "status": "hypothesis",
-      "confidence": "Medium",
+      "confidence": "Low",
       "tractability": "aggregation",
       "evidence": [
         {
@@ -141,34 +292,74 @@
           "source_url": "https://www.acecqa.gov.au/latest-news/more-compliance-information-families-startingblocksgovau",
           "source_type": "official_report",
           "verify": true
-        }
-      ],
-      "open_questions": [
-        "What is the distribution of time since last assessment, by state? Is it derivable from the national register?"
-      ],
-      "next_action": "register-auditor: confirm the national register includes the rating issued date.",
-      "last_reviewed": "2026-10-28"
-    },
-    {
-      "id": "GAP-007",
-      "title": "Serious incident data is aggregate only",
-      "description": "Serious incident rates are published nationally (160 per 100 services in 2024-25) but never per service or by provider type, so the for-profit versus not-for-profit claim cannot be tested from public data.",
-      "status": "hypothesis",
-      "confidence": "High",
-      "tractability": "campaign_or_foi",
-      "evidence": [
+        },
         {
-          "claim": "Serious incidents rose to 160 per 100 services in 2024-25.",
+          "claim": "ACECQA reports that StartingBlocks now publishes conditions on approval and the most recent date the service was visited by a regulatory authority.",
           "source_url": "https://www.acecqa.gov.au/sites/default/files/2025-12/2025-NQF-Annual-Performance-Report.pdf",
           "source_type": "official_report",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "The ACECQA services CSV carries RatingsIssued (month and year, for example Jan 2026), PreviousRatingsIssued and Last Visit Date, so rating age is derivable to month precision.",
+          "source_url": "https://www.acecqa.gov.au/sites/default/files/national-registers/services/Education-services-au-export.csv",
+          "source_type": "official_register",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "Trade press reports that NSW LC Report 55 called for mandatory assessment and rating of every service at least every three years, which suggests old ratings are a recognised concern.",
+          "source_url": "https://thesector.com.au/article/nsw-parliamentary-inquiry-ecec-sector-major-reform-warning",
+          "source_type": "media",
+          "retrieved": "2026-10-29",
           "verify": true
         }
       ],
       "open_questions": [
-        "Has any regulator published serious incidents by provider management type?"
+        "Does a StartingBlocks service page show the rating issued date?",
+        "What is the distribution of time since last rating, by state, in a nocache snapshot of the register CSV?",
+        "Does the NQF Snapshot already report time since last assessment?"
       ],
-      "next_action": "source-researcher: check the 2025 NQF Annual Performance Report tables.",
-      "last_reviewed": "2026-10-28"
+      "next_action": "register-auditor: have a human check whether StartingBlocks shows the rating date; if it does, reject this gap. Otherwise compute the rating age distribution internally from one nocache snapshot (no republication) once Phase 2 starts.",
+      "last_reviewed": "2026-10-29"
+    },
+    {
+      "id": "GAP-007",
+      "title": "Serious incident data is aggregate only",
+      "description": "Serious incident rates are published nationally (160 per 100 approved services in 2024/25, up from 148 and 139) by incident type, service type, quality rating and association with a confirmed breach, but not per service or by provider management type, so the for-profit versus not-for-profit claim cannot be tested from public data. ACECQA states that rates cannot distinguish better reporting from more harm. State regulator annual reports and quarterly data were not checked.",
+      "status": "validated",
+      "confidence": "Medium",
+      "tractability": "campaign_or_foi",
+      "evidence": [
+        {
+          "claim": "ACECQA 2025 NQF Annual Performance Report: 160 reported serious incidents per 100 approved services in 2024/25 (148 in 2023/24, 139 in 2022/23), broken down by incident type, service type, quality rating and association with a confirmed breach (7.9% in 2024/25); no breakdown by provider management type and no per-service data.",
+          "source_url": "https://www.acecqa.gov.au/sites/default/files/2025-12/2025-NQF-Annual-Performance-Report.pdf",
+          "source_type": "official_report",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "RoGS 2026 reports 159.8 serious incidents per 100 NQF approved services in 2024-25 by jurisdiction and incident type, with no breakdown by provider management type.",
+          "source_url": "https://www.pc.gov.au/ongoing/report-on-government-services/child-care-education-and-training/early-childhood-education-and-care/",
+          "source_type": "official_report",
+          "retrieved": "2026-10-29",
+          "verify": false
+        },
+        {
+          "claim": "ACECQA states it is very challenging to compare serious incident rates across service types or years because of over and under reporting.",
+          "source_url": "https://www.acecqa.gov.au/sites/default/files/2025-12/2025-NQF-Annual-Performance-Report.pdf",
+          "source_type": "official_report",
+          "retrieved": "2026-10-29",
+          "verify": false
+        }
+      ],
+      "open_questions": [
+        "Does any state regulator annual report or quarterly dataset (NSW Regulatory data first) break serious incidents down by management type or service?",
+        "Does the NQF Snapshot workbook or RoGS Table 3A.33 hold a management type split?",
+        "Is there a regulator statement that per-service serious incident data is confidential?"
+      ],
+      "next_action": "register-auditor: open NSW Regulatory data, the NQF Snapshot workbook and RoGS Table 3A.33 for a management type split; if none, hub decides on an FOI or ACECQA data request for serious incident rates by management type.",
+      "last_reviewed": "2026-10-29"
     }
   ]
 }

@@ -1,0 +1,15 @@
+{
+  "source": "nsw-enforcement",
+  "url": "https://education.nsw.gov.au/content/dam/main-education/early-childhood-education/regulation-and-compliance/register-of-published-enforcement-actions/Q3_Cancellations_Providers_2025_2026.pdf",
+  "final_url": "https://education.nsw.gov.au/content/dam/main-education/early-childhood-education/regulation-and-compliance/register-of-published-enforcement-actions/Q3_Cancellations_Providers_2025_2026.pdf",
+  "status": 200,
+  "fetched_at": "2026-10-29T07:18:33.965134+00:00",
+  "content_type": "application/pdf",
+  "last_modified": "Wed, 10 Jun 2026 05:14:33 GMT",
+  "etag": "W/\"1f278-653df51a76040\"",
+  "bytes": 127608,
+  "sha256": "e03ee283704a5882ce720caa8baeeffa0be4188ed41a0d11663f3c8bfc4f7726",
+  "user_agent": "TransparencyInCareAustralia/0.1 (+https://github.com/Jimmycarroll2021/Transparency-in-Care-Australia; jimmisound@gmail.com)",
+  "role": "pdf",
+  "slug": "q3-cancellations-providers-2025-2026"
+}

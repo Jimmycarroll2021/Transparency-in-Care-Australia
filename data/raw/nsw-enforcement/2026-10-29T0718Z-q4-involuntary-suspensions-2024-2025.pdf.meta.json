@@ -1,0 +1,15 @@
+{
+  "source": "nsw-enforcement",
+  "url": "https://education.nsw.gov.au/content/dam/main-education/early-childhood-education/regulation-and-compliance/register-of-published-enforcement-actions/Q4_Involuntary_Suspensions_2024_2025.pdf",
+  "final_url": "https://education.nsw.gov.au/content/dam/main-education/early-childhood-education/regulation-and-compliance/register-of-published-enforcement-actions/Q4_Involuntary_Suspensions_2024_2025.pdf",
+  "status": 200,
+  "fetched_at": "2026-10-29T07:18:55.182258+00:00",
+  "content_type": "application/pdf",
+  "last_modified": "Fri, 22 Aug 2025 01:37:09 GMT",
+  "etag": "W/\"16794-63cea3e823b40\"",
+  "bytes": 92052,
+  "sha256": "929e4a27de9654809786a674b6c985b67c6b4a24f803668ab4ddd85b4a9877f9",
+  "user_agent": "TransparencyInCareAustralia/0.1 (+https://github.com/Jimmycarroll2021/Transparency-in-Care-Australia; jimmisound@gmail.com)",
+  "role": "pdf",
+  "slug": "q4-involuntary-suspensions-2024-2025"
+}

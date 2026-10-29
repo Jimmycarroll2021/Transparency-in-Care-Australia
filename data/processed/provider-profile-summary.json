@@ -1,0 +1,330 @@
+{
+  "generated_at": "2026-10-29T07:25:17.099737+00:00",
+  "inputs": {
+    "providers_file": "data/processed/acecqa-providers-latest.csv",
+    "services_file": "data/processed/acecqa-services-latest.csv",
+    "provider_rows": 10073,
+    "service_rows": 18186,
+    "snapshot_last_modified_providers": "Wed, 28 Oct 2026 19:28:17 GMT",
+    "snapshot_last_modified_services": "Wed, 28 Oct 2026 19:28:15 GMT",
+    "raw_inputs": [
+      "data/processed/acecqa-providers-latest.csv",
+      "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz",
+      "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz.meta.json",
+      "data/processed/acecqa-services-latest.csv",
+      "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
+      "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json"
+    ]
+  },
+  "window_note": "Point-in-time counts from the ACECQA register snapshot named above, not a time series. Denominator for every share: providers in the providers file, or services in the services file.",
+  "providers_total": 10073,
+  "services_total": 18186,
+  "services_linked_to_a_provider_row": 18186,
+  "services_with_no_provider_approval_number": 0,
+  "entity_form_counts": {
+    "company": 4869,
+    "incorporated_association": 2107,
+    "cooperative": 61,
+    "government": 571,
+    "trust_or_trustee": 1236,
+    "church_or_religious": 129,
+    "likely_individual": 751,
+    "unknown": 349
+  },
+  "entity_form_share_of_providers": {
+    "company": 0.4834,
+    "incorporated_association": 0.2092,
+    "cooperative": 0.0061,
+    "government": 0.0567,
+    "trust_or_trustee": 0.1227,
+    "church_or_religious": 0.0128,
+    "likely_individual": 0.0746,
+    "unknown": 0.0346
+  },
+  "entity_form_service_counts": {
+    "company": 9838,
+    "incorporated_association": 3028,
+    "cooperative": 66,
+    "government": 1604,
+    "trust_or_trustee": 1486,
+    "church_or_religious": 1079,
+    "likely_individual": 501,
+    "unknown": 584
+  },
+  "entity_form_share_of_services": {
+    "company": 0.541,
+    "incorporated_association": 0.1665,
+    "cooperative": 0.0036,
+    "government": 0.0882,
+    "trust_or_trustee": 0.0817,
+    "church_or_religious": 0.0593,
+    "likely_individual": 0.0275,
+    "unknown": 0.0321
+  },
+  "likely_individual_providers_names_withheld": 751,
+  "providers_with_no_services_in_services_table": 2871,
+  "providers_by_service_count_band": {
+    "0": 2871,
+    "1": 5631,
+    "10-24": 117,
+    "2-4": 1177,
+    "25+": 75,
+    "5-9": 202
+  },
+  "providers_operating_in_more_than_one_state": 146,
+  "service_type_distribution": {
+    "Centre-Based Care": 17827,
+    "Family Day Care": 359
+  },
+  "management_type": {
+    "available": false,
+    "reason": "Neither ACECQA export has a management type or provider type column (headers checked). service_type_distribution is service type (Centre-Based Care or Family Day Care), not management type. entity_form is the only proxy, and it is inferred from the legal name."
+  },
+  "top_30_providers_by_service_count": [
+    {
+      "provider_approval_number": "PR-00001129",
+      "legal_name": "Goodstart Early Learning Ltd",
+      "trading_name": "Goodstart Early Learning Ltd",
+      "entity_form": "company",
+      "service_count": 609,
+      "states_operated_in": "ACT|NSW|NT|QLD|SA|TAS|VIC|WA"
+    },
+    {
+      "provider_approval_number": "PR-40011145",
+      "legal_name": "TheirCare Pty Ltd",
+      "trading_name": "TheirCare",
+      "entity_form": "company",
+      "service_count": 503,
+      "states_operated_in": "NSW|QLD|TAS|VIC|WA"
+    },
+    {
+      "provider_approval_number": "PR-00002539",
+      "legal_name": "Camp Australia Pty Limited",
+      "trading_name": null,
+      "entity_form": "company",
+      "service_count": 388,
+      "states_operated_in": "ACT|NSW|NT|QLD|SA|VIC|WA"
+    },
+    {
+      "provider_approval_number": "PR-00006069",
+      "legal_name": "Department for Education",
+      "trading_name": "Department for Education",
+      "entity_form": "government",
+      "service_count": 382,
+      "states_operated_in": "SA"
+    },
+    {
+      "provider_approval_number": "PR-40002234",
+      "legal_name": "TEAM HOLIDAY PTY LTD",
+      "trading_name": "Team Holiday",
+      "entity_form": "company",
+      "service_count": 281,
+      "states_operated_in": "ACT|NSW|QLD|VIC"
+    },
+    {
+      "provider_approval_number": "PR-00000898",
+      "legal_name": "G8 Education Limited",
+      "trading_name": null,
+      "entity_form": "company",
+      "service_count": 280,
+      "states_operated_in": "NSW|QLD|SA|VIC|WA"
+    },
+    {
+      "provider_approval_number": "PR-40004402",
+      "legal_name": "OSHCLUB PTY LTD",
+      "trading_name": "OSHCLUB PTY LTD",
+      "entity_form": "company",
+      "service_count": 233,
+      "states_operated_in": "ACT|NSW|QLD|VIC|WA"
+    },
+    {
+      "provider_approval_number": "PR-40001112",
+      "legal_name": "Affinity Education Group Pty Limited",
+      "trading_name": null,
+      "entity_form": "company",
+      "service_count": 217,
+      "states_operated_in": "ACT|NSW|NT|QLD|VIC|WA"
+    },
+    {
+      "provider_approval_number": "PR-00008029",
+      "legal_name": "The Creche and Kindergarten Association Limited",
+      "trading_name": "C&K",
+      "entity_form": "company",
+      "service_count": 182,
+      "states_operated_in": "QLD"
+    },
+    {
+      "provider_approval_number": "PR-00000823",
+      "legal_name": "Guardian Community Early Learning Centres Pty Ltd",
+      "trading_name": null,
+      "entity_form": "company",
+      "service_count": 154,
+      "states_operated_in": "ACT|NSW|QLD|SA|VIC"
+    },
+    {
+      "provider_approval_number": "PR-40028424",
+      "legal_name": "MELBOURNE ARCHDIOCESE CATHOLIC SCHOOLS EARLY YEARS EDUCATION LTD",
+      "trading_name": null,
+      "entity_form": "church_or_religious",
+      "service_count": 148,
+      "states_operated_in": "VIC"
+    },
+    {
+      "provider_approval_number": "PR-00000702",
+      "legal_name": "Corporation of the Trustees of the Roman Catholic Archdiocese of Brisbane - Centacare Administration Services",
+      "trading_name": null,
+      "entity_form": "church_or_religious",
+      "service_count": 136,
+      "states_operated_in": "QLD"
+    },
+    {
+      "provider_approval_number": "PR-00005345",
+      "legal_name": "Department of Education",
+      "trading_name": "Department of Education",
+      "entity_form": "government",
+      "service_count": 124,
+      "states_operated_in": "NSW"
+    },
+    {
+      "provider_approval_number": "PR-00004547",
+      "legal_name": "KU Children's Services",
+      "trading_name": "KU Children's Services",
+      "entity_form": "unknown",
+      "service_count": 116,
+      "states_operated_in": "ACT|NSW|VIC"
+    },
+    {
+      "provider_approval_number": "PR-00001030",
+      "legal_name": "Helping Hands Network Pty Ltd",
+      "trading_name": null,
+      "entity_form": "company",
+      "service_count": 104,
+      "states_operated_in": "NSW|QLD|WA"
+    },
+    {
+      "provider_approval_number": "PR-00002502",
+      "legal_name": "Young Mens Christian Association Of Ballarat Inc",
+      "trading_name": "BALLARAT AND DISTRICT YMCA",
+      "entity_form": "incorporated_association",
+      "service_count": 103,
+      "states_operated_in": "VIC"
+    },
+    {
+      "provider_approval_number": "PR-40011040",
+      "legal_name": "UNITING (VICTORIA AND TASMANIA) LIMITED",
+      "trading_name": null,
+      "entity_form": "church_or_religious",
+      "service_count": 89,
+      "states_operated_in": "TAS|VIC"
+    },
+    {
+      "provider_approval_number": "PR-00000659",
+      "legal_name": "Queensland Police-Citizens Youth Welfare Association",
+      "trading_name": "Queensland Police-Citizens Youth Welfare Association",
+      "entity_form": "incorporated_association",
+      "service_count": 80,
+      "states_operated_in": "QLD"
+    },
+    {
+      "provider_approval_number": "PR-40026948",
+      "legal_name": "NEST EARLY EDUCATION SERVICES PTY LTD",
+      "trading_name": null,
+      "entity_form": "company",
+      "service_count": 76,
+      "states_operated_in": "ACT|NSW|SA|VIC|WA"
+    },
+    {
+      "provider_approval_number": "PR-00001947",
+      "legal_name": "Early Childhood Management Services Inc",
+      "trading_name": null,
+      "entity_form": "incorporated_association",
+      "service_count": 75,
+      "states_operated_in": "VIC"
+    },
+    {
+      "provider_approval_number": "PR-00002530",
+      "legal_name": "Extend (Australia) Pty Ltd",
+      "trading_name": null,
+      "entity_form": "company",
+      "service_count": 75,
+      "states_operated_in": "NSW|QLD|SA|VIC|WA"
+    },
+    {
+      "provider_approval_number": "PR-00006465",
+      "legal_name": "ACT Education Directorate",
+      "trading_name": "ACT Education and Training Directorate",
+      "entity_form": "unknown",
+      "service_count": 75,
+      "states_operated_in": "ACT"
+    },
+    {
+      "provider_approval_number": "PR-40022356",
+      "legal_name": "SYDNEY CATHOLIC EARLY CHILDHOOD SERVICES LTD",
+      "trading_name": "Sydney Catholic Early Childhood Services",
+      "entity_form": "church_or_religious",
+      "service_count": 75,
+      "states_operated_in": "NSW"
+    },
+    {
+      "provider_approval_number": "PR-00001275",
+      "legal_name": "Department of Education and Training",
+      "trading_name": "Department of Education and Training",
+      "entity_form": "government",
+      "service_count": 73,
+      "states_operated_in": "NT"
+    },
+    {
+      "provider_approval_number": "PR-00004699",
+      "legal_name": "Only About Children Pty Ltd",
+      "trading_name": "Only About Children Pty Ltd",
+      "entity_form": "company",
+      "service_count": 69,
+      "states_operated_in": "NSW|QLD|VIC"
+    },
+    {
+      "provider_approval_number": "PR-00007250",
+      "legal_name": "One Tree Community Services Inc",
+      "trading_name": "One Tree Community Services Inc",
+      "entity_form": "incorporated_association",
+      "service_count": 69,
+      "states_operated_in": "ACT|NSW|NT|QLD|VIC|WA"
+    },
+    {
+      "provider_approval_number": "PR-00000533",
+      "legal_name": "The Young Men's Christian Association of Brisbane",
+      "trading_name": null,
+      "entity_form": "incorporated_association",
+      "service_count": 66,
+      "states_operated_in": "QLD"
+    },
+    {
+      "provider_approval_number": "PR-40002637",
+      "legal_name": "KELLY CLUB AUSTRALIA PTY LTD ATF KELLY CLUB AUSTRALIA UNIT TRUST",
+      "trading_name": null,
+      "entity_form": "trust_or_trustee",
+      "service_count": 65,
+      "states_operated_in": "VIC"
+    },
+    {
+      "provider_approval_number": "PR-40021679",
+      "legal_name": "CATHOLIC DIOCESE OF PARRAMATTA SERVICES LTD",
+      "trading_name": "Catholic Education Parramatta Diocese - Early Learning and Care",
+      "entity_form": "church_or_religious",
+      "service_count": 65,
+      "states_operated_in": "NSW"
+    },
+    {
+      "provider_approval_number": "PR-40000259",
+      "legal_name": "State of Queensland (Acting through Department of Education)",
+      "trading_name": "State of Queensland (Acting through Department of Education)",
+      "entity_form": "government",
+      "service_count": 57,
+      "states_operated_in": "QLD"
+    }
+  ],
+  "top_30_note": "likely_individual providers are excluded from this list by design. Service count is approved services on the register on the snapshot date, out of the services_total above. A large count does not by itself indicate any compliance concern.",
+  "row_level_logs": {
+    "provider_with_no_services_in_services_table": 2871
+  },
+  "caveat": "entity_form is heuristic. Absence of a flag is not evidence of safety."
+}
