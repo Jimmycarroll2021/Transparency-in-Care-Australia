@@ -381,6 +381,21 @@ def write_page_snapshot(fetched: common.Fetched, stamp: str, role: str) -> Path:
     return path
 
 
+def _fetched_from_file(file: Path, url: str) -> common.Fetched:
+    """Wrap a browser-saved HTML file as if fetched, so the snapshot sidecar is complete."""
+    content = file.read_bytes()
+    return common.Fetched(
+        url=url,
+        final_url=url,
+        status=0,
+        content=content,
+        content_type="text/html; charset=utf-8 (saved from browser)",
+        last_modified=None,
+        etag=None,
+        fetched_at=common.utc_now().isoformat(),
+    )
+
+
 def _latest_by_role() -> dict[str, Path]:
     latest: dict[str, Path] = {}
     for p in list_snapshots(SOURCE):
@@ -395,11 +410,28 @@ def _latest_by_role() -> dict[str, Path]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--skip-fetch", action="store_true", help="parse the newest local snapshots")
+    ap.add_argument(
+        "--current-file",
+        type=Path,
+        help="HTML of the current register saved from a browser (education.gov.au drops non-browser clients)",
+    )
+    ap.add_argument(
+        "--past-file", type=Path, help="HTML of the past registers page saved from a browser"
+    )
     args = ap.parse_args(argv)
 
     paths: dict[str, Path] = {}
     if args.skip_fetch:
         paths = _latest_by_role()
+    elif args.current_file or args.past_file:
+        stamp = common.utc_stamp()
+        for role, file in (("current", args.current_file), ("past", args.past_file)):
+            if file is None:
+                continue
+            if not file.exists():
+                log.error("%s file not found: %s", role, file)
+                return 2
+            paths[role] = write_page_snapshot(_fetched_from_file(file, PAGES[role]), stamp, role)
     else:
         stamp = common.utc_stamp()
         for role, url in PAGES.items():
