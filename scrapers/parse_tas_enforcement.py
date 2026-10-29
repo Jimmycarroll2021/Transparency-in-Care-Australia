@@ -57,9 +57,7 @@ from scrapers.parse_qld_enforcement import (
 
 SOURCE = "tas-enforcement"
 JURISDICTION = "TAS"
-INDEX_URL = (
-    "https://educationandcare.tas.gov.au/families-and-communities/published-enforcement-actions-under-the-national-law/"
-)
+INDEX_URL = "https://educationandcare.tas.gov.au/families-and-communities/published-enforcement-actions-under-the-national-law/"
 SCHEMA_PATH = "data/schemas/enforcement-action.schema.json"
 OUTPUT_NAME = "tas-enforcement-actions"
 
@@ -135,7 +133,9 @@ def parse_page(
     source_snapshot: str = "",
 ) -> list[dict]:
     soup = BeautifulSoup(html, "lxml")
-    blocks = soup.find_all(lambda el: el.name == "p" and "service name and number" in el.get_text().lower())
+    blocks = soup.find_all(
+        lambda el: el.name == "p" and "service name and number" in el.get_text().lower()
+    )
     rows: list[dict] = []
 
     for b in blocks:
@@ -147,7 +147,10 @@ def parse_page(
         sib_texts = []
         curr = b.next_sibling
         while curr:
-            if getattr(curr, "name", None) == "p" and "service name and number" in curr.get_text().lower():
+            if (
+                getattr(curr, "name", None) == "p"
+                and "service name and number" in curr.get_text().lower()
+            ):
                 break
             if getattr(curr, "name", None) in ["h2", "h3"]:
                 break
@@ -157,12 +160,18 @@ def parse_page(
             curr = curr.next_sibling
 
         blob = " ".join(sib_texts)
-        addr_m = re.search(r"Address of the Service:\s*(.*?)(?:Approved Provider|\bNature of|\bReason|$)", blob, re.I)
+        addr_m = re.search(
+            r"Address of the Service:\s*(.*?)(?:Approved Provider|\bNature of|\bReason|$)",
+            blob,
+            re.I,
+        )
         addr_raw = clean(addr_m.group(1)) if addr_m else None
         loc = parse_tas_address(addr_raw)
 
         prov_m = re.search(
-            r"Approved Provider (?:name and number|name):\s*(.*?)(?:Nature of|\bReason|\bEnforcement|$)", blob, re.I
+            r"Approved Provider (?:name and number|name):\s*(.*?)(?:Nature of|\bReason|\bEnforcement|$)",
+            blob,
+            re.I,
         )
         prov_blob = clean(prov_m.group(1)) if prov_m else ""
         pr_norm = normalise_pr(prov_blob)
@@ -179,12 +188,16 @@ def parse_page(
                 tokens = name_tokens(prov_raw) if kind == "individual" else set()
                 if tokens and srv_name and contains_token(srv_name, tokens):
                     srv_name = None
-                    notes.append("service text withheld: it repeated a word from the individual's name")
+                    notes.append(
+                        "service text withheld: it repeated a word from the individual's name"
+                    )
         else:
             notes.append("provider name not printed")
 
         nature_m = re.search(
-            r"Nature of the enforcement action:\s*(.*?)(?:Reason for|\bEnforcement action taken|$)", blob, re.I
+            r"Nature of the enforcement action:\s*(.*?)(?:Reason for|\bEnforcement action taken|$)",
+            blob,
+            re.I,
         )
         nature_raw = clean(nature_m.group(1)) if nature_m else "Compliance action"
         action_type, type_note = map_tas_action_type(nature_raw)
@@ -192,11 +205,15 @@ def parse_page(
             notes.append(type_note)
 
         det_m = re.search(
-            r"Reason for taking the enforcement action:\s*(.*?)(?:Enforcement action taken|Details of|$)", blob, re.I
+            r"Reason for taking the enforcement action:\s*(.*?)(?:Enforcement action taken|Details of|$)",
+            blob,
+            re.I,
         )
         reason = clean(det_m.group(1)) if det_m else None
 
-        date_m = re.search(r"\b(?:issued|taken|dated?)\s*[–-]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4})", blob, re.I)
+        date_m = re.search(
+            r"\b(?:issued|taken|dated?)\s*[–-]?\s*(\d{1,2}\s+[A-Za-z]+\s+\d{4})", blob, re.I
+        )
         date_raw = date_m.group(1) if date_m else None
         date_iso = parse_cth_date(date_raw) if date_raw else None
 

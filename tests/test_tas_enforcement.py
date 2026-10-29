@@ -10,7 +10,9 @@ from scrapers.parse_tas_enforcement import (
 )
 
 SCHEMA = json.loads(
-    (Path(__file__).resolve().parent.parent / "data/schemas/enforcement-action.schema.json").read_text()
+    (
+        Path(__file__).resolve().parent.parent / "data/schemas/enforcement-action.schema.json"
+    ).read_text()
 )
 
 TAS_HTML = """
