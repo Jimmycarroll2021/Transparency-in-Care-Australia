@@ -1,0 +1,15 @@
+{
+  "source": "nsw-enforcement",
+  "url": "https://education.nsw.gov.au/content/dam/main-education/early-childhood-education/regulation-and-compliance/register-of-published-enforcement-actions/Q3_Service_Enforcement_Action_Information_2024_2025.pdf",
+  "final_url": "https://education.nsw.gov.au/content/dam/main-education/early-childhood-education/regulation-and-compliance/register-of-published-enforcement-actions/Q3_Service_Enforcement_Action_Information_2024_2025.pdf",
+  "status": 200,
+  "fetched_at": "2026-10-29T07:18:56.682393+00:00",
+  "content_type": "application/pdf",
+  "last_modified": "Fri, 22 Aug 2025 00:48:04 GMT",
+  "etag": "W/\"7936c-63ce98ef91900\"",
+  "bytes": 496492,
+  "sha256": "67c480055c4089d42c34e0e5ebe6613f12b6d6c1a368920a01c099eb6e7c42bd",
+  "user_agent": "TransparencyInCareAustralia/0.1 (+https://github.com/Jimmycarroll2021/Transparency-in-Care-Australia; jimmisound@gmail.com)",
+  "role": "pdf",
+  "slug": "q3-service-enforcement-action-information-2024-2025"
+}

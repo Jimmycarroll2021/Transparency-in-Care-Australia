@@ -1,0 +1,30 @@
+{
+  "output": "data/processed/nsw-enforcement-actions.csv",
+  "written_at": "2026-10-29T07:29:28.537101+00:00",
+  "rows": 1738,
+  "schema": "data/schemas/enforcement-action.schema.json",
+  "raw_inputs": [
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q1-cancellations-services-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q1-service-enforcement-action-information-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q2-cancellations-providers-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q2-cancellations-services-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q2-involuntary-suspensions-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q2-service-enforcement-action-information-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q3-cancellations-providers-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q3-cancellations-services-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q3-involuntary-suspensions-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q3-service-enforcement-action-information-2024-2025.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q3-service-enforcement-action-information-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-cancellations-providers-2024-2025.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-cancellations-providers-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-cancellations-services-2024-2025.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-cancellations-services-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-involuntary-suspensions-2024-2025.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-involuntary-suspensions-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-service-enforcement-action-information-2024-2025.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-services-enforcement-action-information-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0719Z-q3-provider-enforcement-action-information-2024-2025.pdf"
+  ],
+  "notes": "NSW Department of Education register of published enforcement actions, CC BY 4.0, (c) State of New South Wales (Department of Education). legal_references joined with '; '. Personal provider names withheld; nominated supervisor data not stored."
+}

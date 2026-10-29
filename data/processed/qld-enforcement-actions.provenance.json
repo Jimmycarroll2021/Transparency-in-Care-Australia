@@ -1,0 +1,10 @@
+{
+  "output": "data/processed/qld-enforcement-actions.csv",
+  "written_at": "2026-10-29T07:23:35.630092+00:00",
+  "rows": 69,
+  "schema": "data/schemas/enforcement-action.schema.json",
+  "raw_inputs": [
+    "data/raw/qld-enforcement/2026-10-29T0723Z.html"
+  ],
+  "notes": "Queensland register prints no SE-/PR- numbers. Individual names are withheld (provider_name null). legal_references is a JSON array. linked_documents is an extra column. Linked documents were not downloaded."
+}
