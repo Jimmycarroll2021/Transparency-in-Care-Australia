@@ -19,3 +19,7 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# Large derived tables: reproducible from the raw snapshots with --no-fetch; provenance files are kept
+data/processed/acecqa-services-latest.csv
+data/processed/acecqa-providers-latest.csv
