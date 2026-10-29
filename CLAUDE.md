@@ -91,6 +91,7 @@ scrapers/             Collection scripts (Phase 2 onward)
 - Parse NSW enforcement register: `python3 scrapers/parse_nsw_enforcement.py`
 - Join enforcement onto the ACECQA spine: `python3 scrapers/join_enforcement.py`
 - Parse SA enforcement register: `python3 scrapers/parse_sa_enforcement.py`
+- Parse WA enforcement register: `python3 scrapers/parse_wa_enforcement.py` (needs `pip install playwright && playwright install chromium`; the ECRU register is a Caspio search form with no static page)
 
 Add commands here only once the script exists.
 

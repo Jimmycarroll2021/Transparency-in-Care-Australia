@@ -43,6 +43,7 @@ from scrapers import common
 from scrapers.common import (
     PROJECT_ROOT,
     RAW_DIR,
+    USER_AGENT,
     list_snapshots,
     log,
     normalise_pr,
@@ -129,11 +130,13 @@ def parse_wa_date(text: str | None) -> str | None:
     return None
 
 
-def extract_provider_info(raw_text: str | None) -> tuple[str | None, str | None, str | None, list[str]]:
+def extract_provider_info(
+    raw_text: str | None,
+) -> tuple[str | None, str | None, str | None, list[str]]:
     """Extract (provider_name, pr_norm, cs_norm, notes) from 'Provider (provider number)' cell."""
     if not raw_text or not raw_text.strip():
         return None, None, None, []
-    
+
     clean_text = raw_text.strip()
     # Strip label prefix if present: "Provider (provider number): ..."
     if ":" in clean_text and clean_text.lower().startswith("provider"):
@@ -147,7 +150,7 @@ def extract_provider_info(raw_text: str | None) -> tuple[str | None, str | None,
     pr_match = re.search(r"\bPR[-:\s]*(\d+)\b", clean_text, re.IGNORECASE)
     if pr_match:
         pr_norm = normalise_pr(f"PR-{pr_match.group(1)}")
-        
+
     # Check for CS number: e.g. (CS-00051586) Certified Supervisor
     cs_match = re.search(r"\bCS[-:\s]*(\d+)\b", clean_text, re.IGNORECASE)
     if cs_match:
@@ -170,7 +173,9 @@ def extract_provider_info(raw_text: str | None) -> tuple[str | None, str | None,
     return prov_name, pr_norm, cs_norm, notes
 
 
-def extract_service_info(raw_text: str | None) -> tuple[str | None, str | None, str | None, str | None]:
+def extract_service_info(
+    raw_text: str | None,
+) -> tuple[str | None, str | None, str | None, str | None]:
     """Extract (service_name, se_norm, address, suburb) from 'Service name' cell."""
     if not raw_text or not raw_text.strip():
         return None, None, None, None
@@ -263,7 +268,13 @@ def parse_wa_html_table(html_content: str, source_snapshot: str, captured_at: st
                 postcode = m_pc.group(1)
 
         row = {
-            "record_id": record_hash(JURISDICTION, srv_name or "", se_norm or pr_norm or "", action_type, date_iso or year_raw),
+            "record_id": record_hash(
+                JURISDICTION,
+                srv_name or "",
+                se_norm or pr_norm or "",
+                action_type,
+                date_iso or year_raw,
+            ),
             "jurisdiction": JURISDICTION,
             "source_register": INDEX_URL,
             "source_document": INDEX_URL,
@@ -295,22 +306,24 @@ def parse_wa_html_table(html_content: str, source_snapshot: str, captured_at: st
 
 async def fetch_all_wa_playwright() -> str:
     from playwright.async_api import async_playwright
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
+        # Identify the project honestly even through a real browser engine.
+        page = await browser.new_page(user_agent=USER_AGENT)
 
         log.info("navigating to WA ECRU Caspio application: %s", CASPIO_DIRECT_URL)
         await page.goto(CASPIO_DIRECT_URL, wait_until="networkidle")
-        
-        search_btn = page.locator('input.cbSearchButton').first
+
+        search_btn = page.locator("input.cbSearchButton").first
         await search_btn.wait_for(timeout=15000)
         await search_btn.click()
         await page.wait_for_timeout(1500)
         await page.wait_for_load_state("networkidle")
-        
+
         all_rows_html = []
         page_num = 1
-        
+
         while True:
             # Wait for any modal spinner/overlay to clear
             try:
@@ -328,7 +341,12 @@ async def fetch_all_wa_playwright() -> str:
             for tr in data_rows:
                 all_rows_html.append(str(tr))
 
-            log.info("WA page %d: collected %d rows (total: %d)", page_num, len(data_rows), len(all_rows_html))
+            log.info(
+                "WA page %d: collected %d rows (total: %d)",
+                page_num,
+                len(data_rows),
+                len(all_rows_html),
+            )
 
             next_links = page.locator('a.cbResultSetNavigationLinks:has(img[src*="set7_next"])')
             if await next_links.count() == 0 or not await next_links.first.is_visible():
@@ -362,10 +380,10 @@ async def fetch_all_wa_playwright() -> str:
             page_num += 1
 
         await browser.close()
-        
+
         full_html = (
             f"<!DOCTYPE html><html><head><title>WA ECRU All Enforcement Actions</title></head>"
-            f"<body><table class=\"cbResultSetTable\">{''.join(all_rows_html)}</table></body></html>"
+            f'<body><table class="cbResultSetTable">{"".join(all_rows_html)}</table></body></html>'
         )
         return full_html
 
@@ -390,7 +408,7 @@ def main(argv: list[str] | None = None) -> int:
         stamp = common.utc_stamp()
         out_path = common._unique_path(RAW_DIR / SOURCE, stamp, "html")
         out_path.write_text(html_content, encoding="utf-8")
-        
+
         # Write metadata sidecar
         meta = {
             "source": SOURCE,
@@ -403,9 +421,11 @@ def main(argv: list[str] | None = None) -> int:
             "etag": None,
             "bytes": len(html_content.encode("utf-8")),
             "sha256": hashlib.sha256(html_content.encode("utf-8")).hexdigest(),
-            "user_agent": "Playwright/Chromium Headless",
+            "user_agent": USER_AGENT,
         }
-        Path(f"{out_path}.meta.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+        Path(f"{out_path}.meta.json").write_text(
+            json.dumps(meta, indent=2) + "\n", encoding="utf-8"
+        )
         log.info("snapshot %s (%d bytes)", out_path.relative_to(PROJECT_ROOT), len(html_content))
         snapshot_path = out_path
 
@@ -424,13 +444,16 @@ def main(argv: list[str] | None = None) -> int:
 
     if SCHEMA_PATH.exists():
         import jsonschema
+
         schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
         validator = jsonschema.Draft202012Validator(schema)
         for i, row in enumerate(rows):
             errors = list(validator.iter_errors(row))
             if errors:
                 for err in errors[:5]:
-                    log.error("schema validation error row %d: %s (at %s)", i, err.message, list(err.path))
+                    log.error(
+                        "schema validation error row %d: %s (at %s)", i, err.message, list(err.path)
+                    )
                 return 1
 
     out_rows = [{**r, "legal_references": json.dumps(r["legal_references"])} for r in rows]
