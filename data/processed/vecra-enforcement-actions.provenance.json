@@ -1,0 +1,16 @@
+{
+  "output": "data/processed/vecra-enforcement-actions.csv",
+  "written_at": "2026-10-29T07:22:30.263796+00:00",
+  "rows": 132,
+  "schema": "data/schemas/enforcement-action.schema.json",
+  "raw_inputs": [
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-january-march-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-april-may-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-june-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-july-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-august-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0721Z-summary-table.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-index.html"
+  ],
+  "notes": "VECRA published enforcement actions under the National Law, parsed from monthly HTML pages. Latest snapshot of each page. CC BY 4.0, (c) State Government of Victoria. Historical years 2020 to 2025 are PDF/Word files disallowed by robots.txt and are not included. legal_references is a JSON array."
+}

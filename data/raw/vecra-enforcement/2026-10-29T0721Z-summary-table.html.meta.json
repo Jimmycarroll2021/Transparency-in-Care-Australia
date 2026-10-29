@@ -1,0 +1,14 @@
+{
+  "source": "vecra-enforcement",
+  "url": "https://www.vecra.vic.gov.au/enforcement-action-summary-table",
+  "final_url": "https://www.vecra.vic.gov.au/enforcement-action-summary-table",
+  "status": 200,
+  "fetched_at": "2026-10-29T07:21:23.836825+00:00",
+  "content_type": "text/html;charset=utf-8",
+  "last_modified": null,
+  "etag": null,
+  "bytes": 102917,
+  "sha256": "64a02e8f40c22496f22a9f7e423749c8ca80037f21c2f731ee1a7043535e4cd8",
+  "user_agent": "TransparencyInCareAustralia/0.1 (+https://github.com/Jimmycarroll2021/Transparency-in-Care-Australia; jimmisound@gmail.com)",
+  "page_slug": "summary-table"
+}

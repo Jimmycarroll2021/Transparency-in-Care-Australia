@@ -1,0 +1,14 @@
+{
+  "source": "vecra-enforcement",
+  "url": "https://www.vecra.vic.gov.au/enforcement-actions-january-march-2026",
+  "final_url": "https://www.vecra.vic.gov.au/enforcement-actions-january-march-2026",
+  "status": 200,
+  "fetched_at": "2026-10-29T07:20:22.084602+00:00",
+  "content_type": "text/html;charset=utf-8",
+  "last_modified": null,
+  "etag": null,
+  "bytes": 143516,
+  "sha256": "098770bdb31a433493594f917d1f273e71e25c19653d2996dea88761c9065de0",
+  "user_agent": "TransparencyInCareAustralia/0.1 (+https://github.com/Jimmycarroll2021/Transparency-in-Care-Australia; jimmisound@gmail.com)",
+  "page_slug": "january-march-2026"
+}
