@@ -159,6 +159,8 @@ COVERAGE = {
     "VIC": "VIC register: Jan 2026 onward (HTML only, archive not collected)",
     "QLD": "QLD register: 2017 onward (register, discretionary removal, no keys)",
     "CTH": "CTH register: rolling 12 months plus past registers",
+    "SA": "SA register: current compliance action (HTML, per-service sections)",
+    "TAS": "TAS register: published enforcement actions under National Law",
 }
 NOT_COLLECTED = "{state} register: not yet collected"
 SAFETY_SENTENCE = "Absence of an action is not evidence of safety."

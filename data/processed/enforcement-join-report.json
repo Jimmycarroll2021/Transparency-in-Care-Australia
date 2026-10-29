@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T08:24:20.258700+00:00",
+  "generated_at": "2026-10-29T08:25:31.195519+00:00",
   "window": {
     "months": 24,
     "start": "2024-10-29",
@@ -11,6 +11,7 @@
     "data/processed/nsw-enforcement-actions.csv",
     "data/processed/qld-enforcement-actions.csv",
     "data/processed/sa-enforcement-actions.csv",
+    "data/processed/tas-enforcement-actions.csv",
     "data/processed/vecra-enforcement-actions.csv"
   ],
   "raw_inputs": [
@@ -21,6 +22,7 @@
     "data/processed/nsw-enforcement-actions.csv",
     "data/processed/qld-enforcement-actions.csv",
     "data/processed/sa-enforcement-actions.csv",
+    "data/processed/tas-enforcement-actions.csv",
     "data/processed/vecra-enforcement-actions.csv",
     "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
     "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json",
@@ -64,6 +66,7 @@
     "data/raw/sa-enforcement/2026-10-29T0819Z-historical-compliance-action-2022-23.html",
     "data/raw/sa-enforcement/2026-10-29T0819Z-copyright-disclaimer.html",
     "data/raw/sa-enforcement/2026-10-29T0819Z-historical-index.html",
+    "data\\raw\\tas-enforcement\\2026-10-29T0819Z.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-january-march-2026.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-april-may-2026.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-june-2026.html",
@@ -77,13 +80,15 @@
     "VIC": "VIC register: Jan 2026 onward (HTML only, archive not collected)",
     "QLD": "QLD register: 2017 onward (register, discretionary removal, no keys)",
     "CTH": "CTH register: rolling 12 months plus past registers",
+    "SA": "SA register: current compliance action (HTML, per-service sections)",
+    "TAS": "TAS register: published enforcement actions under National Law",
     "others": "SA, WA, TAS, NT, ACT not yet collected"
   },
   "overall": {
-    "rows_in": 2611,
-    "joined": 1839,
+    "rows_in": 2612,
+    "joined": 1840,
     "unmatched": 772,
-    "match_rate": 0.7043
+    "match_rate": 0.7044
   },
   "per_jurisdiction": {
     "CTH": {
@@ -349,6 +354,25 @@
         }
       ],
       "match_rate": 0.828
+    },
+    "TAS": {
+      "rows_in": 1,
+      "joined_exact_key": 1,
+      "joined_exact_key_service": 1,
+      "joined_exact_key_provider": 0,
+      "joined_by_name": 0,
+      "joined_by_name_and_suburb": 0,
+      "joined_by_name_only": 0,
+      "joined_by_provider_name": 0,
+      "joined_by_provider_name_unpinned": 0,
+      "joined_by_provider_and_service_name": 0,
+      "unmatched": 0,
+      "unmatched_ambiguous_name": 0,
+      "unmatched_ambiguous_provider_name": 0,
+      "duplicate_rows_not_counted": 0,
+      "unmatched_reasons": {},
+      "unmatched_examples": [],
+      "match_rate": 1.0
     },
     "VIC": {
       "rows_in": 132,
