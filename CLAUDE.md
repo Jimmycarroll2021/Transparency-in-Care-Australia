@@ -87,8 +87,9 @@ scrapers/             Collection scripts (Phase 2 onward)
 - Parse VECRA enforcement actions: `python3 scrapers/parse_vecra_enforcement.py`
 - Profile providers: `python3 scrapers/profile_providers.py`
 - Parse Queensland enforcement register: `python3 scrapers/parse_qld_enforcement.py`
-- Parse Commonwealth CCS enforcement register: `python3 scrapers/parse_cth_ccs_enforcement.py` (untested against live HTML; education.gov.au refuses connections from the cloud environment)
+- Parse Commonwealth CCS enforcement register: `python3 scrapers/parse_cth_ccs_enforcement.py --current-file F --past-file G` (education.gov.au drops non-browser clients: save both pages from a browser; `--skip-fetch` re-parses the newest snapshots)
 - Parse NSW enforcement register: `python3 scrapers/parse_nsw_enforcement.py`
+- Join enforcement onto the ACECQA spine: `python3 scrapers/join_enforcement.py`
 
 Add commands here only once the script exists.
 

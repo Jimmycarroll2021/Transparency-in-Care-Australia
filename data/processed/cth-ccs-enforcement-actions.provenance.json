@@ -1,0 +1,11 @@
+{
+  "output": "data/processed/cth-ccs-enforcement-actions.csv",
+  "written_at": "2026-10-29T07:55:41.872109+00:00",
+  "rows": 236,
+  "schema": "data/schemas/enforcement-action.schema.json",
+  "raw_inputs": [
+    "data/raw/cth-ccs-enforcement/2026-10-29T0749Z-current.html",
+    "data/raw/cth-ccs-enforcement/2026-10-29T0749Z-past.html"
+  ],
+  "notes": "Parsed from browser-saved pages (dt/dd entry layout). ABN is in notes as 'ccs_identifier: ABN ...'; individuals' names, and their ABNs, are withheld."
+}

@@ -61,6 +61,31 @@ individuals are replaced by the register page because the file names embed names
 - **Two malformed keys in NSW**: a seven-digit SE- value and a PR- value with a stray suffix. Both
   kept raw with null normalised key rather than guessed.
 
+## Join results (added later the same day)
+
+`scrapers/join_enforcement.py` stacks every `*-enforcement-actions.csv` onto the ACECQA spine.
+2,175 action rows in; 64.0 per cent joined. By jurisdiction: NSW 72.5 per cent (1,260 of 1,738,
+all by exact key), Victoria 89.4 per cent (118 of 132), Queensland 20.3 per cent (14 of 69, name
+match only), Commonwealth 0 per cent (236 rows, no SE-/PR- keys printed; ABN on 64 rows is the
+only identifier). Window: 24 months to 28 October 2026. Services with at least one joined action
+in the window: 875 of 18,186. Providers: 593 of 10,073.
+
+The Commonwealth parser was rewritten against the real pages the owner saved from a browser:
+236 rows (149 current, 87 past), 226 CCS sanctions and 10 criminal outcomes, 64 rows withheld as
+individuals.
+
+What the join taught us:
+
+- **About 490 NSW and Victorian rows carry keys absent from the live ACECQA register**, mostly
+  cancellations. The likely cause is that cancelled approvals drop off the register [Verify This].
+  This is exactly why the daily snapshot matters: a key that vanishes tomorrow is still in
+  yesterday's file. Re-run the join against the earliest snapshot once a few weeks exist.
+- **Queensland and the Commonwealth need a provider-name match** (unique, normalised, never for
+  withheld providers) to lift their join rates. Not built yet.
+- **Rates need care.** The report divides 24-month actions by the provider's current service
+  count. Both lists in `enforcement-join-report.json` are internal only until the legal review.
+- **Duplicates in source** (19 rows) are kept, numbered by `occurrence`, and excluded from counts.
+
 ## Next
 
 1. Join: `scrapers/join_enforcement.py` that stacks the four jurisdiction tables, attaches the

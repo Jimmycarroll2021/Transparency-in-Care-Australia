@@ -1,0 +1,944 @@
+{
+  "generated_at": "2026-10-29T07:55:42.052028+00:00",
+  "window": {
+    "months": 24,
+    "start": "2024-10-29",
+    "end": "2026-10-28",
+    "end_basis": "snapshot_last_modified of the ACECQA services snapshot"
+  },
+  "inputs": [
+    "data/processed/cth-ccs-enforcement-actions.csv",
+    "data/processed/nsw-enforcement-actions.csv",
+    "data/processed/qld-enforcement-actions.csv",
+    "data/processed/vecra-enforcement-actions.csv"
+  ],
+  "raw_inputs": [
+    "data/processed/acecqa-services-latest.csv",
+    "data/processed/acecqa-providers-latest.csv",
+    "data/processed/provider-profile.csv",
+    "data/processed/cth-ccs-enforcement-actions.csv",
+    "data/processed/nsw-enforcement-actions.csv",
+    "data/processed/qld-enforcement-actions.csv",
+    "data/processed/vecra-enforcement-actions.csv",
+    "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
+    "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json",
+    "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz",
+    "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz.meta.json",
+    "data/raw/cth-ccs-enforcement/2026-10-29T0749Z-current.html",
+    "data/raw/cth-ccs-enforcement/2026-10-29T0749Z-past.html",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q1-cancellations-services-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q1-service-enforcement-action-information-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q2-cancellations-providers-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q2-cancellations-services-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q2-involuntary-suspensions-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q2-service-enforcement-action-information-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q3-cancellations-providers-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q3-cancellations-services-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q3-involuntary-suspensions-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q3-service-enforcement-action-information-2024-2025.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q3-service-enforcement-action-information-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-cancellations-providers-2024-2025.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-cancellations-providers-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-cancellations-services-2024-2025.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-cancellations-services-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-involuntary-suspensions-2024-2025.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-involuntary-suspensions-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-service-enforcement-action-information-2024-2025.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0718Z-q4-services-enforcement-action-information-2025-2026.pdf",
+    "data/raw/nsw-enforcement/2026-10-29T0719Z-q3-provider-enforcement-action-information-2024-2025.pdf",
+    "data/raw/qld-enforcement/2026-10-29T0723Z.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-january-march-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-april-may-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-june-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-july-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-august-2026.html",
+    "data/raw/vecra-enforcement/2026-10-29T0721Z-summary-table.html",
+    "data/raw/vecra-enforcement/2026-10-29T0720Z-index.html"
+  ],
+  "coverage": {
+    "NSW": "NSW register: Jan 2025 onward (quarterly PDFs)",
+    "VIC": "VIC register: Jan 2026 onward (HTML only, archive not collected)",
+    "QLD": "QLD register: 2017 onward (register, discretionary removal, no keys)",
+    "CTH": "CTH register: rolling 12 months plus past registers",
+    "others": "SA, WA, TAS, NT, ACT not yet collected"
+  },
+  "overall": {
+    "rows_in": 2175,
+    "joined": 1392,
+    "unmatched": 783,
+    "match_rate": 0.64
+  },
+  "per_jurisdiction": {
+    "CTH": {
+      "rows_in": 236,
+      "joined_exact_key": 0,
+      "joined_exact_key_service": 0,
+      "joined_exact_key_provider": 0,
+      "joined_by_name": 0,
+      "joined_by_name_and_suburb": 0,
+      "joined_by_name_only": 0,
+      "unmatched": 236,
+      "unmatched_ambiguous_name": 0,
+      "duplicate_rows_not_counted": 7,
+      "unmatched_reasons": {
+        "no service or provider key printed": 236
+      },
+      "unmatched_examples": [
+        {
+          "record_id": "f9ba961cb512bbfe",
+          "action_type": "ccs_sanction"
+        },
+        {
+          "record_id": "4af94ec02bd88b25",
+          "action_type": "ccs_sanction"
+        },
+        {
+          "record_id": "958be4682e7740c5",
+          "action_type": "ccs_sanction"
+        },
+        {
+          "record_id": "72744b77e56761b0",
+          "action_type": "ccs_sanction"
+        },
+        {
+          "record_id": "1e465a07b85808fa",
+          "action_type": "ccs_sanction"
+        },
+        {
+          "record_id": "05c405c9bbc6e7ae",
+          "action_type": "ccs_sanction"
+        },
+        {
+          "record_id": "96b0926cecfcb6f0",
+          "action_type": "ccs_sanction"
+        },
+        {
+          "record_id": "99487b1c40b96124",
+          "action_type": "ccs_sanction"
+        },
+        {
+          "record_id": "2b63e36aeb1566d5",
+          "action_type": "ccs_sanction"
+        },
+        {
+          "record_id": "c4049c3995d23aec",
+          "action_type": "ccs_sanction"
+        }
+      ],
+      "match_rate": 0.0
+    },
+    "NSW": {
+      "rows_in": 1738,
+      "joined_exact_key": 1260,
+      "joined_exact_key_service": 1260,
+      "joined_exact_key_provider": 0,
+      "joined_by_name": 0,
+      "joined_by_name_and_suburb": 0,
+      "joined_by_name_only": 0,
+      "unmatched": 478,
+      "unmatched_ambiguous_name": 0,
+      "duplicate_rows_not_counted": 12,
+      "unmatched_reasons": {
+        "provider key <key> not in the spine": 349,
+        "service key <key> not in the spine": 127,
+        "no service or provider key printed": 2
+      },
+      "unmatched_examples": [
+        {
+          "record_id": "4b6136583ae32e8d",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "fa483fe7d66a4451",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "6cf377f449a00f28",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "e235d3834df33848",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "0d2132cbc85f5fb8",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "266b3683585442d0",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "0fb271ca36388d43",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "e33c863585b67e1e",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "b8fe1060af538407",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "0b7434ca4515bddd",
+          "action_type": "approval_cancelled"
+        }
+      ],
+      "match_rate": 0.725
+    },
+    "QLD": {
+      "rows_in": 69,
+      "joined_exact_key": 0,
+      "joined_exact_key_service": 0,
+      "joined_exact_key_provider": 0,
+      "joined_by_name": 14,
+      "joined_by_name_and_suburb": 0,
+      "joined_by_name_only": 14,
+      "unmatched": 55,
+      "unmatched_ambiguous_name": 5,
+      "duplicate_rows_not_counted": 0,
+      "unmatched_reasons": {
+        "no service name printed; no key; name match not possible": 4,
+        "no key; subject withheld as an individual; name match not attempted": 20,
+        "no QLD service with this normalised name": 26,
+        "ambiguous: N candidates share the name": 5
+      },
+      "unmatched_examples": [
+        {
+          "record_id": "21c9d50084145451",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "96c8c7d3a94a795f",
+          "action_type": "prosecution"
+        },
+        {
+          "record_id": "616db999f98bea50",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "95e2bb6b24c9fc11",
+          "action_type": "approval_suspended"
+        },
+        {
+          "record_id": "3f86a4c42d438ba4",
+          "action_type": "prosecution"
+        },
+        {
+          "record_id": "5c4db28749e8c8f8",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "ff12639e136e0713",
+          "action_type": "other"
+        },
+        {
+          "record_id": "c5b02284565e2143",
+          "action_type": "prosecution"
+        },
+        {
+          "record_id": "38f53d28c1c3d853",
+          "action_type": "enforceable_undertaking"
+        },
+        {
+          "record_id": "06fb132e35bf7233",
+          "action_type": "prosecution"
+        }
+      ],
+      "match_rate": 0.2029
+    },
+    "VIC": {
+      "rows_in": 132,
+      "joined_exact_key": 118,
+      "joined_exact_key_service": 103,
+      "joined_exact_key_provider": 15,
+      "joined_by_name": 0,
+      "joined_by_name_and_suburb": 0,
+      "joined_by_name_only": 0,
+      "unmatched": 14,
+      "unmatched_ambiguous_name": 0,
+      "duplicate_rows_not_counted": 0,
+      "unmatched_reasons": {
+        "provider key <key> not in the spine": 12,
+        "service key <key> not in the spine": 2
+      },
+      "unmatched_examples": [
+        {
+          "record_id": "4ee75c2f47d6cdca",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "b9d94bb5a22e5366",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "13635a8395474ce5",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "84e183218c021a75",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "1bb27a8c50054589",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "48b4ce723869672c",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "1deb41ee342b9a2e",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "5936d362039306f6",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "220efe5a28320c92",
+          "action_type": "approval_cancelled"
+        },
+        {
+          "record_id": "907b942144b416a3",
+          "action_type": "approval_cancelled"
+        }
+      ],
+      "match_rate": 0.8939
+    }
+  },
+  "services_with_action_last_24_months": {
+    "count": 875,
+    "denominator_services": 18186,
+    "note": "counts actions of any type that were joined to the service; only states whose registers are collected can contribute"
+  },
+  "providers_with_action_last_24_months": {
+    "count": 593,
+    "of_which_name_not_withheld": 551,
+    "denominator_providers": 10073
+  },
+  "top_20_providers_by_actions_last_24_months": [
+    {
+      "provider_approval_number": "PR-40001112",
+      "legal_name": "Affinity Education Group Pty Limited",
+      "entity_form": "company",
+      "actions_last_24_months": 98,
+      "by_action_type_last_24_months": {
+        "approval_suspended": 1,
+        "compliance_notice": 83,
+        "compliance_direction": 8,
+        "emergency_action_notice": 4,
+        "enforceable_undertaking": 2
+      },
+      "service_count": 217,
+      "actions_last_24_months_per_service": 0.4516,
+      "services_with_any_action_last_24_months": 52,
+      "states_operated_in": "ACT|NSW|NT|QLD|VIC|WA",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00000898",
+      "legal_name": "G8 Education Limited",
+      "entity_form": "company",
+      "actions_last_24_months": 37,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 25,
+        "compliance_direction": 3,
+        "emergency_action_notice": 6,
+        "enforceable_undertaking": 3
+      },
+      "service_count": 280,
+      "actions_last_24_months_per_service": 0.1321,
+      "services_with_any_action_last_24_months": 24,
+      "states_operated_in": "NSW|QLD|SA|VIC|WA",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00005318",
+      "legal_name": "Sought After Investments Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 34,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 27,
+        "emergency_action_notice": 6,
+        "enforceable_undertaking": 1
+      },
+      "service_count": 12,
+      "actions_last_24_months_per_service": 2.8333,
+      "services_with_any_action_last_24_months": 8,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40006598",
+      "legal_name": "LZ PTY LTD",
+      "entity_form": "company",
+      "actions_last_24_months": 32,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 28,
+        "emergency_action_notice": 4
+      },
+      "service_count": 37,
+      "actions_last_24_months_per_service": 0.8649,
+      "services_with_any_action_last_24_months": 20,
+      "states_operated_in": "NSW|SA",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40004402",
+      "legal_name": "OSHCLUB PTY LTD",
+      "entity_form": "company",
+      "actions_last_24_months": 30,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 24,
+        "emergency_action_notice": 6
+      },
+      "service_count": 233,
+      "actions_last_24_months_per_service": 0.1288,
+      "services_with_any_action_last_24_months": 13,
+      "states_operated_in": "ACT|NSW|QLD|VIC|WA",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40011145",
+      "legal_name": "TheirCare Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 28,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 26,
+        "emergency_action_notice": 2
+      },
+      "service_count": 503,
+      "actions_last_24_months_per_service": 0.0557,
+      "services_with_any_action_last_24_months": 20,
+      "states_operated_in": "NSW|QLD|TAS|VIC|WA",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00004699",
+      "legal_name": "Only About Children Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 22,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 18,
+        "enforceable_undertaking": 3,
+        "prosecution": 1
+      },
+      "service_count": 69,
+      "actions_last_24_months_per_service": 0.3188,
+      "services_with_any_action_last_24_months": 17,
+      "states_operated_in": "NSW|QLD|VIC",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00001129",
+      "legal_name": "Goodstart Early Learning Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 19,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 16,
+        "emergency_action_notice": 2,
+        "enforceable_undertaking": 1
+      },
+      "service_count": 609,
+      "actions_last_24_months_per_service": 0.0312,
+      "services_with_any_action_last_24_months": 16,
+      "states_operated_in": "ACT|NSW|NT|QLD|SA|TAS|VIC|WA",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00002539",
+      "legal_name": "Camp Australia Pty Limited",
+      "entity_form": "company",
+      "actions_last_24_months": 16,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 14,
+        "enforceable_undertaking": 2
+      },
+      "service_count": 388,
+      "actions_last_24_months_per_service": 0.0412,
+      "services_with_any_action_last_24_months": 10,
+      "states_operated_in": "ACT|NSW|NT|QLD|SA|VIC|WA",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40003939",
+      "legal_name": "MMZ Holdings PTY LTD",
+      "entity_form": "company",
+      "actions_last_24_months": 14,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 10,
+        "emergency_action_notice": 3,
+        "enforceable_undertaking": 1
+      },
+      "service_count": 21,
+      "actions_last_24_months_per_service": 0.6667,
+      "services_with_any_action_last_24_months": 6,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40031654",
+      "legal_name": "INSPIRE EDUCATION & CARE PTY LIMITED",
+      "entity_form": "company",
+      "actions_last_24_months": 12,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 8,
+        "emergency_action_notice": 4
+      },
+      "service_count": 14,
+      "actions_last_24_months_per_service": 0.8571,
+      "services_with_any_action_last_24_months": 7,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40006486",
+      "legal_name": "Little Kindy Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 12,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 10,
+        "emergency_action_notice": 2
+      },
+      "service_count": 23,
+      "actions_last_24_months_per_service": 0.5217,
+      "services_with_any_action_last_24_months": 6,
+      "states_operated_in": "NSW|QLD|SA|TAS|VIC|WA",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40032055",
+      "legal_name": "MAG NSW CHILDCARES PTY LTD",
+      "entity_form": "company",
+      "actions_last_24_months": 11,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 5,
+        "emergency_action_notice": 4,
+        "enforceable_undertaking": 2
+      },
+      "service_count": 14,
+      "actions_last_24_months_per_service": 0.7857,
+      "services_with_any_action_last_24_months": 2,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40002186",
+      "legal_name": "Wesley Community Services Limited",
+      "entity_form": "company",
+      "actions_last_24_months": 11,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 8,
+        "emergency_action_notice": 3
+      },
+      "service_count": 18,
+      "actions_last_24_months_per_service": 0.6111,
+      "services_with_any_action_last_24_months": 5,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00004036",
+      "legal_name": "Trustees of The Roman Catholic Church for the Diocese of Maitland-Newcastle",
+      "entity_form": "church_or_religious",
+      "actions_last_24_months": 11,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 11
+      },
+      "service_count": 44,
+      "actions_last_24_months_per_service": 0.25,
+      "services_with_any_action_last_24_months": 4,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00004456",
+      "legal_name": "Scribbles & Giggles Childcare Centre Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 10,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 8,
+        "emergency_action_notice": 2
+      },
+      "service_count": 5,
+      "actions_last_24_months_per_service": 2.0,
+      "services_with_any_action_last_24_months": 4,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00004056",
+      "legal_name": "Grenfell Preschool And Long Day Care Centre Incorporated",
+      "entity_form": "incorporated_association",
+      "actions_last_24_months": 9,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 5,
+        "emergency_action_notice": 3,
+        "enforceable_undertaking": 1
+      },
+      "service_count": 1,
+      "actions_last_24_months_per_service": 9.0,
+      "services_with_any_action_last_24_months": 1,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40024165",
+      "legal_name": "Kenonia Projects Pty Ltd ATF Mother of Light Unit Trust",
+      "entity_form": "trust_or_trustee",
+      "actions_last_24_months": 9,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 8,
+        "emergency_action_notice": 1
+      },
+      "service_count": 2,
+      "actions_last_24_months_per_service": 4.5,
+      "services_with_any_action_last_24_months": 2,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00001203",
+      "legal_name": "G8 KP Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 9,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 8,
+        "emergency_action_notice": 1
+      },
+      "service_count": 20,
+      "actions_last_24_months_per_service": 0.45,
+      "services_with_any_action_last_24_months": 5,
+      "states_operated_in": "NSW|QLD",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00000823",
+      "legal_name": "Guardian Community Early Learning Centres Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 9,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 8,
+        "emergency_action_notice": 1
+      },
+      "service_count": 154,
+      "actions_last_24_months_per_service": 0.0584,
+      "services_with_any_action_last_24_months": 7,
+      "states_operated_in": "ACT|NSW|QLD|SA|VIC",
+      "window": "2024-10-29 to 2026-10-28"
+    }
+  ],
+  "top_20_providers_by_rate_per_service_min_5_services": [
+    {
+      "provider_approval_number": "PR-00005318",
+      "legal_name": "Sought After Investments Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 34,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 27,
+        "emergency_action_notice": 6,
+        "enforceable_undertaking": 1
+      },
+      "service_count": 12,
+      "actions_last_24_months_per_service": 2.8333,
+      "services_with_any_action_last_24_months": 8,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00004456",
+      "legal_name": "Scribbles & Giggles Childcare Centre Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 10,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 8,
+        "emergency_action_notice": 2
+      },
+      "service_count": 5,
+      "actions_last_24_months_per_service": 2.0,
+      "services_with_any_action_last_24_months": 4,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40022982",
+      "legal_name": "The Grove Academy - Wollongong Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 6,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 6
+      },
+      "service_count": 6,
+      "actions_last_24_months_per_service": 1.0,
+      "services_with_any_action_last_24_months": 3,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40006598",
+      "legal_name": "LZ PTY LTD",
+      "entity_form": "company",
+      "actions_last_24_months": 32,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 28,
+        "emergency_action_notice": 4
+      },
+      "service_count": 37,
+      "actions_last_24_months_per_service": 0.8649,
+      "services_with_any_action_last_24_months": 20,
+      "states_operated_in": "NSW|SA",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40031654",
+      "legal_name": "INSPIRE EDUCATION & CARE PTY LIMITED",
+      "entity_form": "company",
+      "actions_last_24_months": 12,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 8,
+        "emergency_action_notice": 4
+      },
+      "service_count": 14,
+      "actions_last_24_months_per_service": 0.8571,
+      "services_with_any_action_last_24_months": 7,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40000495",
+      "legal_name": "SK Alliance Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 4,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 3,
+        "enforceable_undertaking": 1
+      },
+      "service_count": 5,
+      "actions_last_24_months_per_service": 0.8,
+      "services_with_any_action_last_24_months": 2,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40033325",
+      "legal_name": "ALLAMBIE HEIGHTS KINDY PTY LTD",
+      "entity_form": "company",
+      "actions_last_24_months": 4,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 4
+      },
+      "service_count": 5,
+      "actions_last_24_months_per_service": 0.8,
+      "services_with_any_action_last_24_months": 2,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40032055",
+      "legal_name": "MAG NSW CHILDCARES PTY LTD",
+      "entity_form": "company",
+      "actions_last_24_months": 11,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 5,
+        "emergency_action_notice": 4,
+        "enforceable_undertaking": 2
+      },
+      "service_count": 14,
+      "actions_last_24_months_per_service": 0.7857,
+      "services_with_any_action_last_24_months": 2,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00010700",
+      "legal_name": "KIDS CLUB EARLY CHILDHOOD CENTRES PTY LTD",
+      "entity_form": "company",
+      "actions_last_24_months": 5,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 3,
+        "emergency_action_notice": 2
+      },
+      "service_count": 7,
+      "actions_last_24_months_per_service": 0.7143,
+      "services_with_any_action_last_24_months": 1,
+      "states_operated_in": "NSW|QLD",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40003939",
+      "legal_name": "MMZ Holdings PTY LTD",
+      "entity_form": "company",
+      "actions_last_24_months": 14,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 10,
+        "emergency_action_notice": 3,
+        "enforceable_undertaking": 1
+      },
+      "service_count": 21,
+      "actions_last_24_months_per_service": 0.6667,
+      "services_with_any_action_last_24_months": 6,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00004878",
+      "legal_name": "LIVEBETTER SERVICES LIMITED",
+      "entity_form": "company",
+      "actions_last_24_months": 7,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 5,
+        "emergency_action_notice": 2
+      },
+      "service_count": 11,
+      "actions_last_24_months_per_service": 0.6364,
+      "services_with_any_action_last_24_months": 3,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40012628",
+      "legal_name": "Busy Bees Killarney Heights Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 5,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 4,
+        "emergency_action_notice": 1
+      },
+      "service_count": 8,
+      "actions_last_24_months_per_service": 0.625,
+      "services_with_any_action_last_24_months": 2,
+      "states_operated_in": "NSW|SA",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40002186",
+      "legal_name": "Wesley Community Services Limited",
+      "entity_form": "company",
+      "actions_last_24_months": 11,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 8,
+        "emergency_action_notice": 3
+      },
+      "service_count": 18,
+      "actions_last_24_months_per_service": 0.6111,
+      "services_with_any_action_last_24_months": 5,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00004320",
+      "legal_name": "CONNECT CHILD & FAMILY SERVICES LIMITED",
+      "entity_form": "company",
+      "actions_last_24_months": 3,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 2,
+        "emergency_action_notice": 1
+      },
+      "service_count": 5,
+      "actions_last_24_months_per_service": 0.6,
+      "services_with_any_action_last_24_months": 2,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00005226",
+      "legal_name": "Caring 4 Kids Pty Ltd ATF The J & J Sarkis Family Trust",
+      "entity_form": "trust_or_trustee",
+      "actions_last_24_months": 3,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 3
+      },
+      "service_count": 5,
+      "actions_last_24_months_per_service": 0.6,
+      "services_with_any_action_last_24_months": 1,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00005784",
+      "legal_name": "Kindy Castle Child Care Centre Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 3,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 1,
+        "emergency_action_notice": 2
+      },
+      "service_count": 5,
+      "actions_last_24_months_per_service": 0.6,
+      "services_with_any_action_last_24_months": 3,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40006486",
+      "legal_name": "Little Kindy Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 12,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 10,
+        "emergency_action_notice": 2
+      },
+      "service_count": 23,
+      "actions_last_24_months_per_service": 0.5217,
+      "services_with_any_action_last_24_months": 6,
+      "states_operated_in": "NSW|QLD|SA|TAS|VIC|WA",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40001907",
+      "legal_name": "Vantage Education Pty. Ltd.",
+      "entity_form": "company",
+      "actions_last_24_months": 4,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 3,
+        "emergency_action_notice": 1
+      },
+      "service_count": 8,
+      "actions_last_24_months_per_service": 0.5,
+      "services_with_any_action_last_24_months": 1,
+      "states_operated_in": "NSW|QLD|VIC",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40021821",
+      "legal_name": "BRIGHTLY EARLY LEARNING PTY LTD",
+      "entity_form": "company",
+      "actions_last_24_months": 3,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 3
+      },
+      "service_count": 6,
+      "actions_last_24_months_per_service": 0.5,
+      "services_with_any_action_last_24_months": 1,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40001112",
+      "legal_name": "Affinity Education Group Pty Limited",
+      "entity_form": "company",
+      "actions_last_24_months": 98,
+      "by_action_type_last_24_months": {
+        "approval_suspended": 1,
+        "compliance_notice": 83,
+        "compliance_direction": 8,
+        "emergency_action_notice": 4,
+        "enforceable_undertaking": 2
+      },
+      "service_count": 217,
+      "actions_last_24_months_per_service": 0.4516,
+      "services_with_any_action_last_24_months": 52,
+      "states_operated_in": "ACT|NSW|NT|QLD|VIC|WA",
+      "window": "2024-10-29 to 2026-10-28"
+    }
+  ],
+  "caveats": [
+    "Counts are of published enforcement actions of every type. Action types are kept in separate columns; prosecutions are not breaches.",
+    "Rates divide actions in the window by the provider's current service_count, so they mix a historic numerator with a current denominator.",
+    "Only NSW (from Jan 2025), VIC (from Jan 2026), QLD (from 2017, no keys) are collected; other states are not covered. Absence of an action is not evidence of safety.",
+    "Name-withheld providers are excluded from the top lists."
+  ]
+}

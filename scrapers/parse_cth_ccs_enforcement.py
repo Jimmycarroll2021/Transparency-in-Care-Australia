@@ -1,32 +1,46 @@
 """Fetch and parse the Commonwealth Child Care Subsidy (CCS) enforcement action register.
 
-STATUS: UNTESTED AGAINST LIVE HTML. On 2026-10-29 education.gov.au closed every connection
-from this project (HTTP/2 INTERNAL_ERROR with curl, "Server disconnected" with httpx, also for
-/robots.txt), and returned HTTP 503 to the register-auditor the day before. No real page has
-been captured, so the table structure below is a best guess from the register-auditor's search
-snippet (columns: provider name, location, service type, type of sanction, conditions of
-approval or grounds for sanction, date of effect, sometimes an end date). The parser therefore
-maps columns by header text, not by position, and ignores tables it cannot recognise. Treat
-every output row as unverified until a real snapshot has been parsed and checked by hand.
-Licence for this host is also unconfirmed (research note section 4); do not republish.
-
 Source: Department of Education (Cth), enforcement action register under section 199B of the
-A New Tax System (Family Assistance) (Administration) Act 1999, rolling 12 months, plus the
-"past registers" page. Links from the past-registers page to older registers are not followed
-in this version.
+A New Tax System (Family Assistance) (Administration) Act 1999: the current register (rolling
+12 months) and the "past registers" page. Links from the past-registers page to older registers
+are not followed in this version. Licence for this host is unconfirmed (research note
+2026-10-29-register-enforcement-nsw-vic-qld-cth.md, section 4); do not republish.
 
-Mapping: CCS approval suspensions, cancellations and conditions -> ccs_sanction; criminal
-convictions -> prosecution; everything else (for example civil penalty orders) -> other, with
-the printed text kept in action_type_raw. ABN and CCS identifiers found are written to notes as
-"ccs_identifier: ..." because the schema has no column for them yet. Approval numbers are only
-filled when a cell literally contains SE- or PR- plus eight digits.
+Fetching: education.gov.au closes connections from non-browser clients. Save each page from a
+browser and pass it with --current-file / --past-file; the script copies it into
+data/raw/cth-ccs-enforcement/ as a timestamped snapshot with a sidecar. --skip-fetch re-parses
+the newest local snapshots.
 
-Privacy: an individual's name is never stored. A provider cell with no legal-entity or business
-word is treated as an individual: provider_name and identifiers are withheld and the note
-"subject is an individual; name withheld" is added.
+Page layout (checked against the 2026-10-29T0749Z snapshots): no tables. Inside <main>, an
+<h1>, an "On this page:" <h2> with anchor links, then one <h2> per entry holding the service
+name. Each entry carries <dt>label:</dt><dd>value</dd> pairs (Provider, Location, Service type,
+Type of sanction, Conditions of approval or grounds for sanction, Date of effect, End date, and
+for criminal outcomes Charge, Plea, Date charged, Date of sentence). The parser walks <main> in
+document order, so it also copes with <strong>/<b> labels and plain "Label: value" text.
 
-Run: python3 scrapers/parse_cth_ccs_enforcement.py [--skip-fetch]
-Exit code 2 means the pages were unreachable and nothing was written.
+Mapping (action_type values follow the hub decision; action_type_raw keeps the printed text):
+- cancellation, suspension, variation and conditions on approval, and civil penalty orders ->
+  ccs_sanction
+- conviction (including "Without Conviction", which is still a criminal outcome) -> prosecution
+- infringement_notice only when the printed text says infringement notice
+- anything else, and the end of an earlier action (lifted, withdrawn) -> other
+- ABN goes to notes as "ccs_identifier: ABN <11 digits>"; service type to notes as
+  "service_type: ...", because the schema has no column for either. SE-/PR- numbers are only
+  filled when printed in full; this register does not print them.
+- legal_references: every "section 19xX" token in the sanction and grounds text (a bare "197L"
+  also counts), written as "section 197L".
+
+Privacy (CLAUDE.md rule 2): if the Provider value has no organisation marker, or reads like a
+person with a title, a joined pair of people, or "Name, trading name", provider_name is null, the
+ABN is not kept (sole-trader ABNs identify the person), and notes say "provider name withheld;
+subject is an individual". Over-withholding is the chosen failure direction. The service name is
+also withheld if it repeats a word from the individual's name, and such words are redacted in the
+grounds text. Names are never logged; only counts are.
+
+Run: python3 scrapers/parse_cth_ccs_enforcement.py [--skip-fetch] [--current-file F]
+     [--past-file F]
+Exit code 2 means the pages were unreachable and nothing was written; 1 means pages were read
+but no register entries were recognised.
 """
 
 from __future__ import annotations
@@ -35,11 +49,12 @@ import argparse
 import json
 import re
 import sys
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 
 import httpx
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 if __package__ in (None, ""):  # allow `python3 scrapers/parse_cth_ccs_enforcement.py`
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -54,13 +69,7 @@ from scrapers.common import (
     record_hash,
     write_processed,
 )
-from scrapers.parse_qld_enforcement import (
-    INDIVIDUAL_NOTE,
-    classify_subject,
-    clean,
-    contains_token,
-    name_tokens,
-)
+from scrapers.parse_qld_enforcement import clean
 
 SOURCE = "cth-ccs-enforcement"
 JURISDICTION = "CTH"
@@ -75,6 +84,9 @@ PAST_URL = (
 PAGES = {"current": CURRENT_URL, "past": PAST_URL}
 SCHEMA_PATH = "data/schemas/enforcement-action.schema.json"
 OUTPUT_NAME = "cth-ccs-enforcement-actions"
+
+WITHHELD_NOTE = "provider name withheld; subject is an individual"
+DUPLICATE_NOTE = "duplicate row in source"
 
 FIELDNAMES = [
     "record_id",
@@ -103,41 +115,80 @@ FIELDNAMES = [
     "notes",
 ]
 
-STATES = r"NSW|VIC|QLD|SA|WA|TAS|NT|ACT"
+STATE_CODES = {"NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"}
+STATE_NAMES = {
+    "new south wales": "NSW",
+    "victoria": "VIC",
+    "queensland": "QLD",
+    "south australia": "SA",
+    "western australia": "WA",
+    "tasmania": "TAS",
+    "northern territory": "NT",
+    "australian capital territory": "ACT",
+}
 
-# Header text -> role. Order matters: first match wins.
-_ROLES: list[tuple[str, re.Pattern]] = [
-    (
-        "id",
-        re.compile(r"approval (id|number)|(provider|service|ccs).*\b(id|number)\b|\bid\b", re.I),
-    ),
-    ("abn", re.compile(r"\babn\b", re.I)),
-    ("end_date", re.compile(r"end date|\bends?\b|expiry|expires|date (of )?(end|expiry)", re.I)),
-    ("service_type", re.compile(r"service type|type of service|care type", re.I)),
-    ("service", re.compile(r"service name|approved service|^service$|child care service", re.I)),
-    ("grounds", re.compile(r"ground|condition|reason|detail|description|basis", re.I)),
-    ("sanction", re.compile(r"sanction|action|enforcement|outcome|type of", re.I)),
-    ("date", re.compile(r"date|effective|commence|start", re.I)),
-    ("location", re.compile(r"location|state|suburb|postcode|address", re.I)),
-    ("provider", re.compile(r"provider|entity|organisation|approved person|name", re.I)),
+# Printed label (lower case, no colon) -> field key. Unknown labels are kept in notes.
+LABELS = {
+    "provider": "provider",
+    "location": "location",
+    "service type": "service_type",
+    "type of sanction": "sanction",
+    "conditions of approval or grounds for sanction": "grounds",
+    "grounds for sanction": "grounds",
+    "conditions of approval": "grounds",
+    "date of effect": "date",
+    "end date": "end_date",
+    "charge": "charge",
+    "plea": "plea",
+    "date charged": "date_charged",
+    "date of sentence": "date_sentence",
+}
+# Extra fields written to notes, in this order, as "<label>: <value>".
+NOTE_FIELDS = [
+    ("service_type", "service_type"),
+    ("end_date", "end_date"),
+    ("charge", "charge"),
+    ("plea", "plea"),
+    ("date_charged", "date_charged"),
+    ("date_sentence", "date_of_sentence"),
 ]
 
-_ABN = re.compile(r"\bABN\b[:\s#.]*((?:\d[ ]?){11})", re.I)
+_ABN = re.compile(r"\bABN\b\s*:?\s*(?:ABN\s*:?\s*)?((?:\d\s?){11})(?!\d)", re.I)
+_ABN_TAIL = re.compile(r"\s*[–—-]?\s*(?:ABN\s*:?\s*)+[\d\s]*$", re.I)
 _SE = re.compile(r"\bSE-\d{8}\b")
 _PR = re.compile(r"\bPR-\d{8}\b")
-_DATE_FORMATS = ("%d/%m/%Y", "%d/%m/%y", "%d %B %Y", "%d %b %Y", "%d-%m-%Y", "%Y-%m-%d")
+_SECTION_PREFIXED = re.compile(r"\b(?:sections?|ss?)\.?\s*(19\d[A-Z]{0,2})\b", re.I)
+_SECTION_BARE = re.compile(r"\b(19\d[A-Z]{1,2})\b", re.I)
+_DATE_FORMATS = ("%d %B %Y", "%d %b %Y", "%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d")
+
+# Subject classification. Strong markers identify a legal entity. Weak markers suggest a
+# business but also occur in "Name, trading name" strings, so they only count when nothing
+# joins several names together.
+_TITLE = re.compile(r"\b(mr|mrs|ms|miss|dr)\b\.?", re.I)
+_PARTNERSHIP_OF = re.compile(r"^\s*partnership\s+of\b", re.I)
+_STRONG_WORDS = (
+    "pty|ltd|limited|proprietary|inc|incorporated|association|trust|trustee|trustees|atf|"
+    "co-operative|cooperative|council|church|foundation|corporation|corp|company|society|"
+    "college|university|department|holdings|p&c"
+)
+_WEAK_WORDS = (
+    "centre|centres|center|care|childcare|school|kindergarten|kindy|preschool|pre-school|"
+    "services|service|group|australia|australian|education|educational|learning|"
+    "day care|daycare"
+)
+_STRONG = re.compile(rf"(?<![\w-])({_STRONG_WORDS})(?![\w-])", re.I)
+_WEAK = re.compile(rf"(?<![\w-])({_WEAK_WORDS})(?![\w-])", re.I)
+_PERSON_JOIN = re.compile(r"[,;&]|\band\b|\baka\b|\bt/a\b", re.I)
+_NOT_NAME_WORDS = (
+    set(_STRONG_WORDS.split("|"))
+    | set(_WEAK_WORDS.split("|"))
+    | {"and", "the", "of", "for", "aka", "family", "day", "fdc", "mr", "mrs", "ms", "miss", "dr"}
+)
 
 
 # ---------------------------------------------------------------------------
 # Parsing helpers
 # ---------------------------------------------------------------------------
-
-
-def header_role(text: str) -> str | None:
-    for role, pattern in _ROLES:
-        if pattern.search(text):
-            return role
-    return None
 
 
 def parse_cth_date(raw: str) -> str | None:
@@ -151,187 +202,314 @@ def parse_cth_date(raw: str) -> str | None:
     return None
 
 
-def map_action_type(raw: str) -> tuple[str, str | None]:
-    """Conservative mapping of the printed sanction text. Returns (action_type, note)."""
-    low = raw.lower()
-    if re.search(r"\b(lifted|withdrawn|ended|expired)\b", low):
-        return "other", "printed text records the end of an earlier action; kept as other"
-    if re.search(r"civil penalt", low):
-        return "other", None
-    if re.search(r"criminal|convict", low):
-        return "prosecution", None
-    if re.search(r"\b(suspen|cancel|condition)", low):
-        return "ccs_sanction", None
-    return "other", None
+def normalise_state(text: str) -> str | None:
+    """'queensland', 'Tas', 'VIC' -> 'QLD', 'TAS', 'VIC'. Anything else -> None."""
+    t = clean(text).strip(" .").lower()
+    if t.upper() in STATE_CODES:
+        return t.upper()
+    return STATE_NAMES.get(t)
 
 
 def parse_location(text: str) -> dict[str, str | None]:
-    """Fill suburb, state, postcode only when the pattern is unambiguous."""
+    """'Gayndah, queensland' -> suburb Gayndah, state QLD. Never infers a missing state."""
     out: dict[str, str | None] = {"address": None, "suburb": None, "state": None, "postcode": None}
     text = clean(text)
     if not text:
         return out
-    if re.fullmatch(STATES, text):
-        out["state"] = text
+    if "," in text:
+        left, _, right = text.rpartition(",")
+        state = normalise_state(right)
+        if state is None:
+            out["address"] = text
+            return out
+        left = clean(left)
+        out["state"] = state
+        if left and left.lower() != "not specified" and normalise_state(left) is None:
+            out["suburb"] = left
         return out
-    m = re.fullmatch(rf"(?P<suburb>.+?),?\s+(?P<state>{STATES})(?:\s+(?P<pc>\d{{4}}))?", text)
-    if m:
-        out["suburb"], out["state"], out["postcode"] = m["suburb"], m["state"], m["pc"]
-        return out
-    out["address"] = text
+    state = normalise_state(text)
+    if state:
+        out["state"] = state
+    else:
+        out["suburb"] = text
     return out
 
 
-def _table_header(table):
-    """Return (roles, header texts, header row). The header is the first row with a th."""
-    header_row = next((tr for tr in table.find_all("tr") if tr.find("th")), None)
-    if header_row is None:
-        return [], [], None
-    texts = [clean(c.get_text(" ")) for c in header_row.find_all(["th", "td"])]
-    return [header_role(t) for t in texts], texts, header_row
+def map_action_type(raw: str) -> tuple[str, str | None]:
+    """Conservative mapping of the printed sanction text. Returns (action_type, note)."""
+    low = raw.lower()
+    if re.search(r"\b(lifted|withdrawn|ended|expired|revoked)\b", low):
+        return "other", "printed text records the end of an earlier action; kept as other"
+    if re.search(r"conviction|criminal", low):
+        note = "printed outcome is 'Without Conviction'" if "without conviction" in low else None
+        return "prosecution", note
+    if "infringement notice" in low:
+        return "infringement_notice", None
+    if re.search(
+        r"civil penalt|cancel|suspen|condition|variation|varied|sanction under section", low
+    ):
+        return "ccs_sanction", None
+    return "other", None
 
 
-def _heading(table) -> str | None:
-    node = table.find_previous(["h1", "h2", "h3", "h4", "caption"])
-    text = clean(node.get_text(" ")) if node else ""
-    return text or None
+def extract_legal_references(*texts: str | None) -> list[str]:
+    """Every 'section 19xX' / 's 19xX' token (and bare '197L'), as 'section 197L', in order."""
+    found: list[tuple[int, str]] = []
+    for text in texts:
+        if not text:
+            continue
+        base = len(found) * 100000
+        hits = [(m.start(), m.group(1)) for m in _SECTION_PREFIXED.finditer(text)]
+        hits += [(m.start(), m.group(1)) for m in _SECTION_BARE.finditer(text)]
+        found.extend((base + pos, num.upper()) for pos, num in sorted(hits))
+    refs: list[str] = []
+    for _, num in sorted(found):
+        ref = f"section {num}"
+        if ref not in refs:
+            refs.append(ref)
+    return refs
 
 
-def parse_page(
-    html: str,
-    *,
-    role: str,
-    page_url: str,
-    captured_at: str = "",
-    source_snapshot: str = "",
-) -> list[dict]:
-    """Parse every recognisable register table on one page. role is 'current' or 'past'."""
-    soup = BeautifulSoup(html, "lxml")
-    rows: list[dict] = []
-    for table in soup.find_all("table"):
-        roles, header_texts, header_row = _table_header(table)
-        if "provider" not in roles or not ({"sanction", "grounds"} & set(roles)):
-            continue  # not a register table we recognise
-        heading = _heading(table)
-        period = f"{role} register" + (f", {heading}" if heading else "")
-        for tr in table.find_all("tr"):
-            if tr is header_row:
+def split_abn(provider_raw: str) -> tuple[str, str | None, str | None]:
+    """Return (provider text without the ABN part, 11-digit ABN or None, problem or None)."""
+    m = _ABN.search(provider_raw)
+    abn = re.sub(r"\s", "", m.group(1)) if m else None
+    stripped = clean(_ABN_TAIL.sub("", provider_raw))
+    problem = None
+    if re.search(r"\bABN\b", provider_raw, re.I) and not abn:
+        problem = (
+            f"ABN printed but not 11 digits: {provider_raw[provider_raw.upper().find('ABN') :]!r}"
+        )
+        stripped = clean(re.sub(r"\s*[–—-]?\s*ABN\b.*$", "", provider_raw, flags=re.I))
+    return stripped, abn, problem
+
+
+def is_individual(provider: str) -> bool:
+    """True when the Provider value looks like a natural person (over-withholds on purpose)."""
+    if _TITLE.search(provider) or _PARTNERSHIP_OF.match(provider):
+        return True
+    if _STRONG.search(provider):
+        return False
+    if not _WEAK.search(provider):
+        return True
+    return bool(_PERSON_JOIN.search(provider))
+
+
+def person_tokens(provider: str) -> set[str]:
+    """Words of the person part of a provider string (before any comma or semicolon)."""
+    person_part = re.split(r"[,;]", provider, maxsplit=1)[0]
+    person_part = _PARTNERSHIP_OF.sub("", person_part)
+    words = re.findall(r"[A-Za-z][A-Za-z\-]*", person_part.lower())
+    return {w for w in words if len(w) >= 3 and w not in _NOT_NAME_WORDS}
+
+
+def _words(text: str) -> set[str]:
+    return {w.lower() for w in re.findall(r"[A-Za-z][A-Za-z\-]*", text)}
+
+
+def redact_words(text: str, tokens: set[str]) -> str:
+    return re.sub(
+        r"[A-Za-z][A-Za-z\-]*",
+        lambda m: "[name withheld]" if m.group(0).lower() in tokens else m.group(0),
+        text,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Walking the page
+# ---------------------------------------------------------------------------
+
+
+def _text(node) -> str:
+    return clean(node.get_text(" "))
+
+
+def _label_key(label: str) -> str:
+    return clean(label).rstrip(":").strip().lower()
+
+
+def _is_label_tag(el: Tag) -> bool:
+    return el.name in {"strong", "b"} and _text(el).endswith(":")
+
+
+def _inside(el: Tag, names: list[str]) -> bool:
+    return el.find_parent(names) is not None
+
+
+def _dt_value(dt: Tag) -> str:
+    for sib in dt.next_siblings:
+        if isinstance(sib, Tag):
+            if sib.name == "dd":
+                return _text(sib)
+            if sib.name == "dt":
+                break
+    return ""
+
+
+def _strong_value(label: Tag) -> str:
+    parts: list[str] = []
+    for sib in label.next_siblings:
+        if isinstance(sib, Tag):
+            if sib.name == "br" or _is_label_tag(sib):
+                break
+            parts.append(_text(sib))
+        else:
+            parts.append(str(sib))
+    value = clean(" ".join(parts))
+    if not value and label.parent is not None:
+        # <p><strong>Label:</strong></p><p>value</p>
+        parent_text = _text(label.parent)
+        nxt = label.parent.find_next_sibling()
+        if parent_text == _text(label) and nxt is not None and nxt.name in {"p", "div", "dd", "ul"}:
+            if not nxt.find(_is_label_tag):
+                value = _text(nxt)
+    return value
+
+
+def _entries(main: Tag) -> list[dict]:
+    """Split <main> into entries: {'service': h2 text, 'pairs': [(label, value), ...]}."""
+    has_toc = any(_text(h).lower().startswith("on this page") for h in main.find_all("h2"))
+    started = not has_toc
+    entries: list[dict] = []
+    for el in main.descendants:
+        if not isinstance(el, Tag):
+            continue
+        if el.name == "h2":
+            text = _text(el)
+            if text.lower().startswith("on this page"):
+                started = True
                 continue
-            cells = [clean(c.get_text(" ")) for c in tr.find_all(["td", "th"])]
-            if not any(cells):
-                continue
-            row = _build_row(roles, header_texts, cells, period, page_url)
-            if row is None:
-                continue
-            row["captured_at"] = captured_at
-            row["source_snapshot"] = source_snapshot
-            rows.append(row)
-    seen: dict[str, int] = {}
-    for row in rows:
-        seen[row["record_id"]] = seen.get(row["record_id"], 0) + 1
-        if seen[row["record_id"]] > 1:
-            row["notes"] += "; duplicate record_id: another row has the same key fields"
-    return rows
+            if started:
+                entries.append({"service": text, "pairs": []})
+            continue
+        if not entries or _inside(el, ["h2"]):
+            continue
+        pair: tuple[str, str] | None = None
+        if el.name == "dt":
+            pair = (_label_key(_text(el)), _dt_value(el))
+        elif _is_label_tag(el) and not _inside(el, ["dt", "dd"]):
+            pair = (_label_key(_text(el)), _strong_value(el))
+        elif (
+            el.name in {"p", "li"} and not _inside(el, ["dt", "dd"]) and not el.find(_is_label_tag)
+        ):
+            m = re.match(r"([^:]{3,80}):\s*(.*)", _text(el))
+            if m and _label_key(m.group(1)) in LABELS:
+                pair = (_label_key(m.group(1)), clean(m.group(2)))
+        if pair and pair[0]:
+            entries[-1]["pairs"].append(pair)
+    return entries
 
 
-def _build_row(
-    roles: list[str | None],
-    header_texts: list[str],
-    cells: list[str],
-    period: str,
-    page_url: str,
-) -> dict | None:
-    by_role: dict[str, str] = {}
-    extras: list[tuple[str, str]] = []  # (header, value) for unmapped or repeated columns
-    for i, value in enumerate(cells):
-        role = roles[i] if i < len(roles) else None
-        header = header_texts[i] if i < len(header_texts) else f"column {i + 1}"
-        if role and role not in by_role:
-            by_role[role] = value
-        elif value:
-            extras.append((header, value))
+# ---------------------------------------------------------------------------
+# Row building
+# ---------------------------------------------------------------------------
 
-    provider_raw = by_role.get("provider", "")
-    sanction_raw = by_role.get("sanction", "") or by_role.get("grounds", "")
-    if not provider_raw and not sanction_raw:
+
+def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
+    fields: dict[str, str] = {}
+    notes_extra: list[str] = []
+    for label, value in entry["pairs"]:
+        key = LABELS.get(label)
+        if key is None:
+            notes_extra.append(f"{label}: {value}")
+        elif key in fields:
+            notes_extra.append(f"{label} (repeated): {value}")
+        else:
+            fields[key] = value
+
+    provider_raw = fields.get("provider", "")
+    sanction_raw = fields.get("sanction", "")
+    grounds = fields.get("grounds", "") or None
+    if not provider_raw and not sanction_raw and not grounds:
         return None
 
     notes: list[str] = []
-    identifiers: list[str] = []
-    candidates = [m.group(1) for m in _ABN.finditer(" ".join(cells))]
-    abn_cell = by_role.get("abn", "").strip()
-    if re.fullmatch(r"(?:\d ?){11}", abn_cell):
-        candidates.append(abn_cell)
-    for candidate in candidates:
-        ident = "ABN " + re.sub(r"\s", "", candidate)
-        if ident not in identifiers:
-            identifiers.append(ident)
-    if by_role.get("id"):
-        identifiers.append(f"{header_texts[roles.index('id')]} {by_role['id']}")
+    service_name = clean(entry["service"]) or None
 
-    # Approval numbers only when printed in full in the SE-/PR- form.
-    blob = " ".join(cells)
-    se_raw = (_SE.search(blob) or [None])[0]
-    pr_raw = (_PR.search(blob) or [None])[0]
-
-    # Subject.
+    # Provider, ABN and the individual check.
     provider_name: str | None = None
+    abn: str | None = None
+    redact: set[str] = set()
+    withheld = False
     if provider_raw:
-        kind = classify_subject(provider_raw, has_service_line=True)
-        if kind in {"entity", "service_only"}:
-            provider_name = provider_raw
+        stripped, abn, abn_problem = split_abn(provider_raw)
+        if abn_problem and not is_individual(stripped):
+            notes.append(abn_problem)
+        if is_individual(stripped):
+            withheld = True
+            redact = person_tokens(stripped)
+            notes.append(WITHHELD_NOTE)
+            if abn:
+                notes.append("ABN not kept because the subject is an individual")
+                abn = None
         else:
-            notes.append(INDIVIDUAL_NOTE)
-            if identifiers:
-                notes.append("identifiers withheld because the subject is an individual")
-                identifiers = []
-            se_raw = pr_raw = None
-            tokens = name_tokens(provider_raw) if kind == "individual" else set()
-            for key in ("service", "grounds"):
-                if tokens and by_role.get(key) and contains_token(by_role[key], tokens):
-                    by_role[key] = ""
-                    notes.append(
-                        f"{key} text withheld: it repeated a word from the individual's name"
-                    )
+            provider_name = stripped or None
     else:
-        notes.append("provider name not printed")
+        notes.append("provider not printed")
 
-    for ident in identifiers:
-        notes.append(f"ccs_identifier: {ident}")
+    service_withheld = False
+    if withheld and service_name and redact & _words(service_name):
+        service_name = None
+        service_withheld = True
+        notes.append("service name withheld: it repeats a word from the individual's name")
+    if withheld and grounds and redact & _words(grounds):
+        grounds = redact_words(grounds, redact)
+        notes.append("reason text redacted: it repeated a word from the individual's name")
+    if withheld:
+        for text_key in ("charge", "plea"):
+            if fields.get(text_key) and redact & _words(fields[text_key]):
+                fields[text_key] = redact_words(fields[text_key], redact)
+
+    if abn:
+        notes.insert(0, f"ccs_identifier: ABN {abn}")
+    for key, label in NOTE_FIELDS:
+        if fields.get(key):
+            notes.append(f"{label}: {fields[key]}")
+    notes.extend(notes_extra)
 
     action_type, type_note = map_action_type(sanction_raw)
     if type_note:
         notes.append(type_note)
+    if not sanction_raw:
+        notes.append("type of sanction not printed")
+    if not fields.get("service_type"):
+        notes.append("service type not printed")
 
-    date_raw = by_role.get("date", "")
+    date_raw = fields.get("date", "")
     date_issued = parse_cth_date(date_raw) if date_raw else None
-    if date_raw and not date_issued:
+    if not date_raw:
+        notes.append("date of effect not printed")
+    elif not date_issued:
         notes.append(f"date not parsable: {date_raw!r}")
-    if by_role.get("end_date"):
-        notes.append(f"end_date: {by_role['end_date']}")
-    if by_role.get("service_type"):
-        notes.append(f"service_type: {by_role['service_type']}")
-    if not (se_raw or pr_raw):
-        notes.append("register prints no SE-/PR- number in this row")
 
-    loc = parse_location(by_role.get("location", ""))
+    loc = parse_location(fields.get("location", ""))
     if loc["address"]:
         notes.append(f"location as printed: {loc['address']}")
         loc["address"] = None
-    if INDIVIDUAL_NOTE not in notes:
-        for header, value in extras:
-            notes.append(f"{header}: {value}")
+    if fields.get("location") and not loc["state"] and not loc["address"]:
+        notes.append("state not printed in location")
+    if not fields.get("location"):
+        notes.append("location not printed")
 
-    reason = by_role.get("grounds") or None
-    service_name = by_role.get("service") or None
+    blob = " ".join(v for _, v in entry["pairs"])
+    se_raw = None if withheld else (_SE.search(blob) or [None])[0]
+    pr_raw = None if withheld else (_PR.search(blob) or [None])[0]
+    if not (se_raw or pr_raw):
+        notes.append("register prints no SE-/PR- number in this row")
 
     return {
         "record_id": record_hash(
-            JURISDICTION, provider_name, service_name, sanction_raw, date_raw, reason
+            JURISDICTION,
+            "service name withheld" if service_withheld else service_name,
+            provider_name or "withheld",
+            sanction_raw,
+            date_raw,
         ),
         "jurisdiction": JURISDICTION,
         "source_register": CURRENT_URL,
         "source_document": page_url,
+        "source_snapshot": "",
+        "captured_at": "",
         "service_approval_number": se_raw,
         "service_approval_number_raw": se_raw,
         "provider_approval_number": pr_raw,
@@ -344,13 +522,48 @@ def _build_row(
         "postcode": loc["postcode"],
         "action_type": action_type,
         "action_type_raw": sanction_raw or "(not printed)",
-        "reason": reason,
-        "legal_references": [],
+        "reason": grounds,
+        "legal_references": extract_legal_references(sanction_raw, grounds),
         "date_issued": date_issued,
         "date_issued_raw": date_raw or None,
-        "period_label": period,
+        "period_label": role,
         "notes": "; ".join(notes) or None,
     }
+
+
+def mark_duplicates(rows: list[dict]) -> None:
+    """Append '; duplicate row in source' to later rows sharing a record_id. Keeps every row."""
+    seen: set[str] = set()
+    for row in rows:
+        if row["record_id"] in seen:
+            if DUPLICATE_NOTE not in (row["notes"] or ""):
+                row["notes"] = (
+                    f"{row['notes']}; {DUPLICATE_NOTE}" if row["notes"] else DUPLICATE_NOTE
+                )
+        seen.add(row["record_id"])
+
+
+def parse_page(
+    html: str,
+    *,
+    role: str,
+    page_url: str,
+    captured_at: str = "",
+    source_snapshot: str = "",
+) -> list[dict]:
+    """Parse every register entry on one page. role is 'current' or 'past'."""
+    soup = BeautifulSoup(html, "lxml")
+    main = soup.find("main") or soup.body or soup
+    rows: list[dict] = []
+    for entry in _entries(main):
+        row = _build_row(entry, role=role, page_url=page_url)
+        if row is None:
+            continue
+        row["captured_at"] = captured_at
+        row["source_snapshot"] = source_snapshot
+        rows.append(row)
+    mark_duplicates(rows)
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -447,23 +660,25 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     rows: list[dict] = []
+    per_page: dict[str, int] = {}
     for role, path in paths.items():
         meta_path = Path(f"{path}.meta.json")
         meta = json.loads(meta_path.read_text()) if meta_path.exists() else {}
-        rows.extend(
-            parse_page(
-                path.read_text(encoding="utf-8", errors="replace"),
-                role=role,
-                page_url=PAGES[role],
-                captured_at=meta.get("fetched_at", ""),
-                source_snapshot=str(path.relative_to(PROJECT_ROOT)),
-            )
+        page_rows = parse_page(
+            path.read_text(encoding="utf-8", errors="replace"),
+            role=role,
+            page_url=PAGES[role],
+            captured_at=meta.get("fetched_at", ""),
+            source_snapshot=str(path.relative_to(PROJECT_ROOT)),
         )
+        per_page[role] = len(page_rows)
+        rows.extend(page_rows)
+    mark_duplicates(rows)
     missing = [r for r in PAGES if r not in paths]
     if missing:
         log.warning("pages not captured: %s", ", ".join(missing))
     if not rows:
-        log.error("pages captured but no register table recognised; check the layout")
+        log.error("pages captured but no register entries recognised; check the layout")
         return 1
 
     out_rows = [{**r, "legal_references": json.dumps(r["legal_references"])} for r in rows]
@@ -474,11 +689,23 @@ def main(argv: list[str] | None = None) -> int:
         raw_inputs=list(paths.values()),
         schema=SCHEMA_PATH,
         notes=(
-            "Parser written against a best-guess table structure; verify against the snapshot. "
-            "ABN and CCS identifiers are in notes as 'ccs_identifier: ...'."
+            "Parsed from browser-saved pages (dt/dd entry layout). ABN is in notes as "
+            "'ccs_identifier: ABN ...'; individuals' names, and their ABNs, are withheld."
             + (f" Pages not captured: {', '.join(missing)}." if missing else "")
         ),
     )
+    withheld = sum(1 for r in rows if WITHHELD_NOTE in (r["notes"] or ""))
+    with_abn = sum(1 for r in rows if "ccs_identifier: ABN" in (r["notes"] or ""))
+    dupes = sum(1 for r in rows if DUPLICATE_NOTE in (r["notes"] or ""))
+    log.info("rows per page: %s", per_page)
+    log.info(
+        "%d rows: %d withheld as individuals, %d with an ABN kept, %d duplicate rows",
+        len(rows),
+        withheld,
+        with_abn,
+        dupes,
+    )
+    log.info("action_type: %s", dict(Counter(r["action_type"] for r in rows)))
     log.info("%d rows parsed from %s", len(rows), ", ".join(paths))
     return 0
 
