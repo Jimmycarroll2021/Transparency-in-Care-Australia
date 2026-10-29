@@ -51,6 +51,9 @@ def act(
     atype="compliance_notice",
     when="2026-01-01",
     notes="",
+    pname="",
+    address="",
+    postcode="",
 ):
     return {
         "record_id": rid,
@@ -58,6 +61,9 @@ def act(
         "service_approval_number": se,
         "provider_approval_number": pr,
         "service_name": name,
+        "provider_name": pname,
+        "address": address,
+        "postcode": postcode,
         "suburb": suburb,
         "state": state,
         "action_type": atype,
@@ -553,3 +559,296 @@ def test_provider_name_match_is_provider_level_and_pin_is_service_level(pspine):
     assert cth["joined_by_provider_and_service_name"] == 1
     assert cth["joined_by_provider_name_unpinned"] == 2
     assert cth["match_rate"] == 1.0
+
+
+# ---------------------------------------------------------------------------
+# Unlisted spine stage
+# ---------------------------------------------------------------------------
+
+SNAPSHOT = date(2026, 10, 28)
+
+
+def stage(actions, spine):
+    joined = je.join_actions(actions, spine)
+    stubs = je.add_unlisted_stage(joined, spine, SNAPSHOT)
+    return joined, stubs
+
+
+def stub_for(stubs, key):
+    return next(s for s in stubs if s["key"] == key)
+
+
+def test_stub_from_service_key_uses_only_printed_values(spine):
+    joined, stubs = stage(
+        [
+            act(
+                se="SE-09999999",
+                pr="PR-09999999",
+                name="Old Bluegum Kids",
+                pname="Bluegum Holdings Pty Ltd",
+                address="1 High St",
+                suburb="Ashgrove",
+                state="QLD",
+                postcode="4060",
+                atype="approval_cancelled",
+                when="2025-05-05",
+            )
+        ],
+        spine,
+    )
+    (row,) = joined
+    assert row["join_key_kind"] == "service_key_unlisted"
+    assert row["match_confidence"] == "exact_key_unlisted"
+    assert row["spine_status"] == "not_in_current_register"
+    assert row["acecqa_service_approval_number"] is None
+    assert row["acecqa_overall_rating"] is None
+    service = stub_for(stubs, "SE-09999999")
+    assert service["kind"] == "service"
+    assert service["name"] == "Old Bluegum Kids"
+    assert (service["address"], service["suburb"]) == ("1 High St", "Ashgrove")
+    assert (service["state"], service["postcode"]) == ("QLD", "4060")
+    assert service["provider_approval_number"] == "PR-09999999"
+    assert service["jurisdictions_seen"] == "NSW"
+    assert service["first_seen"] == service["last_seen"] == "2025-05-05"
+    assert service["row_count"] == 1
+    assert service["spine_status"] == "not_in_current_register"
+    assert service["note"] == (
+        "identity taken from the enforcement register; the approval is absent from the ACECQA "
+        "export of 2026-10-28, usually because it has ceased"
+    )
+    # the printed provider key is also absent, so the provider gets its own stub
+    assert stub_for(stubs, "PR-09999999")["name"] == "Bluegum Holdings Pty Ltd"
+
+
+def test_stub_from_provider_key(spine):
+    joined, stubs = stage(
+        [act(pr="PR-09999998", pname="Gone Pty Ltd", atype="approval_cancelled", state="NSW")],
+        spine,
+    )
+    assert joined[0]["join_key_kind"] == "provider_key_unlisted"
+    assert joined[0]["match_confidence"] == "exact_key_unlisted"
+    (provider,) = stubs
+    assert provider["kind"] == "provider"
+    assert provider["key"] == "PR-09999998"
+    assert provider["name"] == "Gone Pty Ltd"
+    assert provider["state"] == "NSW"
+    assert provider["provider_approval_number"] is None
+
+
+def test_name_variants_keep_most_recent_and_list_others(spine):
+    _, stubs = stage(
+        [
+            act(rid="a", se="SE-09999999", name="Sunrise Early Learning", when="2025-01-01"),
+            act(
+                rid="b", se="SE-09999999", name="SUNRISE EARLY LEARNING PTY LTD", when="2025-02-01"
+            ),
+            act(rid="c", se="SE-09999999", name="Sunrise Kids", when="2026-03-01"),
+            act(rid="d", se="SE-09999999", name="Sunrise Childcare", when="2024-06-01"),
+        ],
+        spine,
+    )
+    stub = stub_for(stubs, "SE-09999999")
+    assert stub["name"] == "Sunrise Kids"
+    # newest first; a second spelling that normalises to the same name is listed once
+    assert stub["stub_name_variants"] == "SUNRISE EARLY LEARNING PTY LTD | Sunrise Childcare"
+    assert stub["row_count"] == 4
+    assert (stub["first_seen"], stub["last_seen"]) == ("2024-06-01", "2026-03-01")
+
+
+def test_withheld_names_stay_null_in_stubs(spine):
+    withheld = "provider name withheld: may be an individual"
+    _, stubs = stage(
+        [
+            act(rid="a", pr="PR-09999997", pname="", notes=withheld, address="9 Home St"),
+            act(rid="b", pr="PR-09999997", pname="Maybe Named Pty Ltd", when="2025-01-01"),
+            act(rid="c", pr="PR-09999996", pname="Jo Citizen", when="2025-01-01"),
+            act(rid="d", pr="PR-09999995", pname="Jo Citizen, director of Acme Care Pty Ltd"),
+        ],
+        spine,
+    )
+    for key in ("PR-09999997", "PR-09999996", "PR-09999995"):
+        stub = stub_for(stubs, key)
+        assert stub["name"] is None
+        assert stub["stub_name_variants"] is None
+        assert stub["name_withheld"] == "true"
+    assert stub_for(stubs, "PR-09999997")["address"] is None
+    assert "Citizen" not in repr(stubs)
+
+
+def test_person_role_name_is_dropped_from_joined_output(spine):
+    (row,) = je.join_actions([act(pr="PR-00000001", pname="Jo Citizen, director of Acme")], spine)
+    assert row["provider_name"] is None
+    assert "withheld" in row["notes"]
+
+
+def test_withheld_service_stub_keeps_no_address(spine):
+    _, stubs = stage(
+        [
+            act(
+                se="SE-09999999",
+                name="Family Day Care Co",
+                suburb="Carina",
+                address="5 Private Rd",
+                notes="subject is an individual; name withheld",
+            )
+        ],
+        spine,
+    )
+    stub = stub_for(stubs, "SE-09999999")
+    assert stub["address"] is None
+    assert stub["suburb"] == "Carina"
+
+
+def test_stage_leaves_earlier_stage_joins_alone(spine):
+    joined, stubs = stage(
+        [
+            act(rid="a", se="SE-00000001"),
+            act(rid="b", se="SE-09999999", pr="PR-00000001"),  # joined on the provider key
+            act(rid="c", jur="QLD", name="Little Gems Early Learning"),
+            act(rid="d", jur="QLD", name="Not Anywhere"),
+        ],
+        spine,
+    )
+    assert [r["match_confidence"] for r in joined] == [
+        "exact_key",
+        "exact_key",
+        "name_only",
+        "unmatched",
+    ]
+    assert [r["spine_status"] for r in joined] == ["current", "current", "current", None]
+    assert stubs == []
+
+
+def test_live_denominators_unchanged_and_stubs_reported_separately(spine):
+    actions = [
+        act(rid="a", se="SE-00000001"),
+        act(rid="b", se="SE-09999999", pr="PR-09999999", pname="Gone Pty Ltd", name="Gone Kids"),
+        act(rid="c", se="SE-09999998", pr="PR-09999999", pname="Gone Pty Ltd", name="Gone Two"),
+        act(rid="d", pr="PR-09999999", atype="approval_cancelled"),
+        act(rid="e", se="SE-09999998", pr="PR-09999999", notes="duplicate row in source"),
+    ]
+    joined, stubs = stage(actions, spine)
+    service_rows, provider_rows = je.aggregate(joined, spine, TYPES, WINDOW, cth_present=False)
+    assert len(service_rows) == len(spine.services)
+    assert len(provider_rows) == len(spine.profiles)
+    assert {r["spine_status"] for r in service_rows + provider_rows} == {"current"}
+    live_total = sum(r["actions_total"] for r in service_rows)
+    assert live_total == 1  # only the live row; stub rows never leak in
+    stub_services, stub_providers = je.aggregate_unlisted(
+        joined, stubs, TYPES, WINDOW, False, SNAPSHOT
+    )
+    assert [r["service_approval_number"] for r in stub_services] == ["SE-09999998", "SE-09999999"]
+    two = stub_services[0]
+    assert two["actions_total"] == 1  # duplicate not counted
+    assert two["acecqa_overall_rating"] is None
+    assert two["spine_status"] == "not_in_current_register"
+    assert "Not in the current ACECQA register" in two["coverage_note"]
+    assert "not evidence of safety" in two["coverage_note"]
+    (prov,) = stub_providers
+    assert prov["provider_approval_number"] == "PR-09999999"
+    assert prov["legal_name"] == "Gone Pty Ltd"
+    assert prov["service_count"] == 2  # distinct stub services seen
+    assert prov["service_count_basis"] == "distinct_unlisted_services_seen_in_actions"
+    assert prov["service_level_actions"] == 2
+    assert prov["provider_level_actions"] == 1
+    assert prov["actions_total"] == 3
+    assert prov["actions_last_24_months_per_service"] == 1.5
+    assert {r["service_count_basis"] for r in provider_rows} == {"acecqa_current_register"}
+
+
+def test_report_residual_breakdown_sums_to_unmatched(spine):
+    actions = [
+        act(rid="a", se="SE-00000001"),
+        act(rid="b", se="SE-09999999"),
+        act(rid="c", pr="PR-09999998", pname="Gone Pty Ltd"),
+        act(rid="d", jur="NSW", name="No Key Here"),
+        act(rid="e", jur="QLD", name="Nowhere Kids"),
+        act(rid="f", jur="QLD", notes="subject is an individual; name withheld"),
+        act(rid="g", jur="QLD", name="Sunny Days", state="QLD"),  # ambiguous: 3 share the name
+        act(rid="h", jur="NSW", name="x", notes="register prints something odd"),
+    ]
+    actions[-1]["service_approval_number_raw"] = "garbled"
+    joined, stubs = stage(actions, spine)
+    service_rows, provider_rows = je.aggregate(joined, spine, TYPES, WINDOW, cth_present=False)
+    stub_services, stub_providers = je.aggregate_unlisted(
+        joined, stubs, TYPES, WINDOW, False, SNAPSHOT
+    )
+    report = je.build_report(
+        joined,
+        service_rows,
+        provider_rows,
+        TYPES,
+        WINDOW,
+        [],
+        [],
+        stubs=stubs,
+        stub_service_rows=stub_services,
+        stub_provider_rows=stub_providers,
+        snapshot=SNAPSHOT,
+    )
+    overall = report["overall"]
+    assert overall["rows_in"] == 8
+    assert overall["joined_live_spine"] == 1
+    assert overall["joined_by_unlisted_key"] == 2
+    assert overall["unlisted_service_keys"] == 1
+    assert overall["unlisted_provider_keys"] == 1
+    assert overall["unmatched"] == 5
+    assert overall["unmatched_residual"] == {
+        "no_key_and_name_withheld": 1,
+        "no_key_no_name_match": 2,
+        "ambiguous_name": 1,
+        "other": 1,
+    }
+    assert sum(overall["unmatched_residual"].values()) == overall["unmatched"]
+    per_total = 0
+    for jur in report["per_jurisdiction"].values():
+        assert set(jur["unmatched_residual"]) == set(je.RESIDUAL_REASONS)
+        assert sum(jur["unmatched_residual"].values()) == jur["unmatched"]
+        per_total += jur["unmatched"]
+    assert per_total == overall["unmatched"]
+    nsw = report["per_jurisdiction"]["NSW"]
+    assert nsw["joined_by_unlisted_key"] == 2
+    assert overall["match_rate"] == 0.375
+    assert overall["match_rate_live_spine_only"] == 0.125
+    assert report["services_with_action_last_24_months"]["denominator_services"] == 7
+    assert report["providers_with_action_last_24_months"]["denominator_providers"] == 3
+    assert report["unlisted_spine"]["service_keys"] == 1
+
+
+def test_top_lists_flag_stub_providers_and_skip_nameless_ones(spine):
+    actions = [
+        act(rid=f"n{i}", se=f"SE-0999990{i}", pr="PR-09999990", pname="Gone Pty Ltd")
+        for i in range(5)
+    ] + [
+        act(rid="w", pr="PR-09999991", pname="", notes="provider name withheld: individual"),
+        act(rid="x", se="SE-00000001", pr="PR-00000001"),
+    ]
+    joined, stubs = stage(actions, spine)
+    service_rows, provider_rows = je.aggregate(joined, spine, TYPES, WINDOW, cth_present=False)
+    stub_services, stub_providers = je.aggregate_unlisted(
+        joined, stubs, TYPES, WINDOW, False, SNAPSHOT
+    )
+    report = je.build_report(
+        joined,
+        service_rows,
+        provider_rows,
+        TYPES,
+        WINDOW,
+        [],
+        [],
+        stubs=stubs,
+        stub_service_rows=stub_services,
+        stub_provider_rows=stub_providers,
+        snapshot=SNAPSHOT,
+    )
+    top = report["top_20_providers_by_actions_last_24_months"]
+    assert [t["provider_approval_number"] for t in top] == ["PR-09999990", "PR-00000001"]
+    assert [t["spine_status"] for t in top] == ["not_in_current_register", "current"]
+    assert "actions-derived" in top[0]["service_count_note"]
+    assert "service_count_note" not in top[1]
+    assert top[0]["service_count"] == 5
+    rate = report["top_20_providers_by_rate_per_service_min_5_services"]
+    assert [t["provider_approval_number"] for t in rate] == ["PR-09999990"]
+    assert rate[0]["actions_last_24_months_per_service"] == 1.0
+    assert "PR-09999991" not in {t["provider_approval_number"] for t in top}
+    assert any("100 per cent" in c for c in report["caveats"])

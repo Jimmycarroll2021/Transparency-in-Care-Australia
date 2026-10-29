@@ -34,7 +34,22 @@ Join rules
 - abn: the 11 digits of a printed "ccs_identifier: ABN ..." note, carried for the Phase 4 ABR
   stage. ACECQA has no ABN, so it cannot be matched here. Null where the subject is withheld.
 - join_key_kind is the kind of join that succeeded (service, provider, name_match,
-  provider_name_match) or none.
+  provider_name_match, service_key_unlisted, provider_key_unlisted) or none.
+- Unlisted-spine stage (fourth, last, run over the whole stack by add_unlisted_stage): a row still
+  unmatched that prints an SE- or PR- key absent from the live ACECQA export is joined to a stub
+  spine entry keyed on that approval number (match_confidence exact_key_unlisted,
+  spine_status not_in_current_register). The ACECQA export lists current approvals only, so these
+  are mostly ceased services and providers. A stub is built only from values printed on the
+  enforcement rows that carry the key (name, address, suburb, state, postcode). Where several rows
+  print different names the most recent date_issued wins and the others go to stub_name_variants.
+  A provider stub whose rows were withheld as a likely individual keeps a null name, and the street
+  address of a withheld row is never used. Stubs are written to spine-unlisted.csv and appended to
+  enforcement-by-service.csv and enforcement-by-provider.csv with spine_status
+  not_in_current_register; they are never added to the live denominators.
+- Every row still unmatched after all stages gets exactly one residual reason in the report:
+  no_key_and_name_withheld, no_key_no_name_match, ambiguous_name or other. The goal is that every
+  row is joined by key, joined by unique name, or explicitly explained; it is not a 100 per cent
+  match rate.
 
 Counting rules (CLAUDE.md rules 5, 6, 7)
 - Every count carries its window. "Last 24 months" ends on the ACECQA snapshot's
@@ -74,6 +89,7 @@ try:
         utc_now,
         write_processed,
     )
+    from scrapers.profile_providers import classify_entity_form
 except ImportError:  # run as a plain script: python3 scrapers/join_enforcement.py
     import sys
 
@@ -87,11 +103,13 @@ except ImportError:  # run as a plain script: python3 scrapers/join_enforcement.
         utc_now,
         write_processed,
     )
+    from scrapers.profile_providers import classify_entity_form
 
 SERVICES_CSV = PROCESSED_DIR / "acecqa-services-latest.csv"
 PROVIDERS_CSV = PROCESSED_DIR / "acecqa-providers-latest.csv"
 PROFILE_CSV = PROCESSED_DIR / "provider-profile.csv"
 REPORT_JSON = PROCESSED_DIR / "enforcement-join-report.json"
+SPINE_UNLISTED_NAME = "spine-unlisted"
 SCHEMA_PATH = PROJECT_ROOT / "data" / "schemas" / "enforcement-action.schema.json"
 ACTION_GLOB = "*-enforcement-actions.csv"
 
@@ -100,6 +118,8 @@ NAME_MATCH_JURISDICTIONS = {"QLD"}
 STATES = {"NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"}
 DUPLICATE_NOTE = "duplicate row in source"
 TOP_N = 20
+SERVICE_COUNT_LIVE = "acecqa_current_register"
+SERVICE_COUNT_STUB = "distinct_unlisted_services_seen_in_actions"
 UNMATCHED_EXAMPLES = 10
 
 CONFIDENCE_EXACT = "exact_key"
@@ -107,7 +127,21 @@ CONFIDENCE_NAME_SUBURB = "name_and_suburb"
 CONFIDENCE_NAME_ONLY = "name_only"
 CONFIDENCE_PROVIDER_NAME = "provider_name_unique"
 CONFIDENCE_PROVIDER_AND_SERVICE = "provider_and_service_name"
+CONFIDENCE_UNLISTED = "exact_key_unlisted"
 CONFIDENCE_NONE = "unmatched"
+
+KIND_SERVICE_UNLISTED = "service_key_unlisted"
+KIND_PROVIDER_UNLISTED = "provider_key_unlisted"
+UNLISTED_KINDS = {KIND_SERVICE_UNLISTED, KIND_PROVIDER_UNLISTED}
+SPINE_CURRENT = "current"
+SPINE_UNLISTED = "not_in_current_register"
+RESIDUAL_REASONS = (
+    "no_key_and_name_withheld",
+    "no_key_no_name_match",
+    "ambiguous_name",
+    "other",
+)
+VARIANT_SEPARATOR = " | "
 
 ACTION_COLUMNS = [
     "record_id",
@@ -150,6 +184,26 @@ JOIN_COLUMNS = [
     "provider_entity_form",
     "provider_service_count",
     "counted_in_totals",
+    "spine_status",
+]
+SPINE_UNLISTED_COLUMNS = [
+    "key",
+    "kind",
+    "name",
+    "address",
+    "suburb",
+    "state",
+    "postcode",
+    "provider_approval_number",
+    "name_withheld",
+    "stub_name_variants",
+    "jurisdictions_seen",
+    "first_seen",
+    "last_seen",
+    "row_count",
+    "rows_counted_in_totals",
+    "spine_status",
+    "note",
 ]
 ALL_COLUMNS = ["record_id", "occurrence"] + ACTION_COLUMNS[1:] + ["abn"] + JOIN_COLUMNS
 
@@ -167,6 +221,15 @@ NOT_COLLECTED = "{state} register: not yet collected"
 SAFETY_SENTENCE = "Absence of an action is not evidence of safety."
 
 _NAME_STOPWORDS = {"PTY", "LTD", "LIMITED", "INC", "THE"}
+# A printed name that pairs a person with a role ("<person>, director of <company>") identifies an
+# individual. Such a name is never carried into a stub or the joined output.
+_PERSON_ROLE = re.compile(
+    r"\b(?:director|secretary|nominee|owner|proprietor|manager|supervisor|educator)\s+(?:of|for)\b"
+    r"|\bATEM\b",
+    re.IGNORECASE,
+)
+# Provider names the entity-form classifier cannot place as an organisation are not used for stubs.
+_NON_ORGANISATION_FORMS = {"likely_individual", "unknown"}
 
 
 # ---------------------------------------------------------------------------
@@ -393,6 +456,19 @@ class Spine:
         return self.profiles.get(pr) if pr else None
 
 
+def names_a_person(value: str | None) -> bool:
+    return bool(value and _PERSON_ROLE.search(value))
+
+
+def usable_provider_name(value: str | None) -> bool:
+    """True when a printed provider name reads as an organisation and names no person."""
+    return (
+        bool(value)
+        and not names_a_person(value)
+        and classify_entity_form(value) not in _NON_ORGANISATION_FORMS
+    )
+
+
 def name_withheld_row(row: dict) -> bool:
     """True where a parser withheld the subject's name as a possible individual."""
     notes = (row.get("notes") or "").lower()
@@ -487,6 +563,12 @@ def join_actions(actions: list[dict], spine: Spine) -> list[dict]:
     joined: list[dict] = []
     for action in actions:
         out = {c: blank_to_none(action.get(c)) for c in ACTION_COLUMNS}
+        for col in ("provider_name", "service_name"):
+            if names_a_person(out[col]):
+                out[col] = None
+                out["notes"] = "; ".join(
+                    filter(None, [out["notes"], f"{col} withheld: pairs a person with a role"])
+                )
         out["service_approval_number"] = normalise_se(out["service_approval_number"])
         out["provider_approval_number"] = normalise_pr(out["provider_approval_number"])
         seen[out["record_id"]] += 1
@@ -573,6 +655,296 @@ def join_actions(actions: list[dict], spine: Spine) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Unlisted spine stage
+# ---------------------------------------------------------------------------
+
+
+def unlisted_note(snapshot: date | None) -> str:
+    when = snapshot.isoformat() if snapshot else "an unknown date"
+    return (
+        "identity taken from the enforcement register; the approval is absent from the ACECQA "
+        f"export of {when}, usually because it has ceased"
+    )
+
+
+def _row_date(row: dict) -> date:
+    return parse_iso_date(row.get("date_issued")) or date.min
+
+
+def _newest_first(rows: list[dict]) -> list[dict]:
+    """Rows by date_issued, newest first; undated rows last; later stack position wins ties."""
+    indexed = sorted(enumerate(rows), key=lambda t: (_row_date(t[1]), t[0]), reverse=True)
+    return [row for _, row in indexed]
+
+
+def build_stub(key: str, kind: str, rows: list[dict], snapshot: date | None) -> dict:
+    """One stub spine entry from the enforcement rows that print `key`.
+
+    Only printed values are used. The name is the most recent printed name; other distinct
+    normalised names go to stub_name_variants. A provider stub is nameless when any of its rows was
+    withheld as a likely individual. The street address of a withheld row is never used.
+    """
+    is_service = kind == "service"
+    name_col = "service_name" if is_service else "provider_name"
+    normalise = normalise_service_name if is_service else normalise_provider_name
+    newest = _newest_first(rows)
+    withheld_any = any(name_withheld_row(r) for r in rows)
+    if not is_service:
+        # Any printed provider name that is not clearly an organisation makes the stub nameless.
+        withheld_any = withheld_any or any(
+            r.get(name_col) and not usable_provider_name(r[name_col]) for r in rows
+        )
+
+    name = None
+    variants: list[str] = []
+    if is_service or not withheld_any:
+        named = [blank_to_none(r.get(name_col)) for r in newest]
+        named = [n for n in named if n and not names_a_person(n)]
+        if named:
+            name = named[0]
+            seen = {normalise(name)}
+            for other in named[1:]:
+                norm = normalise(other)
+                if norm and norm not in seen:
+                    seen.add(norm)
+                    variants.append(other)
+
+    # Location comes from one row so the address, suburb and postcode stay consistent. Rows not
+    # withheld are preferred; a withheld row can give suburb, state and postcode but never address.
+    ordered = [r for r in newest if not name_withheld_row(r)] + [
+        r for r in newest if name_withheld_row(r)
+    ]
+    location = next(
+        (
+            r
+            for r in ordered
+            if any(r.get(c) for c in ("suburb", "state", "postcode"))
+            or (r.get("address") and not name_withheld_row(r))
+        ),
+        None,
+    )
+    address = suburb = state = postcode = None
+    if location is not None:
+        address = None if name_withheld_row(location) else location.get("address")
+        suburb, state, postcode = (
+            location.get("suburb"),
+            location.get("state"),
+            location.get("postcode"),
+        )
+    if state is None:
+        state = next((r["state"] for r in ordered if r.get("state")), None)
+
+    dates = [d for d in (parse_iso_date(r.get("date_issued")) for r in rows) if d]
+    provider_pr = None
+    if is_service:
+        provider_pr = next(
+            (r["provider_approval_number"] for r in newest if r.get("provider_approval_number")),
+            None,
+        )
+    return {
+        "key": key,
+        "kind": kind,
+        "name": name,
+        "address": address,
+        "suburb": suburb,
+        "state": state,
+        "postcode": postcode,
+        "provider_approval_number": provider_pr,
+        "name_withheld": "true" if (name is None and withheld_any) else "false",
+        "stub_name_variants": VARIANT_SEPARATOR.join(variants) or None,
+        "jurisdictions_seen": "; ".join(
+            sorted({r["jurisdiction"] for r in rows if r["jurisdiction"]})
+        )
+        or None,
+        "first_seen": min(dates).isoformat() if dates else None,
+        "last_seen": max(dates).isoformat() if dates else None,
+        "row_count": len(rows),
+        "rows_counted_in_totals": sum(1 for r in rows if r["counted_in_totals"]),
+        "spine_status": SPINE_UNLISTED,
+        "note": unlisted_note(snapshot),
+    }
+
+
+def add_unlisted_stage(joined: list[dict], spine: Spine, snapshot: date | None) -> list[dict]:
+    """Fourth stage. Join still-unmatched keyed rows to stub entries; return the stubs.
+
+    Mutates `joined` in place. Rows joined by the earlier stages get spine_status current. A row
+    that prints an SE- key joins the service stub; a row with only a PR- key joins the provider
+    stub. A service row's printed PR- key (also absent from the spine) additionally builds a
+    provider stub, so the provider's rollup can include its services.
+    """
+    service_groups: dict[str, list[dict]] = defaultdict(list)
+    provider_groups: dict[str, list[dict]] = defaultdict(list)
+    for row in joined:
+        if row["match_confidence"] != CONFIDENCE_NONE:
+            row["spine_status"] = SPINE_CURRENT
+            continue
+        se, pr = row["service_approval_number"], row["provider_approval_number"]
+        if se and se not in spine.services:
+            kind, key, label = KIND_SERVICE_UNLISTED, se, "service"
+            service_groups[se].append(row)
+        elif pr and pr not in spine.profiles:
+            kind, key, label = KIND_PROVIDER_UNLISTED, pr, "provider"
+        else:
+            continue
+        if pr and pr not in spine.profiles:
+            provider_groups[pr].append(row)
+        row.update(
+            join_key_kind=kind,
+            match_confidence=CONFIDENCE_UNLISTED,
+            spine_status=SPINE_UNLISTED,
+            join_note=(
+                f"{label} key {key} not in the current ACECQA register; joined to a stub "
+                "built from the enforcement register"
+            ),
+        )
+    stubs = [
+        build_stub(key, "service", rows, snapshot) for key, rows in sorted(service_groups.items())
+    ] + [
+        build_stub(key, "provider", rows, snapshot) for key, rows in sorted(provider_groups.items())
+    ]
+    return stubs
+
+
+def residual_reason(row: dict) -> str:
+    """Exactly one stated reason for a row still unmatched after every stage."""
+    note = row.get("join_note") or ""
+    if row.get("service_approval_number") or row.get("provider_approval_number"):
+        return "other"
+    if name_withheld_row(row):
+        return "no_key_and_name_withheld"
+    if "ambiguous" in note:
+        return "ambiguous_name"
+    if row.get("service_approval_number_raw") or row.get("provider_approval_number_raw"):
+        return "other"
+    return "no_key_no_name_match"
+
+
+def stub_coverage_state(stub: dict) -> str | None:
+    if stub.get("state"):
+        return stub["state"]
+    seen = (stub.get("jurisdictions_seen") or "").split("; ")
+    return seen[0] if len(seen) == 1 and seen[0] in STATES else None
+
+
+def aggregate_unlisted(
+    joined: list[dict],
+    stubs: list[dict],
+    types: list[str],
+    window: tuple[date, date],
+    cth_present: bool,
+    snapshot: date | None,
+) -> tuple[list[dict], list[dict]]:
+    """Return (stub by_service rows, stub by_provider rows). Never part of the live denominators."""
+    known = set(types)
+    service_tally: dict[str, Tally] = {}
+    provider_tally: dict[str, Tally] = {}
+    provider_service_level: Counter = Counter()
+    provider_provider_level: Counter = Counter()
+    services_with_any: defaultdict[str, set] = defaultdict(set)
+    services_with_recent: defaultdict[str, set] = defaultdict(set)
+    services_seen: defaultdict[str, set] = defaultdict(set)
+
+    for row in joined:
+        kind = row["join_key_kind"]
+        if kind not in UNLISTED_KINDS:
+            continue
+        se, pr = row["service_approval_number"], row["provider_approval_number"]
+        if kind == KIND_SERVICE_UNLISTED and pr:
+            services_seen[pr].add(se)
+        if not row["counted_in_totals"]:
+            continue
+        action_type = counted_type(row, known)
+        when = parse_iso_date(row["date_issued"])
+        recent = when is not None and window[0] <= when <= window[1]
+        if kind == KIND_SERVICE_UNLISTED:
+            service_tally.setdefault(se, Tally(types)).add(action_type, when, window)
+            if pr:
+                provider_tally.setdefault(pr, Tally(types)).add(action_type, when, window)
+                provider_service_level[pr] += 1
+                services_with_any[pr].add(se)
+                if recent:
+                    services_with_recent[pr].add(se)
+        elif pr:
+            provider_tally.setdefault(pr, Tally(types)).add(action_type, when, window)
+            provider_provider_level[pr] += 1
+
+    when_text = snapshot.isoformat() if snapshot else "an unknown date"
+    window_cols = {"window_start": window[0].isoformat(), "window_end": window[1].isoformat()}
+    blank = Tally(types).columns()
+    service_rows: list[dict] = []
+    provider_rows: list[dict] = []
+    for stub in stubs:
+        cov_state = stub_coverage_state(stub)
+        base = coverage_note(cov_state, cth_present)
+        if stub["kind"] == "service":
+            tally = service_tally.get(stub["key"])
+            service_rows.append(
+                {
+                    "service_approval_number": stub["key"],
+                    "provider_approval_number": stub["provider_approval_number"],
+                    "service_name": stub["name"],
+                    "suburb": stub["suburb"],
+                    "state": stub["state"],
+                    "postcode": stub["postcode"],
+                    "service_type": None,
+                    "acecqa_overall_rating": None,
+                    "acecqa_rating_issued": None,
+                    **window_cols,
+                    **(tally.columns() if tally else blank),
+                    "actions_matched_by_name": 0,
+                    "jurisdictions_publishing": coverage_label(cov_state),
+                    "coverage_note": (
+                        f"Not in the current ACECQA register (absent from the export of "
+                        f"{when_text}, usually because the service has ceased); identity taken "
+                        f"from the enforcement register; no current rating. {base}"
+                    ),
+                    "spine_status": SPINE_UNLISTED,
+                }
+            )
+        else:
+            pr = stub["key"]
+            tally = provider_tally.get(pr)
+            cols = tally.columns() if tally else blank
+            service_count = len(services_seen[pr])
+            provider_rows.append(
+                {
+                    "provider_approval_number": pr,
+                    "legal_name": stub["name"],
+                    "trading_name": None,
+                    "name_withheld": stub["name_withheld"],
+                    "entity_form": None,
+                    "provider_state": stub["state"],
+                    "states_operated_in": None,
+                    "service_count": service_count,
+                    "services_with_any_action": len(services_with_any[pr]),
+                    "services_with_any_action_last_24_months": len(services_with_recent[pr]),
+                    "service_level_actions": provider_service_level[pr],
+                    "provider_level_actions": provider_provider_level[pr],
+                    "actions_matched_by_name": 0,
+                    **window_cols,
+                    **cols,
+                    "actions_last_24_months_per_service": (
+                        round(cols["actions_last_24_months"] / service_count, 4)
+                        if service_count
+                        else None
+                    ),
+                    "jurisdictions_publishing": coverage_label(cov_state),
+                    "coverage_note": (
+                        f"Not in the current ACECQA register (absent from the export of "
+                        f"{when_text}, usually because the provider has ceased); name as printed "
+                        "on the enforcement register. service_count is the number of distinct "
+                        "unlisted services seen in the enforcement register, not an ACECQA count, "
+                        f"so a rate per service has an actions-derived denominator. {base}"
+                    ),
+                    "spine_status": SPINE_UNLISTED,
+                    "service_count_basis": SERVICE_COUNT_STUB,
+                }
+            )
+    return service_rows, provider_rows
+
+
+# ---------------------------------------------------------------------------
 # Aggregation
 # ---------------------------------------------------------------------------
 
@@ -639,7 +1011,11 @@ def aggregate(
     provider_name_matched: Counter = Counter()
 
     for row in joined:
-        if not row["counted_in_totals"] or row["join_key_kind"] == "none":
+        if (
+            not row["counted_in_totals"]
+            or row["join_key_kind"] == "none"
+            or row["join_key_kind"] in UNLISTED_KINDS
+        ):
             continue
         action_type = counted_type(row, known)
         when = parse_iso_date(row["date_issued"])
@@ -691,6 +1067,7 @@ def aggregate(
                 "actions_matched_by_name": name_matched[se],
                 "jurisdictions_publishing": coverage_label(state),
                 "coverage_note": coverage_note(state, cth_present),
+                "spine_status": SPINE_CURRENT,
             }
         )
 
@@ -739,6 +1116,8 @@ def aggregate(
                 ),
                 "jurisdictions_publishing": labels,
                 "coverage_note": notes,
+                "spine_status": SPINE_CURRENT,
+                "service_count_basis": SERVICE_COUNT_LIVE,
             }
         )
     return service_rows, provider_rows
@@ -760,7 +1139,12 @@ def service_columns(types: list[str]) -> list[str]:
             "window_end",
         ]
         + tally_columns(types)
-        + ["actions_matched_by_name", "jurisdictions_publishing", "coverage_note"]
+        + [
+            "actions_matched_by_name",
+            "jurisdictions_publishing",
+            "coverage_note",
+            "spine_status",
+        ]
     )
 
 
@@ -788,6 +1172,8 @@ def provider_columns(types: list[str]) -> list[str]:
             "actions_last_24_months_per_service",
             "jurisdictions_publishing",
             "coverage_note",
+            "spine_status",
+            "service_count_basis",
         ]
     )
 
@@ -801,12 +1187,15 @@ def top_providers(
     provider_rows: list[dict], types: list[str], *, by: str, min_services: int, n: int = TOP_N
 ) -> list[dict]:
     """Providers (name-withheld excluded) ranked by actions or by rate in the window."""
+    # Stub providers (not in the current register) are listed only when their name is printed and
+    # not withheld; each entry carries spine_status so the list never presents them as current.
     eligible = [
         r
         for r in provider_rows
         if r["name_withheld"] != "true"
         and r["actions_last_24_months"] > 0
         and r["service_count"] >= min_services
+        and not (r.get("spine_status") == SPINE_UNLISTED and not r["legal_name"])
     ]
     if by == "count":
         eligible.sort(
@@ -826,9 +1215,11 @@ def top_providers(
         )
     out = []
     for r in eligible[:n]:
+        stub = r.get("spine_status") == SPINE_UNLISTED
         out.append(
             {
                 "provider_approval_number": r["provider_approval_number"],
+                "spine_status": r.get("spine_status", SPINE_CURRENT),
                 "legal_name": r["legal_name"],
                 "entity_form": r["entity_form"],
                 "actions_last_24_months": r["actions_last_24_months"],
@@ -842,6 +1233,17 @@ def top_providers(
                 ],
                 "states_operated_in": r["states_operated_in"],
                 "window": f"{r['window_start']} to {r['window_end']}",
+                **(
+                    {
+                        "service_count_note": (
+                            "not in the current ACECQA register; service_count is the number of "
+                            "distinct unlisted services seen in the enforcement register, so the "
+                            "rate per service has an actions-derived denominator"
+                        )
+                    }
+                    if stub
+                    else {}
+                ),
             }
         )
     return out
@@ -855,7 +1257,15 @@ def build_report(
     window: tuple[date, date],
     raw_inputs: list[Path],
     action_files: list[Path],
+    *,
+    stubs: list[dict] | None = None,
+    stub_service_rows: list[dict] | None = None,
+    stub_provider_rows: list[dict] | None = None,
+    snapshot: date | None = None,
 ) -> dict:
+    stubs = stubs or []
+    stub_service_rows = stub_service_rows or []
+    stub_provider_rows = stub_provider_rows or []
     per: dict[str, dict] = {}
     for row in joined:
         j = row["jurisdiction"]
@@ -872,7 +1282,11 @@ def build_report(
                 "joined_by_provider_name": 0,
                 "joined_by_provider_name_unpinned": 0,
                 "joined_by_provider_and_service_name": 0,
+                "joined_by_unlisted_key": 0,
+                "joined_by_unlisted_key_service": 0,
+                "joined_by_unlisted_key_provider": 0,
                 "unmatched": 0,
+                "unmatched_residual": dict.fromkeys(RESIDUAL_REASONS, 0),
                 "unmatched_ambiguous_name": 0,
                 "unmatched_ambiguous_provider_name": 0,
                 "duplicate_rows_not_counted": 0,
@@ -897,8 +1311,13 @@ def build_report(
                 s["joined_by_provider_name_unpinned"] += 1
             else:
                 s["joined_by_provider_and_service_name"] += 1
+        elif confidence == CONFIDENCE_UNLISTED:
+            s["joined_by_unlisted_key"] += 1
+            kind = "service" if row["join_key_kind"] == KIND_SERVICE_UNLISTED else "provider"
+            s[f"joined_by_unlisted_key_{kind}"] += 1
         else:
             s["unmatched"] += 1
+            s["unmatched_residual"][residual_reason(row)] += 1
             note = row["join_note"] or ""
             if note.startswith("ambiguous"):
                 s["unmatched_ambiguous_name"] += 1
@@ -914,11 +1333,19 @@ def build_report(
                     {"record_id": row["record_id"], "action_type": row["action_type"]}
                 )
     for s in per.values():
-        joined_n = s["joined_exact_key"] + s["joined_by_name"] + s["joined_by_provider_name"]
+        live_n = s["joined_exact_key"] + s["joined_by_name"] + s["joined_by_provider_name"]
+        joined_n = live_n + s["joined_by_unlisted_key"]
         s["match_rate"] = round(joined_n / s["rows_in"], 4) if s["rows_in"] else None
+        s["match_rate_live_spine_only"] = round(live_n / s["rows_in"], 4) if s["rows_in"] else None
 
     total = len(joined)
     matched = sum(1 for r in joined if r["match_confidence"] != CONFIDENCE_NONE)
+    unlisted_rows = sum(1 for r in joined if r["match_confidence"] == CONFIDENCE_UNLISTED)
+    residual_total = dict.fromkeys(RESIDUAL_REASONS, 0)
+    for s in per.values():
+        for reason, n in s["unmatched_residual"].items():
+            residual_total[reason] += n
+    all_provider_rows = provider_rows + stub_provider_rows
     services_recent = sum(1 for r in service_rows if r["actions_last_24_months"] > 0)
     providers_recent = sum(1 for r in provider_rows if r["actions_last_24_months"] > 0)
     providers_recent_named = sum(
@@ -938,8 +1365,42 @@ def build_report(
         "overall": {
             "rows_in": total,
             "joined": matched,
+            "joined_live_spine": matched - unlisted_rows,
+            "joined_by_unlisted_key": unlisted_rows,
+            "unlisted_service_keys": len(stub_service_rows),
+            "unlisted_provider_keys": len(stub_provider_rows),
             "unmatched": total - matched,
+            "unmatched_residual": residual_total,
             "match_rate": round(matched / total, 4) if total else None,
+            "match_rate_live_spine_only": (
+                round((matched - unlisted_rows) / total, 4) if total else None
+            ),
+            "match_rate_note": (
+                "match_rate counts a row as joined when it joins to the live ACECQA spine or to an "
+                "unlisted stub by printed key; match_rate_live_spine_only counts the live spine "
+                "alone. The aim is that every row is joined by key, joined by unique name, or "
+                "explicitly explained in unmatched_residual, not a 100 per cent match rate."
+            ),
+        },
+        "unlisted_spine": {
+            "output": f"data/processed/{SPINE_UNLISTED_NAME}.csv",
+            "spine_status": SPINE_UNLISTED,
+            "acecqa_export_date": snapshot.isoformat() if snapshot else None,
+            "service_keys": len(stub_service_rows),
+            "provider_keys": len(stub_provider_rows),
+            "rows_joined": unlisted_rows,
+            "services_with_action_last_24_months": sum(
+                1 for r in stub_service_rows if r["actions_last_24_months"] > 0
+            ),
+            "providers_with_action_last_24_months": sum(
+                1 for r in stub_provider_rows if r["actions_last_24_months"] > 0
+            ),
+            "stubs_with_name_variants": sum(1 for x in stubs if x["stub_name_variants"]),
+            "stubs_with_name_withheld": sum(1 for x in stubs if x["name_withheld"] == "true"),
+            "note": (
+                "Stub entities are reported separately and are never added to the live "
+                "denominators below."
+            ),
         },
         "per_jurisdiction": dict(sorted(per.items())),
         "services_with_action_last_24_months": {
@@ -953,17 +1414,19 @@ def build_report(
             "denominator_providers": len(provider_rows),
         },
         "top_20_providers_by_actions_last_24_months": top_providers(
-            provider_rows, types, by="count", min_services=0
+            all_provider_rows, types, by="count", min_services=0
         ),
         "top_20_providers_by_rate_per_service_min_5_services": top_providers(
-            provider_rows, types, by="rate", min_services=5
+            all_provider_rows, types, by="rate", min_services=5
         ),
         "caveats": [
             "Counts are of published enforcement actions of every type. Action types are kept in separate columns; prosecutions are not breaches.",
             "Rates divide actions in the window by the provider's current service_count, so they mix a historic numerator with a current denominator.",
             "Only NSW (from Jan 2025), VIC (from Jan 2026), QLD (from 2017, no keys) are collected; other states are not covered. "
             + SAFETY_SENTENCE,
-            "Name-withheld providers are excluded from the top lists.",
+            "Name-withheld providers are excluded from the top lists. A provider with spine_status not_in_current_register appears only when its name is printed on the enforcement register; its service_count is the number of distinct unlisted services seen in the enforcement register, so its rate per service has an actions-derived denominator and is not comparable with a current provider's.",
+            "Rows joined by an unlisted key (match_confidence exact_key_unlisted) carry an identity taken from the enforcement register, not from ACECQA: the approval is absent from the current ACECQA export, usually because it has ceased. They hold no current rating. They are reported separately from the live denominators (services and providers in the ACECQA export).",
+            "Every unmatched row has exactly one stated reason in unmatched_residual (no_key_and_name_withheld, no_key_no_name_match, ambiguous_name, other). The aim is that each row is joined by key, joined by unique name, or explained; a 100 per cent match rate is not the goal and would require guessing.",
             "Rows joined by provider name (provider_name_unique, provider_and_service_name) carry no printed key: they are accepted only when exactly one ACECQA provider has the normalised name, but a name match is weaker evidence than a key. actions_matched_by_name on each table shows how many of a row's counts rest on a name.",
             "Commonwealth CCS sanctions attach to the CCS approved provider, so a provider-name match is provider-level unless the service is pinned. ABNs are carried in enforcement-actions-all.csv for the Phase 4 ABR stage and are not matched here.",
         ],
@@ -1007,22 +1470,53 @@ def main() -> None:
         log.info("%s: %d rows", path.name, len(rows))
         actions.extend(rows)
     joined = join_actions(actions, spine)
+    matched_before = sum(1 for r in joined if r["match_confidence"] != CONFIDENCE_NONE)
+    stubs = add_unlisted_stage(joined, spine, end)
     # Only claim CTH coverage in notes if CTH rows actually joined to a service or provider.
     cth_present = any(r["jurisdiction"] == "CTH" and r["join_key_kind"] != "none" for r in joined)
     service_rows, provider_rows = aggregate(joined, spine, types, window, cth_present)
+    stub_service_rows, stub_provider_rows = aggregate_unlisted(
+        joined, stubs, types, window, cth_present, end
+    )
+    log.info(
+        "joined before unlisted stage: %d of %d; unlisted stubs: %d services, %d providers",
+        matched_before,
+        len(joined),
+        len(stub_service_rows),
+        len(stub_provider_rows),
+    )
 
     inputs = [SERVICES_CSV, PROVIDERS_CSV, PROFILE_CSV, *action_files]
     raw_inputs = transitive_inputs(inputs)
+    unlisted_note_text = (
+        f" Rows whose SE-/PR- key is absent from the ACECQA export of {end.isoformat()} are joined "
+        f"to stub entries listed in {SPINE_UNLISTED_NAME}.csv (spine_status {SPINE_UNLISTED}); "
+        "their identity comes from the enforcement register, they hold no current rating, and they "
+        "are kept out of the live denominators."
+    )
 
     base_note = (
-        f"Built from {', '.join(p.name for p in inputs)}. Window: {WINDOW_MONTHS} calendar months "
+        f"Built from {', '.join(p.name for p in inputs)}, plus {SPINE_UNLISTED_NAME}.csv derived "
+        f"from the same inputs in the same run. Window: {WINDOW_MONTHS} calendar months "
         f"ending {window[1].isoformat()} (the ACECQA snapshot date), inclusive of {window[0].isoformat()}. "
         "Counts are of published enforcement actions of every type; action_type columns stay separate "
         "and prosecutions are not breaches. Rows flagged 'duplicate row in source' are kept but not "
         "counted. Coverage: NSW from Jan 2025, VIC from Jan 2026, QLD from 2017 (no keys), CTH rolling "
         f"12 months; SA, WA, TAS, NT, ACT not yet collected. {SAFETY_SENTENCE} "
         "Names of providers withheld as likely individuals stay null. "
-        "ACECQA content is not openly licensed: internal use only."
+        "ACECQA content is not openly licensed: internal use only." + unlisted_note_text
+    )
+    write_processed(
+        SPINE_UNLISTED_NAME,
+        stubs,
+        SPINE_UNLISTED_COLUMNS,
+        raw_inputs=raw_inputs,
+        schema=None,
+        notes=base_note
+        + " One row per unlisted approval key: name, address, suburb, state and postcode are values "
+        "printed on the enforcement rows that carry the key (most recent date_issued wins; other "
+        "names in stub_name_variants). Withheld names stay null and the street address of a "
+        "withheld row is never used. first_seen and last_seen are date_issued dates.",
     )
     write_processed(
         "enforcement-actions-all",
@@ -1037,38 +1531,65 @@ def main() -> None:
     )
     write_processed(
         "enforcement-by-service",
-        service_rows,
+        service_rows + stub_service_rows,
         service_columns(types),
         raw_inputs=raw_inputs,
         notes=base_note
-        + " One row per ACECQA service; zero actions are zeros, not blanks. Provider-level actions "
-        "are not attributed to individual services.",
+        + " One row per ACECQA service (spine_status current; the live denominator), zero actions "
+        "are zeros, not blanks, then one row per unlisted service (spine_status "
+        f"{SPINE_UNLISTED}, null rating) appended after them. Provider-level actions are not "
+        "attributed to individual services.",
     )
     write_processed(
         "enforcement-by-provider",
-        provider_rows,
+        provider_rows + stub_provider_rows,
         provider_columns(types),
         raw_inputs=raw_inputs,
         notes=base_note
-        + " One row per provider: its services' actions plus provider-level actions. "
-        "actions_last_24_months_per_service divides by the provider's current service_count.",
+        + " One row per provider (spine_status current; the live denominator): its services' "
+        "actions plus provider-level actions, then one row per unlisted provider appended "
+        f"(spine_status {SPINE_UNLISTED}). actions_last_24_months_per_service divides by "
+        "service_count; service_count_basis says whether that is the ACECQA register count or, for "
+        "unlisted providers, the number of distinct unlisted services seen in the enforcement "
+        "register (an actions-derived denominator).",
     )
 
     report = build_report(
-        joined, service_rows, provider_rows, types, window, raw_inputs, action_files
+        joined,
+        service_rows,
+        provider_rows,
+        types,
+        window,
+        raw_inputs,
+        action_files,
+        stubs=stubs,
+        stub_service_rows=stub_service_rows,
+        stub_provider_rows=stub_provider_rows,
+        snapshot=end,
     )
+    report["derived_outputs"] = [
+        f"data/processed/{name}.csv"
+        for name in (
+            SPINE_UNLISTED_NAME,
+            "enforcement-actions-all",
+            "enforcement-by-service",
+            "enforcement-by-provider",
+        )
+    ]
+    report["joined_before_unlisted_stage"] = matched_before
     REPORT_JSON.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     log.info("wrote %s", REPORT_JSON.relative_to(PROJECT_ROOT))
     for j, s in report["per_jurisdiction"].items():
         log.info(
             "%s: %d rows, %d exact key, %d by service name, %d by provider name "
-            "(%d pinned to a service), %d unmatched (match rate %s)",
+            "(%d pinned to a service), %d by unlisted key, %d unmatched (match rate %s)",
             j,
             s["rows_in"],
             s["joined_exact_key"],
             s["joined_by_name"],
             s["joined_by_provider_name"],
             s["joined_by_provider_and_service_name"],
+            s["joined_by_unlisted_key"],
             s["unmatched"],
             s["match_rate"],
         )

@@ -55,6 +55,10 @@ from scrapers.common import (
 from scrapers.profile_providers import classify_entity_form
 
 INDIVIDUAL_NOTE = "subject is an individual; name withheld"
+_PERSON_ROLE = re.compile(
+    r"\b(?:director|secretary|nominee|owner|proprietor|manager|supervisor|educator)\s+(?:of|for)\b",
+    re.IGNORECASE,
+)
 SOURCE = "wa-enforcement"
 JURISDICTION = "WA"
 INDEX_URL = "https://www.wa.gov.au/government/document-collections/education-and-care-regulatory-unit-enforcement-actions"
@@ -163,10 +167,11 @@ def extract_provider_info(
 
     prov_name: str | None = name_part if name_part else None
 
-    # Privacy check: withhold individuals
+    # Privacy check: withhold individuals, including a person named with a role
+    # ("<person>, director of <company>").
     if prov_name:
         form = classify_entity_form(prov_name)
-        if form == "likely_individual" or cs_norm is not None:
+        if form == "likely_individual" or cs_norm is not None or _PERSON_ROLE.search(prov_name):
             prov_name = None
             notes.append(INDIVIDUAL_NOTE)
 

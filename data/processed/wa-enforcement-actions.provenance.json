@@ -1,10 +1,10 @@
 {
-  "output": "data\\processed\\wa-enforcement-actions.csv",
-  "written_at": "2026-10-29T08:45:27.113604+00:00",
+  "output": "data/processed/wa-enforcement-actions.csv",
+  "written_at": "2026-10-29T09:40:34.606914+00:00",
   "rows": 931,
   "schema": null,
   "raw_inputs": [
-    "data\\raw\\wa-enforcement\\2026-10-29T0842Z.html"
+    "data/raw/wa-enforcement/2026-10-29T0842Z.html"
   ],
   "notes": null
 }
