@@ -18,7 +18,7 @@ import logging
 import re
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib import robotparser
 from urllib.parse import urlsplit
@@ -52,7 +52,7 @@ class RobotsDisallowed(RuntimeError):
 
 
 def utc_now() -> datetime:
-    return datetime.now(UTC)
+    return datetime.now(timezone.utc)  # noqa: UP017 (Python 3.10 support)
 
 
 def utc_stamp(dt: datetime | None = None) -> str:
