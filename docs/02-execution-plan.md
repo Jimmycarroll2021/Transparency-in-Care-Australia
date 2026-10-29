@@ -23,6 +23,25 @@ Phase 2 does not start until both are true:
 Cost of the gate: every day without a register snapshot is a day of history lost. Mitigation: the
 consent letter goes out now, not after validation.
 
+**Gate passed 29 October 2026.** Five gaps validated; the owner has stated consent is held from
+ACECQA and the other data owners. Phase 2 started the same day.
+
+### Phase 2 decisions
+
+- Snapshots are gzip-compressed CSVs committed to this repository under `data/raw/`, about 2.5 MB
+  a day for the two ACECQA files. Review storage when `data/raw/` passes 500 MB (roughly six
+  months): move older snapshots to release assets or object storage, keep the sidecar metadata in
+  the repository.
+- Shared helpers live in `scrapers/common.py`: polite fetch with robots.txt and crawl delay, one
+  named User-Agent, immutable timestamped snapshots with sidecar metadata, SE-/PR- normalisation,
+  processed outputs with provenance.
+- One schema for every enforcement register: `data/schemas/enforcement-action.schema.json`.
+  Parsers map printed action names to a small enum and keep the raw text; anything unsure is
+  `other`.
+- One `data-engineer` spoke per source, in parallel, each owning its own `scrapers/parse_*.py`,
+  `data/raw/<source>/` and `tests/test_*.py`.
+- CI (`.github/workflows/checks.yml`): ruff, ledger validator, hook tests, pytest on every push.
+
 ## Workstreams and who does them
 
 | ID | Workstream | Phase | Owner | Depends on |

@@ -6,13 +6,15 @@ regulatory facts.
 
 ## Current phase
 
-**Phase 1: Gap validation.** No build decision taken. Do not scaffold a web app or write
-production scrapers until `data/gap-ledger.json` has at least one gap with `status: "validated"`
-and the ACECQA licensing question is answered (see `docs/01-gap-analysis.md` section 5).
+**Phase 2: Archive and parsers.** Gate passed 2026-10-29. Condition 1: GAP-001, 002, 003, 005
+and 007 validated (`research/2026-10-29-phase-1-learnings.md`). Condition 2: the project owner
+has stated that consent has been obtained from ACECQA and the other data owners for the uses in
+`docs/02-acecqa-consent-request.md`. Save each written reply to `data/evidence/` by script.
+Execution plan: `docs/02-execution-plan.md`.
 
-Gate status at 2026-10-29: condition 1 met (GAP-001, 002, 003, 005, 007 validated; see
-`research/2026-10-29-phase-1-learnings.md`). Condition 2 open: consent letter drafted in
-`docs/02-acecqa-consent-request.md`, not yet sent. Execution plan: `docs/02-execution-plan.md`.
+Phase 2 scope: daily ACECQA register snapshots, enforcement parsers for NSW, Victoria, Queensland
+and the Commonwealth, shared helpers in `scrapers/common.py`, and the enforcement action schema in
+`data/schemas/enforcement-action.schema.json`. No public site yet (Phase 5, after legal review).
 
 Phase plan:
 1. Gap validation (now): `/validate-gap`

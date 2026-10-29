@@ -1,0 +1,26 @@
+name: checks
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Lint
+        run: |
+          ruff check scrapers tests
+          ruff format --check scrapers tests
+      - name: Validate gap ledger
+        run: python3 .claude/hooks/validate_ledger.py data/gap-ledger.json
+      - name: Hook tests
+        run: bash .claude/hooks/test_hooks.sh
+      - name: Unit tests
+        run: pytest -q
