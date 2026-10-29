@@ -10,6 +10,10 @@ regulatory facts.
 production scrapers until `data/gap-ledger.json` has at least one gap with `status: "validated"`
 and the ACECQA licensing question is answered (see `docs/01-gap-analysis.md` section 5).
 
+Gate status at 2026-10-29: condition 1 met (GAP-001, 002, 003, 005, 007 validated; see
+`research/2026-10-29-phase-1-learnings.md`). Condition 2 open: consent letter drafted in
+`docs/02-acecqa-consent-request.md`, not yet sent. Execution plan: `docs/02-execution-plan.md`.
+
 Phase plan:
 1. Gap validation (now): `/validate-gap`
 2. Licence consent and archive: daily ACECQA register snapshot, consent letter to ACECQA
