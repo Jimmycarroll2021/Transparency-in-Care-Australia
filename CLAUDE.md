@@ -84,6 +84,8 @@ scrapers/             Collection scripts (Phase 2 onward)
 - Validate the gap ledger: `python3 .claude/hooks/validate_ledger.py data/gap-ledger.json`
 - Test the hooks: `bash .claude/hooks/test_hooks.sh`
 - Snapshot ACECQA registers: `python3 scrapers/snapshot_acecqa_registers.py`
+- Parse VECRA enforcement actions: `python3 scrapers/parse_vecra_enforcement.py`
+- Profile providers: `python3 scrapers/profile_providers.py`
 
 Add commands here only once the script exists.
 
