@@ -1,0 +1,14 @@
+{
+  "source": "cth-ccs-enforcement",
+  "role": "current",
+  "url": "https://www.education.gov.au/early-childhood/providers/compliance-and-enforcement/enforcement-action-register",
+  "final_url": "https://www.education.gov.au/early-childhood/providers/compliance-and-enforcement/enforcement-action-register",
+  "status": 0,
+  "fetched_at": "2026-10-29T07:49:54.515663+00:00",
+  "content_type": "text/html; charset=utf-8 (saved from browser)",
+  "last_modified": null,
+  "etag": null,
+  "bytes": 518527,
+  "sha256": "ce2dbeffe53a73fa807486b59ab2b7477c5c567c06d9e7bd3bdf6b92bb51f423",
+  "user_agent": "TransparencyInCareAustralia/0.1 (+https://github.com/Jimmycarroll2021/Transparency-in-Care-Australia; jimmisound@gmail.com)"
+}
