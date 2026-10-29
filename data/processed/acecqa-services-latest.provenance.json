@@ -1,11 +1,11 @@
 {
   "output": "data/processed/acecqa-services-latest.csv",
-  "written_at": "2026-10-29T07:18:39.024404+00:00",
-  "rows": 18186,
+  "written_at": "2026-10-29T23:16:14.307690+00:00",
+  "rows": 18188,
   "schema": null,
   "raw_inputs": [
-    "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
-    "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json"
+    "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz",
+    "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz.meta.json"
   ],
-  "notes": "Built from 2026-10-29T0718Z.csv.gz. Dropped columns (name matches 'phone|fax|e-?mail|contact|supervisor|nominated'): ['Phone', 'Fax']. Added service_approval_number and provider_approval_number (normalised SE-/PR- plus 8 digits, null where the source is blank or unparseable; originals kept) and snapshot_last_modified (HTTP last-modified of the source file). Raw snapshot is kept unchanged. ACECQA content is not openly licensed: internal use only."
+  "notes": "Built from 2026-10-29T2316Z.csv.gz. Dropped columns (name matches 'phone|fax|e-?mail|contact|supervisor|nominated'): ['Phone', 'Fax']. Added service_approval_number and provider_approval_number (normalised SE-/PR- plus 8 digits, null where the source is blank or unparseable; originals kept) and snapshot_last_modified (HTTP last-modified of the source file). Raw snapshot is kept unchanged. ACECQA content is not openly licensed: internal use only."
 }
