@@ -64,6 +64,8 @@ These are the owner's tasks. Nothing on this list can be delegated to an agent.
 1. **Send the ACECQA letter** (W2). Draft is ready in `docs/02-acecqa-consent-request.md`.
 2. **Register for ABN Lookup web services** at https://abr.business.gov.au (free; a GUID arrives
    by email). Needed for W7 name-to-ABN resolution beyond the weekly bulk extract.
+   Done 29 October 2026, reference ABNL33777; the GUID is due within five working days. When it
+   arrives, put it in `.env` as `ABN_LOOKUP_GUID=...` (gitignored); never commit it.
 3. **Decide where private snapshots live** before W4. The repository is public, so ACECQA CSVs
    cannot be committed to it before consent. Recommended: a separate private GitHub repository
    written to by the Action through a fine-grained token stored as a secret. Alternative: a
