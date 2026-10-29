@@ -1,0 +1,13 @@
+{
+  "source": "sa-enforcement",
+  "url": "https://www.esb.sa.gov.au/early-childhood/compliance-and-enforcement/current-compliance-action",
+  "final_url": "https://www.esb.sa.gov.au/early-childhood/compliance-and-enforcement/current-compliance-action",
+  "status": 200,
+  "fetched_at": "2026-10-29T08:17:37.185496+00:00",
+  "content_type": "text/html; charset=UTF-8",
+  "last_modified": null,
+  "etag": null,
+  "bytes": 155933,
+  "sha256": "5ddfd203a2e99b4df0b6af7d1fb35e85060602d66706c16f6f742a50dee093d2",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}

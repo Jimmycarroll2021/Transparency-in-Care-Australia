@@ -1,0 +1,13 @@
+{
+  "source": "tas-enforcement",
+  "url": "https://educationandcare.tas.gov.au/families-and-communities/published-enforcement-actions-under-the-national-law/",
+  "final_url": "https://educationandcare.tas.gov.au/families-and-communities/published-enforcement-actions-under-the-national-law/",
+  "status": 200,
+  "fetched_at": "2026-10-29T08:19:22.723304+00:00",
+  "content_type": "text/html; charset=UTF-8",
+  "last_modified": null,
+  "etag": null,
+  "bytes": 134869,
+  "sha256": "c2f16e100e880c35fe49ad897657bdb86767b9527b18a6417ff237d470f61e39",
+  "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}

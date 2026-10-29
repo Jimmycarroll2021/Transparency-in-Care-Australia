@@ -1,0 +1,10 @@
+{
+  "output": "data\\processed\\sa-enforcement-actions.csv",
+  "written_at": "2026-10-29T08:17:37.528588+00:00",
+  "rows": 42,
+  "schema": "data/schemas/enforcement-action.schema.json",
+  "raw_inputs": [
+    "data\\raw\\sa-enforcement\\2026-10-29T0817Z.html"
+  ],
+  "notes": "South Australia ESB compliance action register. Joined with SE- and PR- keys."
+}

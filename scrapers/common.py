@@ -36,6 +36,11 @@ USER_AGENT = (
     "jimmisound@gmail.com)"
 )
 AGENT_TOKEN = "TransparencyInCareAustralia"
+BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/120.0.0.0 Safari/537.36"
+)
 MIN_DELAY_SECONDS = 1.5
 TIMEOUT_SECONDS = 60.0
 
@@ -64,17 +69,18 @@ def _host(url: str) -> str:
     return urlsplit(url).netloc.lower()
 
 
-def _load_robots(url: str) -> robotparser.RobotFileParser | None:
+def _load_robots(url: str, user_agent: str | None = None) -> robotparser.RobotFileParser | None:
     host = _host(url)
     if host in _robots:
         return _robots[host]
     parts = urlsplit(url)
     robots_url = f"{parts.scheme}://{parts.netloc}/robots.txt"
     rp = robotparser.RobotFileParser()
+    ua = user_agent or USER_AGENT
     try:
         resp = httpx.get(
             robots_url,
-            headers={"User-Agent": USER_AGENT},
+            headers={"User-Agent": ua},
             timeout=TIMEOUT_SECONDS,
             follow_redirects=True,
         )
@@ -114,6 +120,7 @@ class Fetched:
     last_modified: str | None
     etag: str | None
     fetched_at: str
+    user_agent: str = USER_AGENT
 
     @property
     def text(self) -> str:
@@ -124,9 +131,16 @@ class Fetched:
         return hashlib.sha256(self.content).hexdigest()
 
 
-def fetch(url: str, *, retries: int = 2, allow_disallowed: bool = False) -> Fetched:
+def fetch(
+    url: str,
+    *,
+    retries: int = 2,
+    allow_disallowed: bool = False,
+    user_agent: str | None = None,
+) -> Fetched:
     """GET a URL politely. Raises RobotsDisallowed or httpx.HTTPStatusError."""
-    rp = _load_robots(url)
+    ua = user_agent or USER_AGENT
+    rp = _load_robots(url, user_agent=ua)
     if rp is not None and not allow_disallowed:
         if not (rp.can_fetch(AGENT_TOKEN, url) and rp.can_fetch("*", url)):
             raise RobotsDisallowed(f"robots.txt disallows {url} for {AGENT_TOKEN}")
@@ -138,7 +152,7 @@ def fetch(url: str, *, retries: int = 2, allow_disallowed: bool = False) -> Fetc
         try:
             resp = httpx.get(
                 url,
-                headers={"User-Agent": USER_AGENT, "Accept": "*/*"},
+                headers={"User-Agent": ua, "Accept": "*/*"},
                 timeout=TIMEOUT_SECONDS,
                 follow_redirects=True,
             )
@@ -152,6 +166,7 @@ def fetch(url: str, *, retries: int = 2, allow_disallowed: bool = False) -> Fetc
                 last_modified=resp.headers.get("last-modified"),
                 etag=resp.headers.get("etag"),
                 fetched_at=fetched_at,
+                user_agent=ua,
             )
         except httpx.HTTPError as exc:
             attempt += 1
@@ -200,7 +215,7 @@ def write_snapshot(
         "etag": fetched.etag,
         "bytes": len(fetched.content),
         "sha256": fetched.sha256,
-        "user_agent": USER_AGENT,
+        "user_agent": fetched.user_agent,
     }
     if extra_meta:
         meta.update(extra_meta)
