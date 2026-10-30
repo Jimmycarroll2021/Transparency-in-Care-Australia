@@ -149,8 +149,10 @@ ASIC extracts or annual reports).
    `all-statement-information_<date>.csv` link and downloads it. Columns: IDX, PeriodStart,
    PeriodEnd, Type, VoluntaryCompliance, HeadquarteredCountries, AnnualRevenue,
    ReportingEntities, IncludedEntities, ABN, ACN, ARBN, Link, IndustrySectors, RelatedStatements.
-   No column holds an individual's name, so the privacy filter dropped none. The filter still runs
-   on every download.
+   Only these 15 columns are ever stored: the filter is an allowlist, so any other column is
+   dropped before storage whatever its name, and the dropped header names are logged and counted
+   in the summary (`csv_columns_dropped`; 0 for the current snapshot). No current column holds an
+   individual's name.
 2. Candidates: any ABN in the CSV ABN column (reporting and included entities' ABNs) equals a
    screened provider's ABN (60 statements), or the reporting entities' text contains early
    learning, childcare, child care, kindergarten or education (76).
@@ -168,18 +170,22 @@ ASIC extracts or annual reports).
 
 Exit codes. 0: complete; every output is written. 2: incomplete; some candidate pages are
 missing or unparseable, or an input check fails (both listed below), and every output is left
-unchanged. 1: nothing usable (no CSV snapshot, no candidate statement, or no candidate page that
-can be read); every output is left unchanged. When no page at all can be read the run exits 1,
+unchanged. 1: nothing usable (no CSV snapshot with `--no-fetch`, no candidate statement, or no
+candidate page that can be read); every output is left unchanged. Only `--no-fetch` builds from a
+stored CSV snapshot: an online run that finds no CSV link on the resources page, or whose fetch
+fails, exits 2 and never falls back to an older snapshot. When no page at all can be read the run exits 1,
 except with `--refresh`, where any failed fetch exits 2.
 
 Input checks that exit 2 before any statement page is read, in this order:
 
+- online only: no CSV link on the resources page, or the resources or CSV fetch fails;
 - the all-statements CSV lacks a column that selection or reconciliation reads (IDX,
   PeriodStart, PeriodEnd, Type, ReportingEntities, IncludedEntities, ABN, Link), whether missing
   or renamed, two header names are the same after stripping spaces and folding case, or any
-  record's field count differs from the header's, whichever column it lacks. The header and
-  record checks run before the privacy filter and before a downloaded CSV is stored, and again
-  when a snapshot is parsed; nothing is padded, and a downloaded CSV that fails is not stored;
+  record's field count differs from the header's, whichever column it lacks. Online, all of
+  these checks (duplicate headers and row widths before the allowlist filter, required columns
+  after it) run before the CSV is stored, so a CSV that fails is never stored; with `--no-fetch`
+  they run again when the snapshot is parsed. Nothing is padded;
 - `provider-profile.csv` or `provider-abn.csv` has a duplicate `provider_approval_number` row.
 
 Page checks: a page counts as missing or unparseable, and the run exits 2 (or 1 if no page is

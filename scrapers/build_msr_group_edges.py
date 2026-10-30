@@ -29,8 +29,8 @@ individual or disagrees on its ABN's entity type. The ABN index holds screened p
 with an accepted, checksum-valid ABN.
 
 Steps:
-1. Read the MSR resources page, find the all-statements CSV, download it. Columns that could hold
-   an individual's name (signatories, approvers, contacts) are dropped before anything is stored.
+1. Read the MSR resources page, find the all-statements CSV, download it, validate it, and keep
+   only the 15 allowlisted columns (ALLOWED_CSV_COLUMNS) before anything is stored.
 2. Candidate statements: any ABN listed on the statement (the CSV ABN column holds reporting and
    included entities' ABNs) equals a screened provider's ABN, or the reporting entities' text
    contains a childcare term.
@@ -57,13 +57,14 @@ Run:
   python3 scrapers/build_msr_group_edges.py --no-fetch   rebuild from the newest local snapshots
   python3 scrapers/build_msr_group_edges.py --refresh    take a new snapshot of every candidate page
 
-Exit codes: 0 complete. 2 incomplete or inconsistent, outputs left unchanged: the CSV lacks a
-required column, duplicate
+Exit codes: 0 complete. 2 incomplete or inconsistent, outputs left unchanged: an online run
+got no new CSV (no CSV link on the resources page, or a failed fetch; it never falls back to an
+older snapshot), the CSV fails validation (a missing required column, a duplicate header name,
+or a row of the wrong width; a fetched CSV that fails is never stored), duplicate
 provider_approval_number rows in provider-profile.csv or provider-abn.csv, a candidate without a
-page id, a candidate page missing, a fetch failed (always 2 with --refresh), a page that does not
-match the schema (including an ABN link whose text is not a valid ABN), or a page whose
-reporting or included entities do not reconcile with its CSV row by ABN and name. 1 nothing usable: no CSV snapshot, no candidate, or no
-page readable.
+page id, a candidate page missing or unparseable, a fetch failed (always 2 with --refresh), or a
+page whose reporting or included entities do not reconcile with its CSV row. 1 nothing usable:
+no CSV snapshot with --no-fetch, no candidate, or no page readable.
 """
 
 from __future__ import annotations
@@ -134,11 +135,25 @@ SUMMARY_JSON = PROCESSED_DIR / f"{EDGES_NAME}-summary.json"
 
 CHILDCARE_TERMS = re.compile(r"early\s+learning|child\s*care|kindergarten|education", re.IGNORECASE)
 _ALL_STATEMENTS_LINK = re.compile(r"all-statement-information_[\d-]+\.csv$")
-# Column names that could carry an individual's name or contact details. Dropped at ingest.
-_PERSON_COLUMN = re.compile(
-    r"sign|approv|contact|director|officer|person|individual|e-?mail|phone|"
-    r"first.?name|last.?name|surname|full.?name|author|submitter|prepared",
-    re.IGNORECASE,
+# The only all-statements CSV columns ever stored, matched exactly. Every other column is
+# dropped before storage, whatever its name, so a new column that could hold an individual's
+# name or contact details never reaches disk.
+ALLOWED_CSV_COLUMNS = (
+    "IDX",
+    "PeriodStart",
+    "PeriodEnd",
+    "Type",
+    "VoluntaryCompliance",
+    "HeadquarteredCountries",
+    "AnnualRevenue",
+    "ReportingEntities",
+    "IncludedEntities",
+    "ABN",
+    "ACN",
+    "ARBN",
+    "Link",
+    "IndustrySectors",
+    "RelatedStatements",
 )
 _PAGE_ID = re.compile(r"/statements/(\d+)/?$")
 _SUFFIX_TAIL = re.compile(r"\s+(?:PTY LTD|LTD|INC)$")
@@ -335,6 +350,10 @@ class CsvSchemaError(ValueError):
     """The all-statements CSV lacks a required column, or a row does not match the header."""
 
 
+class CsvSourceError(RuntimeError):
+    """An online run could not obtain a new all-statements CSV (no link, or a failed fetch)."""
+
+
 def _rows_matching_header(text: str) -> tuple[list[str], list[list[str]]]:
     """Header (BOM stripped) and rows. Raises CsvSchemaError when two header names are the same
     after stripping spaces and folding case, or when any row's field count differs from the
@@ -359,15 +378,15 @@ def _rows_matching_header(text: str) -> tuple[list[str], list[list[str]]]:
 
 
 def privacy_filter_csv(text: str) -> tuple[str, list[str], list[str]]:
-    """Drop columns that could hold an individual's name. Returns (text, kept, dropped).
+    """Keep only ALLOWED_CSV_COLUMNS. Returns (text, kept, dropped).
 
-    Every row's length is checked against the header first (CsvSchemaError otherwise); no row is
-    ever padded. The text is returned unchanged when nothing is dropped, so its hash equals the
-    source's.
+    Duplicate header names and every row's length are checked first (CsvSchemaError otherwise);
+    no row is ever padded. The text is returned unchanged when nothing is dropped, so its hash
+    equals the source's.
     """
     header, rows = _rows_matching_header(text)
-    dropped = [h for h in header if _PERSON_COLUMN.search(h)]
-    kept = [h for h in header if h not in dropped]
+    kept = [h for h in header if h in ALLOWED_CSV_COLUMNS]
+    dropped = [h for h in header if h not in ALLOWED_CSV_COLUMNS]
     if not dropped:
         return text, kept, dropped
     keep_idx = [i for i, h in enumerate(header) if h in kept]
@@ -1247,33 +1266,50 @@ def _meta(path: Path) -> dict:
 
 
 def acquire_csv(no_fetch: bool) -> tuple[Path, dict] | None:
-    """Newest privacy-filtered all-statements CSV snapshot, fetching a new one unless no_fetch.
+    """The all-statements CSV snapshot to build from.
 
-    Returns None when no snapshot exists.
+    Online, a new CSV is fetched, validated and filtered to ALLOWED_CSV_COLUMNS, then stored and
+    returned. Any failure raises CsvSourceError (no link, a failed fetch) or CsvSchemaError
+    (duplicate headers, a row of the wrong width, a missing required column); nothing is stored
+    and no older snapshot is used. Only no_fetch reads the newest stored snapshot, or returns
+    None when there is none.
     """
     if not no_fetch:
-        page = fetch(RESOURCES_URL)
+        try:
+            page = fetch(RESOURCES_URL)
+        except Exception as exc:
+            raise CsvSourceError(f"MSR resources page not fetched: {exc}") from exc
         write_snapshot(SOURCE_RESOURCES, page, "html")
         url = find_all_statements_link(page.text)
         if not url:
-            log.error("no all-statements CSV link on the MSR resources page")
-        else:
+            raise CsvSourceError("no all-statements CSV link on the MSR resources page")
+        try:
             got = fetch(url)
-            text, kept, dropped = privacy_filter_csv(got.content.decode("utf-8-sig"))
-            filtered = got
-            if dropped:
-                filtered = Fetched(**{**got.__dict__, "content": text.encode("utf-8")})
-            write_snapshot(
-                SOURCE_CSV,
-                filtered,
-                "csv",
-                extra_meta={
-                    "source_sha256": got.sha256,
-                    "source_bytes": len(got.content),
-                    "columns_kept": kept,
-                    "columns_dropped_for_privacy": dropped,
-                },
+        except Exception as exc:
+            raise CsvSourceError(f"all-statements CSV not fetched: {exc}") from exc
+        text, kept, dropped = privacy_filter_csv(got.content.decode("utf-8-sig"))
+        parse_statements_csv(text)  # required columns and row widths, before anything is stored
+        if dropped:
+            log.warning(
+                "dropped %d CSV column(s) not on the allowlist before storage: %s",
+                len(dropped),
+                ", ".join(dropped),
             )
+        filtered = got
+        if dropped:
+            filtered = Fetched(**{**got.__dict__, "content": text.encode("utf-8")})
+        written = write_snapshot(
+            SOURCE_CSV,
+            filtered,
+            "csv",
+            extra_meta={
+                "source_sha256": got.sha256,
+                "source_bytes": len(got.content),
+                "columns_kept": kept,
+                "columns_dropped_for_privacy": dropped,
+            },
+        )
+        return written, _meta(written)
     snaps = list_snapshots(SOURCE_CSV)
     if not snaps:
         return None
@@ -1368,8 +1404,12 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         got_csv = acquire_csv(args.no_fetch)
-    except CsvSchemaError as exc:
-        log.error("fetched all-statements CSV not stored: %s; outputs left unchanged", exc)
+    except (CsvSchemaError, CsvSourceError) as exc:
+        log.error(
+            "no new all-statements CSV stored and no older snapshot used: %s; outputs left "
+            "unchanged",
+            exc,
+        )
         return 2
     if got_csv is None:
         log.error("no MSR CSV snapshot in data/raw/msr/all-statements/: nothing to build")
@@ -1489,6 +1529,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     summary = summarise(layer, abn_rows, services, candidates_count=len(candidates))
     summary["counts"]["candidate_pages_missing"] = 0
+    summary["counts"]["csv_columns_dropped"] = len(
+        csv_meta.get("columns_dropped_for_privacy") or []
+    )
     summary["abn_placeholders_read_as_no_abn"] = [
         {"statement_id": s["statement_id"], "statement_url": s["statement_url"], **ph}
         for s in candidates

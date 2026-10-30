@@ -237,6 +237,18 @@ def test_privacy_filter_keeps_entity_columns_and_drops_person_columns():
     assert "A Person" not in out and "B Person" not in out and "example.org" not in out
 
 
+def test_column_filter_is_an_allowlist_of_the_15_known_columns():
+    # Codex round 8: any column not on the allowlist is dropped, whatever its name.
+    assert list(msr.ALLOWED_CSV_COLUMNS) == CSV_HEADER
+    header = CSV_HEADER + ["Comments", "Notes"]
+    row = csv_row("2024-1", "100", "X LTD", KOOK_ABN)
+    row.update(Comments="UNKNOWN COLUMN SENTINEL", Notes="ANOTHER SENTINEL")
+    out, kept, dropped = msr.privacy_filter_csv(csv_text([row], header))
+    assert kept == CSV_HEADER and dropped == ["Comments", "Notes"]
+    assert "SENTINEL" not in out and "Comments" not in out
+    assert not hasattr(msr, "_PERSON_COLUMN")
+
+
 def test_privacy_filter_is_identity_when_nothing_to_drop():
     text = csv_text([csv_row("2024-1", "100", "X LTD", KOOK_ABN)])
     out, kept, dropped = msr.privacy_filter_csv(text)
@@ -1578,6 +1590,83 @@ def test_main_exit_2_when_a_fetched_csv_has_a_duplicate_abn_column_and_nothing_i
     assert msr.main([]) == 2
     assert sorted((env["raw"] / "msr" / "all-statements").iterdir()) == before
     assert env["written"] == {} and not (env["proc"] / "summary.json").exists()
+
+
+def _serve(monkeypatch, resources_html, csv_body=b""):
+    from scrapers.common import Fetched
+
+    def fake_fetch(url, **kwargs):
+        content = resources_html.encode("utf-8") if url == msr.RESOURCES_URL else csv_body
+        return Fetched(
+            url=url,
+            final_url=url,
+            status=200,
+            content=content,
+            content_type="text/csv",
+            last_modified=None,
+            etag=None,
+            fetched_at="2026-10-31T01:00:00+00:00",
+        )
+
+    monkeypatch.setattr(msr, "fetch", fake_fetch)
+
+
+def test_main_exit_2_without_fallback_when_resources_page_has_no_csv_link(env, monkeypatch):
+    # Codex round 8: an online run never falls back to an older snapshot.
+    _serve(monkeypatch, "<html><a href='/resources/other.pdf'>x</a></html>")
+    before = sorted((env["raw"] / "msr" / "all-statements").iterdir())
+    assert msr.main([]) == 2
+    assert sorted((env["raw"] / "msr" / "all-statements").iterdir()) == before
+    assert env["written"] == {} and not (env["proc"] / "summary.json").exists()
+
+
+def test_main_exit_2_without_fallback_when_the_csv_fetch_fails(env, monkeypatch):
+    def failing(url, **kwargs):
+        raise RuntimeError("simulated network failure")
+
+    monkeypatch.setattr(msr, "fetch", failing)
+    assert msr.main([]) == 2
+    assert env["written"] == {} and not (env["proc"] / "summary.json").exists()
+
+
+def test_main_online_stores_only_allowlisted_columns_and_counts_the_dropped(env, monkeypatch):
+    snap = env["raw"] / "msr" / "all-statements" / "2026-01-01T0000Z.csv"
+    rows = list(csv.reader(io.StringIO(snap.read_text(encoding="utf-8"))))
+    rows = [rows[0] + ["Comments"]] + [r + ["UNKNOWN COLUMN SENTINEL"] for r in rows[1:]]
+    _serve(monkeypatch, RESOURCES_HTML, _raw_csv(rows[0], rows[1:]).encode("utf-8"))
+    assert msr.main([]) == 0
+    stored = [
+        p
+        for p in (env["raw"] / "msr" / "all-statements").iterdir()
+        if p.suffix == ".csv" and p != snap
+    ]
+    assert len(stored) == 1
+    text = stored[0].read_text(encoding="utf-8")
+    assert "SENTINEL" not in text and "Comments" not in text
+    assert text.splitlines()[0].split(",") == CSV_HEADER
+    s = _summary(env)
+    assert s["counts"]["csv_columns_dropped"] == 1
+    assert s["source"]["columns_dropped_for_privacy"] == ["Comments"]
+
+
+@pytest.mark.parametrize("problem", ["missing_link", "narrow_header", "duplicate_header"])
+def test_main_never_stores_a_fetched_csv_that_fails_validation(env, monkeypatch, problem):
+    # Codex round 8: required columns, header width and duplicates are checked before storing.
+    if problem == "missing_link":
+        header = [h for h in CSV_HEADER if h != "Link"]
+        body = _raw_csv(
+            header,
+            [[v for h, v in zip(CSV_HEADER, _row_values(CSV_HEADER), strict=True) if h != "Link"]],
+        )
+    elif problem == "narrow_header":
+        body = _raw_csv(CSV_HEADER[:-1], [_row_values(CSV_HEADER)])
+    else:
+        body = _raw_csv(CSV_HEADER + ["Link"], [_row_values(CSV_HEADER) + ["x"]])
+    _serve(monkeypatch, RESOURCES_HTML, body.encode("utf-8"))
+    before = sorted((env["raw"] / "msr" / "all-statements").iterdir())
+    assert msr.main([]) == 2
+    assert sorted((env["raw"] / "msr" / "all-statements").iterdir()) == before
+    assert env["written"] == {}
 
 
 def test_main_exit_2_when_a_candidate_row_has_no_page_id(env):
