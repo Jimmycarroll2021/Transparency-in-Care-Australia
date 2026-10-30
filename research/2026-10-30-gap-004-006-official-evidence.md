@@ -2,13 +2,13 @@
 
 Finding: both gaps should be revised, not validated as written.
 
-- **GAP-004:** there is no official count or national list of services outside the NQF, and
-  quality coverage and publication vary by jurisdiction. The "473 services" figure still has no
-  official source. NSW now assesses and rates its state-law services, which contradicts the
+- **GAP-004:** none of the official sources examined publishes a count or national list of
+  services outside the NQF, and quality coverage and publication vary by jurisdiction. The "473
+  services" figure was not found in any official source examined. NSW now assesses and rates its state-law services, which contradicts the
   baseline's claim that such services show "Not rated by NQF" and nothing more.
 - **GAP-006:** for a single service this is mostly a presentation issue, because rating dates are
-  public in the ACECQA register. The real, narrower gap is that no official source publishes the
-  distribution of rating age or a stated reassessment cycle.
+  public in the ACECQA register. The real, narrower gap is that none of the official sources
+  examined publishes the distribution of rating age or a stated reassessment cycle.
 
 `data/gap-ledger.json` statuses are unchanged (both `hypothesis`) pending the owner's decision.
 
@@ -44,8 +44,8 @@ Inferences:
 ## GAP-006: rating age
 
 Recommendation: **revise**. For a single service, the rating date is already public in the ACECQA
-register, so the gap is mostly about presentation. The narrower gap is that no official source
-publishes how old ratings are across all services or states a reassessment cycle.
+register, so the gap is mostly about presentation. The narrower gap is that none of the official
+sources examined publishes how old ratings are across all services or states a reassessment cycle.
 
 | Finding | Source and section | Confidence |
 |---|---|---|
