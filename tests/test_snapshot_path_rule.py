@@ -151,3 +151,12 @@ def test_count_rows_apply_the_url_and_snapshot_rule():
     common.withhold_source_locations(rows)
     assert rows[0]["source_document"] is None and rows[0]["source_snapshot"] is None
     assert rows[0]["count"] == "3"
+
+
+def test_prose_with_slashes_is_not_taken_for_a_path():
+    for text in (
+        "Historical years 2020 to 2025 are PDF/Word files disallowed by robots.txt and are not included.",
+        "Rows whose SE-/PR- key is absent from the ACECQA export are joined to stub entries "
+        "listed in spine-unlisted.csv (spine_status not_in_current_register).",
+    ):
+        assert common.redact_urls(text) == text

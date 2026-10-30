@@ -439,8 +439,12 @@ _URL_IN_TEXT = re.compile(
     + _EXT
     + r"|https?://"
     + _TOKEN
-    + r"|(?:[^\s'\",;()\[\]<>:]+[/\\])+[^'\",;()\[\]<>:/\\\n]*?"
+    # A path of two or more directories whose file name holds spaces (at most nine words), so
+    # that prose such as 'PDF/Word files ... robots.txt' is not taken for a path.
+    + r"|(?:[^\s'\",;()\[\]<>:/\\]+[/\\]){2,}[^\s'\",;()\[\]<>:/\\]+"
+    + r"(?:[ ][^\s'\",;()\[\]<>:/\\]+){1,8}?"
     + _EXT
+    # A path or file name with no spaces.
     + r"|[^\s'\",;()\[\]<>:]+"
     + _EXT,
     re.IGNORECASE,
