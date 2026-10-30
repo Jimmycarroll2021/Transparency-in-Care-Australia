@@ -402,8 +402,12 @@ def stmt(reporting, included=(), *, type_="Single", year=2024, page=None, idx=No
     }
 
 
-def layer(*statements, profiles=PROFILES):
-    return msr.build_layer(list(statements), profiles, ABN_ROWS)
+def layer(*statements, profiles=PROFILES, abr_types=None):
+    return msr.build_layer(list(statements), profiles, ABN_ROWS, abr_types=abr_types)
+
+
+def abr(code, name="PARENT LTD", abn="99000000009"):
+    return {abn: {"entity_type_code": code, "entity_name": name, "source": "test"}}
 
 
 def test_included_entity_by_name_needs_acecqa_and_abr_agreement():
@@ -488,65 +492,74 @@ def test_individual_provider_never_appears():
     assert "Sample Person" not in repr(out) and "PR-00000008" not in repr(out)
 
 
-def test_review_withholds_msr_names_that_may_be_individuals():
-    profiles = PROFILES + [
-        {
-            "provider_approval_number": "PR-00000010",
-            "legal_name": "Jane Example",
-            "entity_form": "company",
-            "name_withheld": "false",
-        },
-    ]
-    out = layer(stmt([PARENT], ["Jane Example"]), profiles=profiles)
-    (r,) = out["review"]
-    assert "Jane Example" not in repr(r)
-    assert r["msr_entity_name"] == msr.WITHHELD
+def test_group_name_shown_only_with_non_individual_abr_type():
+    # Codex round 2, finding 1(b)
+    (e,) = layer(stmt([PARENT], ["Wattle Kids Pty Ltd"]), abr_types=abr("PRV"))["edges"]
+    assert e["group_name"] == "PARENT LTD"
+    assert e["group_name_status"] == "shown_abr_non_individual"
+    assert e["group_abr_entity_type"] == "PRV"
 
 
-def test_unplaceable_organisation_names_are_shown_person_like_names_are_not():
-    assert msr._shown_name("WOMBAT UNIVERSITY") == "WOMBAT UNIVERSITY"
-    assert msr._shown_name("Jane Example") == msr.WITHHELD
+def test_group_name_withheld_for_individual_abr_type():
+    (e,) = layer(stmt([PARENT], ["Wattle Kids Pty Ltd"]), abr_types=abr("IND"))["edges"]
+    assert not e["group_name"]
+    assert e["group_name_status"] == "withheld_abr_individual"
+    assert "PARENT" not in repr(e)
 
 
-@pytest.mark.parametrize(
-    "name",
-    [
-        "Bilby Wombat",  # unclassified, no organisation wording
-        "Quoll",
-        "Jane Example",
-        "CAMPION HOUSE",  # reads as a person to the classifier
-        "",
-    ],
-)
-def test_shown_name_fails_closed(name):
-    # Codex round 1, finding 2: show only names positively classed as organisations.
-    assert msr._shown_name(name) in (msr.WITHHELD, None)
+def test_group_name_withheld_when_abr_type_unknown():
+    (e,) = layer(stmt([PARENT], ["Wattle Kids Pty Ltd"]))["edges"]
+    assert not e["group_name"]
+    assert e["group_name_status"] == "withheld_abr_type_unknown"
+    assert e["group_key"] == "99000000009"
+    assert "PARENT" not in repr(e)
 
 
-@pytest.mark.parametrize(
-    "name",
-    [
-        "Wattle Kids Pty Ltd",
-        "A.C.N. 078 042 378 Pty Ltd",
-        "Sunrise Property Trust",
-        "Coolabah Community Services Inc",
-        "WOMBAT UNIVERSITY",
-        "ST NUMBATS PRIMARY SCHOOL",
-        "BILBY EDUCATION HOLDINGS LLC",
-        "Diocese of Quokka",
-    ],
-)
-def test_shown_name_shows_positively_classified_organisations(name):
-    assert msr._shown_name(name) == name
+def test_group_name_withheld_without_abn():
+    (e,) = layer(stmt([{"name": "Parent Limited", "abn": None}], ["Wattle Kids Pty Ltd"]))["edges"]
+    assert not e["group_name"]
+    assert e["group_name_status"] == "withheld_no_abn"
 
 
-def test_provider_identity_kept_when_msr_name_is_withheld():
-    # Codex round 1, finding 2: provider_approval_number and the ACECQA legal name stay.
-    out = layer(stmt([PARENT], [("Bilby Wombat", "11000000002")]))
-    (e,) = out["edges"]
+def test_group_name_comes_from_abr_entity_name_not_msr():
+    msr_side = {"name": "Kookaburra Learning Group (MSR spelling)", "abn": "11000000001"}
+    (e,) = layer(stmt([msr_side], ["Wattle Kids Pty Ltd"]))["edges"]
+    assert e["group_name"] == "KOOKABURRA LEARNING GROUP LIMITED"
+    assert "MSR spelling" not in repr(e)
+
+
+def test_edge_carries_provider_identity_and_msr_abn_not_msr_name():
+    # Codex round 2, finding 1(c): the included entity's identity is the ACECQA provider.
+    (e,) = layer(stmt([PARENT], [("Renamed Wattle Co", "11000000002")]))["edges"]
     assert e["provider_approval_number"] == "PR-00000002"
     assert e["provider_legal_name"] == "Wattle Kids Pty Ltd"
-    assert e["msr_entity_name"] == msr.WITHHELD
+    assert e["msr_entity_abn"] == "11000000002"
+    assert "Renamed Wattle" not in repr(e)
+    assert "msr_entity_name" not in e
+
+
+def test_output_column_sets_hold_no_msr_side_names():
+    # Codex round 2, finding 1(c): only provider_legal_name (ACECQA) and group_name (ABR gated).
+    def names(cols):
+        return {c for c in cols if "name" in c}
+
+    assert names(msr.REVIEW_COLUMNS) == set()
+    assert names(msr.COREPORTED_COLUMNS) == {"provider_legal_name"}
+    assert names(msr.EDGE_COLUMNS) == {"provider_legal_name", "group_name", "group_name_status"}
+    assert names(msr.HEAD_COLUMNS) == {"provider_legal_name", "group_name", "group_name_status"}
+
+
+def test_review_rows_hold_no_names():
+    out = layer(stmt([PARENT], ["Gumnut Care Pty Ltd", "Grevillea Kindergarten"]))
+    assert out["review"]
+    for r in out["review"]:
+        assert not {k for k in r if "name" in k} - {"provider_legal_name"}
+        assert "Gumnut" not in repr(r) and "Grevillea" not in repr(r)
+
+
+def test_classifier_display_path_is_gone():
+    for attr in ("is_organisation_name", "_shown_name", "ORGANISATION_FORMS", "_ORG_WORDS"):
+        assert not hasattr(msr, attr)
 
 
 # ---------------------------------------------------------------------------
@@ -571,6 +584,7 @@ def test_group_name_is_the_single_reporting_entity():
     (e,) = out["edges"]
     assert e["group_name"] == "KOOKABURRA LEARNING GROUP LIMITED"
     assert ";" not in e["group_name"]
+    assert e["group_abn"] == "11000000001"
 
 
 def test_reporting_entity_without_included_entities_is_written_nowhere():
@@ -635,17 +649,19 @@ def test_duplicate_statements_across_years_collapse_to_one_edge():
     )
 
 
-def test_group_key_borrowed_from_same_name_on_another_statement():
-    out = layer(
+def test_group_key_borrowed_only_when_abr_confirms_the_name():
+    statements = (
         stmt([PARENT], ["Wattle Kids Pty Ltd"], year=2023, page=301),
         stmt(
             [{"name": "Parent Limited", "abn": None}], ["Wattle Kids Pty Ltd"], year=2024, page=302
         ),
     )
-    (e,) = out["edges"]
+    (e,) = layer(*statements, abr_types=abr("PRV"))["edges"]
     assert e["group_key"] == "99000000009"
-    assert e["group_key_source"] == "abn_of_same_name_on_another_statement"
+    assert e["group_key_source"] == "abn_of_same_name_on_another_statement_abr_confirmed"
     assert e["statement_count"] == 2
+    unconfirmed = layer(*statements)["edges"]
+    assert {x["group_key"] for x in unconfirmed} == {"99000000009", "MSR-302"}
 
 
 def test_group_key_without_any_abn_uses_statement_page_not_name():
@@ -718,7 +734,7 @@ def test_summary_counts_each_class_separately():
     assert c["group_parent_self_not_ownership_edges"]["services_of_those_providers"] == 2
     joint = c["co_reported_joint_not_ownership"]
     assert joint["rows"] == 1 and joint["statements"] == 1
-    assert joint["providers_only_in_joint_statements"] == 1
+    assert joint["providers_with_only_joint_relations"] == 1
     assert c["relations_by_class"] == {
         msr.JOINT: 1,
         msr.CONTROLLED: 2,
@@ -728,8 +744,21 @@ def test_summary_counts_each_class_separately():
     assert c["review_queue"] == 1
     (g,) = s["groups"]
     assert g["group_name"] == "KOOKABURRA LEARNING GROUP LIMITED"
+    assert g["group_name_status"] == "shown_abr_non_individual"
     assert g["head_provider"] == "PR-00000001"
     assert len(s["joint_statements_for_manual_confirmation"]) == 1
+
+
+def test_only_joint_label_excludes_self_only_providers():
+    # Codex round 2, finding 4
+    out = layer(
+        stmt([KOOKABURRA], year=2024, page=410),
+        stmt([PARENT, KOOKABURRA], type_="Joint", page=411),
+    )
+    s = msr.summarise(out, ABN_ROWS, [], candidates_count=2)
+    joint = s["counts"]["co_reported_joint_not_ownership"]
+    assert joint["distinct_providers"] == 1
+    assert joint["providers_with_only_joint_relations"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -870,6 +899,19 @@ def env(tmp_path, monkeypatch):
     monkeypatch.setattr(msr, "PROFILE_CSV", proc / "provider-profile.csv")
     monkeypatch.setattr(msr, "PROVIDER_ABN_CSV", proc / "provider-abn.csv")
     monkeypatch.setattr(msr, "SERVICES_CSV", proc / "acecqa-services-latest.csv")
+    _write_csv(
+        proc / "abn-details.csv",
+        [
+            {
+                "abn": "88000000008",
+                "lookup_status": "excluded_individual",
+                "entity_type_code": "IND",
+                "entity_name": "",
+            }
+        ],
+        ["abn", "lookup_status", "entity_type_code", "entity_name"],
+    )
+    monkeypatch.setattr(msr, "ABN_DETAILS_CSV", proc / "abn-details.csv")
     monkeypatch.setattr(msr, "SUMMARY_JSON", proc / "summary.json")
     return {"raw": raw, "proc": proc, "written": written}
 
@@ -1020,3 +1062,177 @@ def test_committed_msr_outputs_hold_no_raw_html():
     for p in present:
         text = p.read_text(encoding="utf-8")
         assert "<div" not in text and "<p>" not in text and "statement-entity" not in text
+
+
+# ---------------------------------------------------------------------------
+# Codex round 2: name policy end to end, incomplete pages, failed refresh
+# ---------------------------------------------------------------------------
+
+PERSON_BUSINESS = "Jane Example Care Services Pty Ltd"
+
+
+def add_statement(
+    env, idx, page_id, reporting, abns, page_html, *, included_text="", type_="Single"
+):
+    """Append one CSV row to the env snapshot and write its statement page."""
+    snap = env["raw"] / "msr" / "all-statements" / "2026-01-01T0000Z.csv"
+    rows = list(csv.DictReader(io.StringIO(snap.read_text(encoding="utf-8"))))
+    rows.append(csv_row(idx, page_id, reporting, abns, included=included_text, type_=type_))
+    snap.write_text(csv_text(rows), encoding="utf-8")
+    d = env["raw"] / "msr" / "statements" / page_id
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "2026-01-01T0000Z.html").write_text(page_html, encoding="utf-8")
+
+
+def everything_written(env):
+    summary = env["proc"] / "summary.json"
+    return repr(env["written"]) + (summary.read_text(encoding="utf-8") if summary.exists() else "")
+
+
+def test_person_plus_business_word_name_never_appears_in_any_output(env):
+    # Codex round 2, finding 5: no ABN, and an ABN that the ABR types as an individual.
+    add_statement(
+        env,
+        "2024-503",
+        "503",
+        PERSON_BUSINESS,
+        "11000000002",
+        statement_page([(PERSON_BUSINESS, None)], ["Wattle Kids Pty Ltd"]),
+        included_text="Wattle Kids Pty Ltd",
+    )
+    add_statement(
+        env,
+        "2024-504",
+        "504",
+        f"{PERSON_BUSINESS} (88 000 000 008)",
+        "88000000008, 11000000002",
+        statement_page([(PERSON_BUSINESS, "88000000008")], ["Wattle Kids Pty Ltd"]),
+        included_text="Wattle Kids Pty Ltd",
+    )
+    add_statement(
+        env,
+        "2024-505",
+        "505",
+        "KOOKABURRA LEARNING GROUP LIMITED (11 000 000 001)",
+        "11000000001",
+        statement_page([("KOOKABURRA LEARNING GROUP LIMITED", "11000000001")], [PERSON_BUSINESS]),
+        included_text=PERSON_BUSINESS,
+        type_="Joint",
+    )
+    assert msr.main(["--no-fetch"]) == 0
+    blob = everything_written(env)
+    assert "Jane" not in blob and "JANE" not in blob
+    groups = {
+        e["group_key"]: e["group_name_status"] for e in env["written"][msr.EDGES_NAME]["rows"]
+    }
+    assert groups["MSR-503"] == "withheld_no_abn"
+    assert groups["88000000008"] == "withheld_abr_individual"
+
+
+def test_written_name_columns_follow_the_policy(env):
+    assert msr.main(["--no-fetch"]) == 0
+    w = env["written"]
+    assert w[msr.REVIEW_NAME]["fieldnames"] == msr.REVIEW_COLUMNS
+    assert w[msr.COREPORTED_NAME]["fieldnames"] == msr.COREPORTED_COLUMNS
+    for row in w[msr.REVIEW_NAME]["rows"] + w[msr.COREPORTED_NAME]["rows"]:
+        written = {k: row.get(k) for k in w[msr.REVIEW_NAME]["fieldnames"] if k in row}
+        assert "Gumnut" not in repr(written) and "Grevillea" not in repr(written)
+    s = _summary(env)
+    for c in s["candidate_statements"]:
+        assert not [k for k in c if "name" in k]
+    for c in s["joint_statements_for_manual_confirmation"]:
+        assert not [k for k in c if "name" in k]
+    for g in s["groups"]:
+        assert {k for k in g if "name" in k} == {"group_name", "group_name_status"}
+    assert "PARENT LTD" not in everything_written(env)  # MSR-side reporting name, no ABR type
+
+
+def test_parse_rejects_included_entity_without_a_name_link():
+    page = statement_page([("A LTD", "11000000001")], ["Wattle Kids Pty Ltd"]).replace(
+        'class="statement-entity__name-link"', 'class="something-else"'
+    )
+    with pytest.raises(msr.PageParseError):
+        msr.parse_statement_page(page)
+
+
+def test_parse_rejects_included_section_without_entities():
+    page = statement_page([("A LTD", "11000000001")], ["Wattle Kids Pty Ltd"])
+    start = page.index('<div class="statement-entity">', page.index("statement-included-entities"))
+    end = page.index("</div>\n</div>", start)
+    page = page[:start] + page[end:]
+    with pytest.raises(msr.PageParseError):
+        msr.parse_statement_page(page)
+
+
+def test_parse_accepts_a_statement_with_no_included_section():
+    parsed = msr.parse_statement_page(statement_page([("A LTD", "11000000001")]))
+    assert parsed["included"] == []
+
+
+def test_main_exit_2_on_malformed_included_markup(env):
+    # Codex round 2, finding 2
+    page = env["raw"] / "msr" / "statements" / "501" / "2026-01-01T0000Z.html"
+    page.write_text(
+        page.read_text(encoding="utf-8").replace(
+            'class="statement-entity__name-link"', 'class="renamed-link"'
+        ),
+        encoding="utf-8",
+    )
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+    assert not (env["proc"] / "summary.json").exists()
+
+
+def test_main_exit_2_when_csv_lists_included_entities_but_page_has_none(env):
+    # Codex round 2, finding 2: CSV IncludedEntities non-empty, parsed list empty.
+    add_statement(
+        env,
+        "2024-506",
+        "506",
+        "KOOKABURRA LEARNING GROUP LIMITED (11 000 000 001)",
+        "11000000001",
+        statement_page([("KOOKABURRA LEARNING GROUP LIMITED", "11000000001")]),
+        included_text="Wattle Kids Pty Ltd",
+    )
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+
+
+def test_csv_without_included_entities_and_page_without_section_is_complete(env):
+    add_statement(
+        env,
+        "2024-507",
+        "507",
+        "KOOKABURRA LEARNING GROUP LIMITED (11 000 000 001)",
+        "11000000001",
+        statement_page([("KOOKABURRA LEARNING GROUP LIMITED", "11000000001")]),
+    )
+    assert msr.main(["--no-fetch"]) == 0
+
+
+def test_failed_refresh_exits_2_and_writes_nothing(env, monkeypatch):
+    # Codex round 2, finding 3: never fall back to an older snapshot during a refresh.
+    snap = env["raw"] / "msr" / "all-statements" / "2026-01-01T0000Z.csv"
+    monkeypatch.setattr(msr, "acquire_csv", lambda no_fetch: (snap, {}))
+    monkeypatch.setattr(msr, "PAGE_DELAY_SECONDS", 0.0)
+
+    def failing_fetch(url, **kwargs):
+        raise RuntimeError("simulated network failure")
+
+    monkeypatch.setattr(msr, "fetch", failing_fetch)
+    assert msr.main(["--refresh"]) == 2
+    assert env["written"] == {}
+    assert not (env["proc"] / "summary.json").exists()
+
+
+def test_failed_refresh_of_one_page_returns_no_snapshot(env, monkeypatch):
+    def failing_fetch(url, **kwargs):
+        raise RuntimeError("simulated network failure")
+
+    monkeypatch.setattr(msr, "fetch", failing_fetch)
+    monkeypatch.setattr(msr, "PAGE_DELAY_SECONDS", 0.0)
+    s = {"page_id": "501", "statement_url": "https://modernslaveryregister.gov.au/statements/501/"}
+    assert msr.acquire_page(s, False, [0.0], refresh=True) == (None, {})
+    # a non-refresh run still reuses the snapshot already held
+    path, _ = msr.acquire_page(s, False, [0.0])
+    assert path.name == "2026-01-01T0000Z.html"

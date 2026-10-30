@@ -28,13 +28,20 @@ Steps:
    like a match goes to the review queue, never to a relation.
 5. Edges and group heads are collapsed to one row per provider and group from the latest
    statement, listing every statement id and URL. The group key is the reporting entity's ABN,
-   taken from the statement, else from another candidate statement naming the same entity with
-   one ABN (organisation names only), else MSR-<statement page id>. No key is derived from a name.
+   taken from the statement, else an ABN given for the same name on another candidate statement
+   when the ABR confirms it (non-individual type, same ABR entity name), else
+   MSR-<statement page id>. No key is derived from a name.
 
 Licence: the MSR shows "Copyright Attorney-General's Department" and no open licence. Raw MSR files
 and their sidecars stay in data/raw/msr/, which is gitignored. Only derived facts are written to
-data/processed/. Providers that are, or may be, individuals never appear in any output. An MSR
-name is shown only when it is positively classed as an organisation; otherwise it is withheld.
+data/processed/. Providers that are, or may be, individuals never appear in any output.
+
+Name policy: outputs carry only two kinds of name. provider_legal_name is the ACECQA legal name,
+keyed by provider_approval_number, for providers not classed as individuals by ACECQA or the ABR.
+group_name is the ABR entity name of the reporting entity's ABN, shown only when the ABR entity
+type for that ABN is known locally (provider-abn.csv, abn-details.csv) and is not an individual
+or sole trader. No name read from the register is ever written: review, co-reported and summary
+rows carry statement ids, URLs, ABNs and match methods only.
 
 Writes data/processed/provider-group-edges-msr.csv (controlled_entity_of only),
 provider-group-heads-msr.csv, provider-coreported-msr.csv and provider-group-review-msr.csv, each
@@ -45,8 +52,10 @@ Run:
   python3 scrapers/build_msr_group_edges.py --no-fetch   rebuild from the newest local snapshots
   python3 scrapers/build_msr_group_edges.py --refresh    take a new snapshot of every candidate page
 
-Exit codes: 0 complete; 2 a candidate page is missing or unparseable (outputs left unchanged);
-1 nothing usable (no CSV snapshot, no candidate, or no page readable).
+Exit codes: 0 complete. 2 incomplete, outputs left unchanged: a candidate page is missing, a
+fetch failed (always 2 with --refresh), the entity markup is not recognised, or the CSV lists
+included entities that the page does not yield. 1 nothing usable: no CSV snapshot, no candidate,
+or no page readable.
 """
 
 from __future__ import annotations
@@ -76,7 +85,6 @@ try:
         write_snapshot,
     )
     from scrapers.join_enforcement import normalise_provider_name
-    from scrapers.profile_providers import classify_entity_form
 except ImportError:  # run as a plain script
     import sys
 
@@ -93,7 +101,6 @@ except ImportError:  # run as a plain script
         write_snapshot,
     )
     from scrapers.join_enforcement import normalise_provider_name
-    from scrapers.profile_providers import classify_entity_form
 
 BASE_URL = "https://modernslaveryregister.gov.au"
 RESOURCES_URL = f"{BASE_URL}/resources/"
@@ -109,6 +116,7 @@ SERVICES_MISSING_NOTE = (
 
 PROFILE_CSV = PROCESSED_DIR / "provider-profile.csv"
 PROVIDER_ABN_CSV = PROCESSED_DIR / "provider-abn.csv"
+ABN_DETAILS_CSV = PROCESSED_DIR / "abn-details.csv"
 SERVICES_CSV = PROCESSED_DIR / "acecqa-services-latest.csv"
 EDGES_NAME = "provider-group-edges-msr"
 REVIEW_NAME = "provider-group-review-msr"
@@ -128,23 +136,20 @@ _PAGE_ID = re.compile(r"/statements/(\d+)/?$")
 _SUFFIX_TAIL = re.compile(r"\s+(?:PTY LTD|LTD|INC)$")
 EXCLUDED_FORMS = {"likely_individual", "unknown"}
 ACCEPTED_KINDS = {"accepted_unique", "accepted_unique_in_state"}
-WITHHELD = "[withheld: may name an individual]"
-ORGANISATION_FORMS = {
-    "company",
-    "incorporated_association",
-    "trust_or_trustee",
-    "cooperative",
-    "government",
-    "church_or_religious",
-}
-_ORG_WORDS = re.compile(
-    r"\b(?:universit(?:y|ies)|college|schools?|society|foundation|institute|ministr(?:y|ies)|"
-    r"church|diocese|archdiocese|parish|congregation|communit(?:y|ies)|services|education|"
-    r"health|healthcare|hospitals?|care|network|centres?|centers?|association|group|holdings|"
-    r"corporation|authority|commission|council|department|trust|fund|llc|gmbh|plc|sdn\s+bhd)\b",
-    re.IGNORECASE,
+# ABR entity type codes that mean an individual or sole trader. Any other known code is a
+# non-individual entity (company, trust, partnership, government, charity and so on).
+INDIVIDUAL_ABR_TYPES = {"IND"}
+NAME_SHOWN = "shown_abr_non_individual"
+NAME_ABR_INDIVIDUAL = "withheld_abr_individual"
+NAME_ABR_UNKNOWN = "withheld_abr_type_unknown"
+NAME_NO_ABN = "withheld_no_abn"
+NAME_POLICY = (
+    "Names in MSR outputs: provider_legal_name is the ACECQA legal name, keyed by "
+    "provider_approval_number, for providers not classed as individuals by ACECQA or the ABR. "
+    "group_name is the ABR entity name of the reporting entity's ABN, shown only when the ABR "
+    "entity type for that ABN is known locally and is not an individual or sole trader; otherwise "
+    "it is blank and group_name_status says why. No name is taken from the register itself."
 )
-_ACN_STYLE = re.compile(r"\bA\.?\s?C\.?\s?N\.?\s*\d", re.IGNORECASE)
 # One edge per provider and statement: the strongest method wins.
 _RANK = {
     "reporting_entity_abn_equals_provider_abn": 0,
@@ -166,7 +171,10 @@ _COLLAPSED = [
     "relation",
     "group_key",
     "group_key_source",
+    "group_abn",
+    "group_abr_entity_type",
     "group_name",
+    "group_name_status",
     "statement_id",
     "statement_url",
     "reporting_period",
@@ -180,7 +188,7 @@ EDGE_COLUMNS = [
     *_COLLAPSED[3:],
     "match_method",
     "match_methods",
-    "msr_entity_name",
+    "msr_entity_abn",
     "captured_at",
     "page_sha256",
 ]
@@ -199,13 +207,13 @@ COREPORTED_COLUMNS = [
     "caveat",
     "msr_role",
     "match_method",
-    "msr_entity_name",
+    "msr_entity_abn",
     "statement_key",
     "statement_id",
     "statement_url",
     "reporting_period",
     "reporting_entity_count",
-    "first_listed_reporting_entity",
+    "reporting_entity_abns",
     "included_entities_listed",
     "captured_at",
     "page_sha256",
@@ -217,13 +225,11 @@ REVIEW_COLUMNS = [
     "statement_type",
     "reporting_period",
     "reporting_entity_count",
-    "first_listed_reporting_entity",
+    "reporting_entity_abns",
     "msr_role",
-    "msr_entity_name",
     "msr_entity_abn",
     "reason",
     "candidate_provider_approval_numbers",
-    "candidate_provider_legal_names",
     "captured_at",
 ]
 
@@ -315,6 +321,7 @@ def parse_statements_csv(text: str) -> list[dict]:
                 "reporting_period": f"{start} to {end}" if start and end else None,
                 "reporting_entities_text": (row.get("ReportingEntities") or "").strip(),
                 "abns": _abns(row.get("ABN")),
+                "csv_lists_included": bool((row.get("IncludedEntities") or "").strip()),
             }
         )
     return out
@@ -341,33 +348,47 @@ def select_candidates(statements: list[dict], provider_abns: set[str]) -> list[d
 # ---------------------------------------------------------------------------
 
 
-def _entities(section) -> list[dict]:
-    out = []
+class PageParseError(ValueError):
+    """A statement page whose entity markup is missing or not recognised."""
+
+
+def _entities(section, label: str) -> list[dict]:
+    """Entities in a section. Raises PageParseError when the markup is not recognised."""
     if section is None:
-        return out
-    for div in section.find_all("div", class_="statement-entity"):
+        return []
+    divs = section.find_all("div", class_="statement-entity")
+    if not divs:
+        raise PageParseError(f"{label} section present but holds no recognised entity")
+    out = []
+    for div in divs:
         link = div.find("a", class_="statement-entity__name-link")
         name = " ".join(link.get_text(" ").split()) if link else ""
+        if not name:
+            raise PageParseError(f"{label} entity without a recognised name link")
         abn = None
         abn_link = div.find("a", href=re.compile(r"^/statements/\?abn="))
         if abn_link:
             digits = re.sub(r"\D", "", abn_link.get_text())
             abn = digits if len(digits) == 11 else None
-        if name:
-            out.append({"name": name, "abn": abn})
+        out.append({"name": name, "abn": abn})
     return out
 
 
 def parse_statement_page(page_html: str) -> dict:
     """Reporting and included entities as {name, abn}. Included entities are de-duplicated.
 
-    Many statements list included entities by name only; others give an ABN for some or all.
+    Raises PageParseError when the reporting-entity section is missing or empty, or when either
+    section's markup is not recognised. A page with no included-entity section is a statement
+    with no included entities; main() cross-checks that against the CSV. Names are used only for
+    matching and are never written out.
     """
     soup = BeautifulSoup(page_html, "html.parser")
-    reporting = _entities(soup.find(id="statement-reporting-entities"))
+    reporting = _entities(soup.find(id="statement-reporting-entities"), "reporting")
+    if not reporting:
+        raise PageParseError("no reporting entity found")
     included: list[dict] = []
     seen: set[tuple[str, str | None]] = set()
-    for ent in _entities(soup.find(id="statement-included-entities")):
+    for ent in _entities(soup.find(id="statement-included-entities"), "included"):
         key = (normalise(ent["name"]), ent["abn"])
         if key[0] and key not in seen:
             seen.add(key)
@@ -394,29 +415,6 @@ def _excluded(profile: dict) -> bool:
     return (profile.get("entity_form") or "").strip() in EXCLUDED_FORMS or (
         profile.get("name_withheld") or ""
     ).strip().lower() == "true"
-
-
-def is_organisation_name(name: str | None) -> bool:
-    """True only when a name is positively classed as an organisation. Fails closed.
-
-    An organisation form from the project classifier (company, association, trust, cooperative,
-    government, church) qualifies. A name the classifier cannot place qualifies only when it
-    carries organisation wording (university, school, services and the like) or an ACN. A name
-    that reads as a person never qualifies.
-    """
-    if not name or not name.strip():
-        return False
-    form = classify_entity_form(name)
-    if form in ORGANISATION_FORMS:
-        return True
-    return form == "unknown" and bool(_ORG_WORDS.search(name) or _ACN_STYLE.search(name))
-
-
-def _shown_name(name: str | None) -> str | None:
-    """An MSR entity name if it is positively an organisation, else WITHHELD (None if blank)."""
-    if not name or not name.strip():
-        return None
-    return name if is_organisation_name(name) else WITHHELD
 
 
 class _Index:
@@ -456,6 +454,68 @@ class _Index:
             self.legal.setdefault(pr, (r.get("legal_name") or "").strip())
 
 
+def abr_types_from(abn_rows: list[dict], details_rows: list[dict] = ()) -> dict[str, dict]:
+    """ABN -> {entity_type_code, entity_name, source} from ABR data already held locally.
+
+    provider-abn.csv gives the type and ABR entity name of accepted provider ABNs; abn-details.csv
+    gives them for ABNs looked up in stage A. An ABN the ABR marks as an individual keeps the code
+    IND and no name.
+    """
+    out: dict[str, dict] = {}
+    for r in details_rows:
+        abn = (r.get("abn") or "").strip()
+        code = (r.get("entity_type_code") or "").strip().upper()
+        status = (r.get("lookup_status") or "").strip()
+        if not abn:
+            continue
+        if status == "excluded_individual" or code in INDIVIDUAL_ABR_TYPES:
+            out[abn] = {"entity_type_code": "IND", "entity_name": None, "source": "abn-details.csv"}
+        elif status == "ok" and code:
+            name = (r.get("entity_name") or "").strip() or None
+            out[abn] = {"entity_type_code": code, "entity_name": name, "source": "abn-details.csv"}
+    for r in abn_rows:
+        abn = (r.get("abn") or "").strip()
+        code = (r.get("entity_type_code") or "").strip().upper()
+        if not abn or not code or abn in out:
+            continue
+        if (r.get("match_kind") or "") not in ACCEPTED_KINDS and code not in INDIVIDUAL_ABR_TYPES:
+            continue
+        name = None if code in INDIVIDUAL_ABR_TYPES else (r.get("abr_entity_name") or "").strip()
+        out[abn] = {
+            "entity_type_code": code,
+            "entity_name": name or None,
+            "source": "provider-abn.csv",
+        }
+    return out
+
+
+def group_name_fields(abn: str | None, abr_types: dict[str, dict]) -> dict:
+    """group_abn, group_abr_entity_type, group_name and group_name_status for one ABN."""
+    if not abn:
+        return {
+            "group_abn": None,
+            "group_abr_entity_type": None,
+            "group_name": None,
+            "group_name_status": NAME_NO_ABN,
+        }
+    info = abr_types.get(abn)
+    code = info["entity_type_code"] if info else None
+    if not code:
+        status, name = NAME_ABR_UNKNOWN, None
+    elif code in INDIVIDUAL_ABR_TYPES:
+        status, name = NAME_ABR_INDIVIDUAL, None
+    elif info.get("entity_name"):
+        status, name = NAME_SHOWN, info["entity_name"]
+    else:
+        status, name = NAME_ABR_UNKNOWN, None
+    return {
+        "group_abn": abn,
+        "group_abr_entity_type": code,
+        "group_name": name,
+        "group_name_status": status,
+    }
+
+
 def _statement_facts(statement: dict) -> dict:
     reporting = statement["parsed"]["reporting"]
     return {
@@ -466,42 +526,50 @@ def _statement_facts(statement: dict) -> dict:
         "reporting_period": statement.get("reporting_period"),
         "period_end": statement.get("period_end") or statement.get("reporting_period") or "",
         "reporting_entity_count": len(reporting),
-        "first_listed_reporting_entity": _shown_name(reporting[0]["name"]) if reporting else None,
+        "reporting_entity_abns": "; ".join(r["abn"] for r in reporting if r["abn"]),
         "included_entities_listed": len(statement["parsed"]["included"]),
         "captured_at": statement.get("captured_at"),
         "page_sha256": statement.get("page_sha256"),
     }
 
 
-def _name_abn_map(statements: list[dict]) -> dict[str, str]:
-    """Normalised reporting-entity name -> ABN, where every statement giving one agrees.
-
-    Only names positively classed as organisations take part, so a name that may be a person's
-    is never used to derive anything. The map is internal and never written out.
-    """
+def _name_abns(statements: list[dict]) -> dict[str, set[str]]:
+    """Normalised reporting-entity name -> ABNs given for it. Internal only, never written."""
     seen: dict[str, set[str]] = defaultdict(set)
     for s in statements:
         for rep in (s.get("parsed") or {}).get("reporting", []):
-            if rep["abn"] and normalise(rep["name"]) and is_organisation_name(rep["name"]):
+            if rep["abn"] and normalise(rep["name"]):
                 seen[normalise(rep["name"])].add(rep["abn"])
-    return {k: next(iter(v)) for k, v in seen.items() if len(v) == 1}
+    return seen
 
 
-def _single_group(statement: dict, name_abn: dict[str, str]) -> dict:
-    """Group key and name of a statement with exactly one reporting entity."""
+def _single_group(
+    statement: dict, name_abns: dict[str, set[str]], abr_types: dict[str, dict]
+) -> dict:
+    """Group key and ABR-gated name of a statement with exactly one reporting entity.
+
+    With no ABN on the statement, an ABN given for the same name on another statement is used
+    only when the ABR confirms it: a known non-individual type whose ABR entity name normalises
+    to the same name. Otherwise the key is the statement page id; it is never a name.
+    """
     rep = statement["parsed"]["reporting"][0]
-    key = normalise(rep["name"]) if is_organisation_name(rep["name"]) else None
-    if rep["abn"]:
-        group_key, source = rep["abn"], "abn_on_statement"
-    elif key and key in name_abn:
-        group_key, source = name_abn[key], "abn_of_same_name_on_another_statement"
-    else:
-        group_key, source = f"MSR-{statement['page_id']}", "statement_page_no_abn"
-    return {
-        "group_key": group_key,
-        "group_key_source": source,
-        "group_name": _shown_name(rep["name"]),
-    }
+    abn, source = rep["abn"], "abn_on_statement"
+    if not abn:
+        abn, source = None, "statement_page_no_abn"
+        key = normalise(rep["name"])
+        found = name_abns.get(key, set())
+        if len(found) == 1:
+            (other,) = found
+            info = abr_types.get(other) or {}
+            code = info.get("entity_type_code")
+            if (
+                code
+                and code not in INDIVIDUAL_ABR_TYPES
+                and normalise(info.get("entity_name")) == key
+            ):
+                abn, source = other, "abn_of_same_name_on_another_statement_abr_confirmed"
+    group_key = abn or f"MSR-{statement['page_id']}"
+    return {"group_key": group_key, "group_key_source": source, **group_name_fields(abn, abr_types)}
 
 
 def classify_relation(rel: dict) -> str:
@@ -516,7 +584,10 @@ def classify_relation(rel: dict) -> str:
 
 
 def match_relations(
-    statements: list[dict], profiles: list[dict], abn_rows: list[dict]
+    statements: list[dict],
+    profiles: list[dict],
+    abn_rows: list[dict],
+    abr_types: dict[str, dict] | None = None,
 ) -> tuple[list[dict], list[dict], dict]:
     """Provider-statement relations, review queue and match statistics.
 
@@ -524,11 +595,12 @@ def match_relations(
     an edge: classify_relation decides what each one means.
     """
     idx = _Index(profiles, abn_rows)
+    abr_types = abr_types if abr_types is not None else abr_types_from(abn_rows)
     relations: dict[tuple[str, str], dict] = {}
     review: list[dict] = []
     stats = Counter()
 
-    def add_relation(s: dict, pr: str, role: str, method: str, msr_name: str) -> None:
+    def add_relation(s: dict, pr: str, role: str, method: str, abn: str | None) -> None:
         k = (pr, s["page_id"])
         if k in relations and _RANK[relations[k]["match_method"]] <= _RANK[method]:
             return
@@ -539,30 +611,25 @@ def match_relations(
             "provider_abn": idx.abn_of.get(pr),
             "msr_role": role,
             "match_method": method,
-            "msr_entity_name": _shown_name(msr_name),
+            "msr_entity_abn": abn,
         }
 
-    def add_review(s: dict, role: str, name: str, abn: str | None, reason: str, prs) -> None:
-        prs = sorted(prs)
-        shown = _shown_name(name)
-        names = "" if shown == WITHHELD else "; ".join(idx.legal.get(p, "") for p in prs)
+    def add_review(s: dict, role: str, abn: str | None, reason: str, prs) -> None:
         facts = _statement_facts(s)
         review.append(
             {
                 **{k: facts[k] for k in facts if k in REVIEW_COLUMNS},
                 "msr_role": role,
-                "msr_entity_name": shown,
                 "msr_entity_abn": abn,
                 "reason": reason,
-                "candidate_provider_approval_numbers": "; ".join(prs),
-                "candidate_provider_legal_names": names,
+                "candidate_provider_approval_numbers": "; ".join(sorted(prs)),
             }
         )
 
     def match_entity(s: dict, role: str, name: str, abn: str | None) -> None:
         matched = idx.by_abn.get(abn or "", [])
         for pr in matched:
-            add_relation(s, pr, role, f"{role}_abn_equals_provider_abn", name)
+            add_relation(s, pr, role, f"{role}_abn_equals_provider_abn", abn)
         if matched:
             return
         key = normalise(name)
@@ -574,7 +641,7 @@ def match_relations(
             stats["matches_to_excluded_providers"] += 1
         if len(prs) > 1:
             if visible:
-                add_review(s, role, name, abn, "ambiguous_matches_several_providers", visible)
+                add_review(s, role, abn, "ambiguous_matches_several_providers", visible)
             return
         if len(prs) == 1:
             if not visible:
@@ -589,19 +656,19 @@ def match_relations(
             elif pr not in idx.abn_of:
                 reason = "name_unique_provider_without_abn"
             elif normalise(idx.abr_name.get(pr)) == key:
-                add_relation(s, pr, role, "included_name_equals_acecqa_and_abr_name", name)
+                add_relation(s, pr, role, "included_name_equals_acecqa_and_abr_name", abn)
                 return
             else:
                 reason = "abr_name_disagrees"
-            add_review(s, role, name, abn, reason, visible)
+            add_review(s, role, abn, reason, visible)
             return
         loose = idx.by_loose.get(loose_key(name), set())
         if loose & idx.excluded:
             stats["matches_to_excluded_providers"] += 1
         if loose - idx.excluded:
-            add_review(s, role, name, abn, "fuzzy_corporate_suffix_differs", loose - idx.excluded)
+            add_review(s, role, abn, "fuzzy_corporate_suffix_differs", loose - idx.excluded)
 
-    name_abn = _name_abn_map(statements)
+    name_abns = _name_abns(statements)
     for s in statements:
         s = {**s, "parsed": s.get("parsed") or {"reporting": [], "included": []}}
         parsed = s["parsed"]
@@ -613,9 +680,9 @@ def match_relations(
             match_entity(s, "included_entity", inc["name"], inc["abn"])
         single = (s.get("type") or "") == "Single" and len(parsed["reporting"]) == 1
         group = (
-            _single_group(s, name_abn)
+            _single_group(s, name_abns, abr_types)
             if single
-            else {"group_key": None, "group_key_source": None, "group_name": None}
+            else {"group_key": None, "group_key_source": None, **group_name_fields(None, {})}
         )
         for (_, page), rel in relations.items():
             if page == s["page_id"]:
@@ -626,7 +693,15 @@ def match_relations(
         relations.values(),
         key=lambda r: (r["provider_approval_number"], r["period_end"], r["statement_id"]),
     )
-    review.sort(key=lambda r: (r["statement_id"], r["msr_role"], r["msr_entity_name"] or ""))
+    review.sort(
+        key=lambda r: (
+            r["statement_id"],
+            r["msr_role"],
+            r["reason"],
+            r["msr_entity_abn"] or "",
+            r["candidate_provider_approval_numbers"],
+        )
+    )
     stats.setdefault("matches_to_excluded_providers", 0)
     return out, review, dict(stats)
 
@@ -659,9 +734,14 @@ def collapse(relations: list[dict], relation: str) -> list[dict]:
     return out
 
 
-def build_layer(statements: list[dict], profiles: list[dict], abn_rows: list[dict]) -> dict:
+def build_layer(
+    statements: list[dict],
+    profiles: list[dict],
+    abn_rows: list[dict],
+    abr_types: dict[str, dict] | None = None,
+) -> dict:
     """Edges (controlled_entity_of only), group heads, joint co-reporting rows and review queue."""
-    relations, review, stats = match_relations(statements, profiles, abn_rows)
+    relations, review, stats = match_relations(statements, profiles, abn_rows, abr_types)
     edges = collapse(relations, CONTROLLED)
     heads = collapse(relations, HEAD)
     linked: dict[str, set[str]] = defaultdict(set)
@@ -715,7 +795,7 @@ def joint_manual_candidates(coreported: list[dict]) -> list[dict]:
                 "statement_url": first["statement_url"],
                 "reporting_period": first["reporting_period"],
                 "reporting_entity_count": first["reporting_entity_count"],
-                "first_listed_reporting_entity": first["first_listed_reporting_entity"],
+                "reporting_entity_abns": first["reporting_entity_abns"],
                 "included_providers": sorted({r["provider_approval_number"] for r in rows}),
             }
         )
@@ -734,6 +814,7 @@ def summarise(
     edge_prs = {e["provider_approval_number"] for e in edges}
     head_prs = {h["provider_approval_number"] for h in heads}
     joint_prs = {r["provider_approval_number"] for r in coreported}
+    non_joint_prs = {r["provider_approval_number"] for r in relations if r["relation"] != JOINT}
     group_keys = sorted({e["group_key"] for e in edges})
     periods = sorted(e["reporting_period"] for e in edges if e.get("reporting_period"))
     groups = []
@@ -744,7 +825,10 @@ def summarise(
         groups.append(
             {
                 "group_key": key,
+                "group_abn": latest["group_abn"],
+                "group_abr_entity_type": latest["group_abr_entity_type"],
                 "group_name": latest["group_name"],
+                "group_name_status": latest["group_name_status"],
                 "controlled_providers": len(prs),
                 "services_of_controlled_providers": _services(services, prs),
                 "head_provider": next(
@@ -781,7 +865,15 @@ def summarise(
                 "rows": len(coreported),
                 "distinct_providers": len(joint_prs),
                 "statements": len({r["statement_key"] for r in coreported}),
-                "providers_only_in_joint_statements": len(joint_prs - edge_prs - head_prs),
+                "providers_with_only_joint_relations": len(joint_prs - non_joint_prs),
+            },
+            "group_names": {
+                "edge_groups_by_status": dict(
+                    sorted(Counter(g["group_name_status"] for g in groups).items())
+                ),
+                "head_rows_by_status": dict(
+                    sorted(Counter(h["group_name_status"] for h in heads).items())
+                ),
             },
             "priority_providers_total": len(priority),
             "priority_providers_with_abn": len(priority_with_abn),
@@ -797,6 +889,7 @@ def summarise(
         },
         "groups": groups,
         "joint_statements_for_manual_confirmation": joint_manual_candidates(coreported),
+        "name_policy": NAME_POLICY,
         "caveats": [
             EDGE_DEFINITION,
             HEAD_DEFINITION,
@@ -883,29 +976,37 @@ def acquire_page(
             got = fetch(statement["statement_url"])
         except Exception as exc:  # robots refusal or HTTP error: the page counts as missing
             log.error("statement page %s not fetched: %s", statement["statement_url"], exc)
-        else:
-            write_snapshot(source, got, "html")
-        finally:
             last[0] = time.monotonic()
-        snaps = list_snapshots(source)
+            return None, {}  # never fall back to an older snapshot when a fetch was required
+        last[0] = time.monotonic()
+        written = write_snapshot(source, got, "html")
+        return written, _meta(written)
     if not snaps:
         return None, {}
     return snaps[-1], _meta(snaps[-1])
 
 
-def _parse_page(path: Path) -> dict | None:
-    """Parsed page, or None when it cannot be read or names no reporting entity."""
+def _parse_page(path: Path, statement: dict) -> dict | None:
+    """Parsed page, or None when it is unreadable, unrecognised or incomplete.
+
+    Incomplete means the CSV says the statement lists included entities but none were parsed.
+    """
     try:
         parsed = parse_statement_page(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, ValueError) as exc:
-        log.error("statement page %s unreadable: %s", path.name, exc)
+        log.error("statement page %s not usable: %s", path.as_posix(), exc)
         return None
-    return parsed if parsed["reporting"] else None
+    if statement.get("csv_lists_included") and not parsed["included"]:
+        log.error(
+            "statement page %s: the CSV lists included entities but none were parsed",
+            path.as_posix(),
+        )
+        return None
+    return parsed
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Exit 0 when complete, 2 when any candidate page is missing or unparseable (outputs left
-    unchanged), 1 when nothing is usable (no CSV snapshot, no candidate, or no page parsed)."""
+    """Exit codes as in the module docstring: 0 complete, 2 incomplete, 1 nothing usable."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--no-fetch", action="store_true", help="use local snapshots only")
     parser.add_argument(
@@ -938,7 +1039,7 @@ def main(argv: list[str] | None = None) -> int:
         if path is None:
             missing.append(f"{s['statement_id']} ({s['statement_url']})")
             continue
-        parsed = _parse_page(path)
+        parsed = _parse_page(path, s)
         if parsed is None:
             unparseable.append(f"{s['statement_id']} ({path.as_posix()})")
             continue
@@ -947,7 +1048,7 @@ def main(argv: list[str] | None = None) -> int:
         s["captured_at"] = meta.get("fetched_at")
         s["page_sha256"] = meta.get("sha256")
 
-    if not page_paths:
+    if not page_paths and not (args.refresh and missing):
         log.error("no candidate statement page could be read: nothing to build")
         return 1
     if missing or unparseable:
@@ -964,7 +1065,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     profiles = _load_csv(PROFILE_CSV)
-    layer = build_layer(candidates, profiles, abn_rows)
+    details = _load_csv(ABN_DETAILS_CSV) if ABN_DETAILS_CSV.exists() else []
+    abr_types = abr_types_from(abn_rows, details)
+    layer = build_layer(candidates, profiles, abn_rows, abr_types)
     services = _load_csv(SERVICES_CSV) if SERVICES_CSV.exists() else None
     if services is None:
         log.warning("%s missing: service counts are null (unknown)", SERVICES_CSV.name)
@@ -983,14 +1086,14 @@ def main(argv: list[str] | None = None) -> int:
         + " One row per provider and group, from the latest statement; statement_ids and "
         "statement_urls list every statement. group_key is the reporting entity's ABN "
         "(group_key_source says where it came from) or MSR-<statement page id> when no ABN is "
-        "known. No key is derived from a name." + local_only,
+        "known. No key is derived from a name. " + NAME_POLICY + local_only,
     )
     write_processed(
         HEADS_NAME,
         layer["heads"],
         HEAD_COLUMNS,
         raw_inputs=raw_inputs,
-        notes=HEAD_DEFINITION + local_only,
+        notes=HEAD_DEFINITION + " " + NAME_POLICY + local_only,
     )
     write_processed(
         COREPORTED_NAME,
@@ -1006,8 +1109,8 @@ def main(argv: list[str] | None = None) -> int:
         raw_inputs=raw_inputs,
         notes="Possible links that did not meet the matching rule: ambiguous names, ABR or ABN "
         "disagreement, providers without a resolved ABN, corporate-suffix differences and "
-        "reporting entities matched by name only. Not evidence of ownership. MSR names not "
-        f"positively classed as an organisation are shown as '{WITHHELD}'." + local_only,
+        "reporting entities matched by name only. Not evidence of ownership. Rows carry "
+        "statement ids, URLs, ABNs and candidate provider approval numbers; no names." + local_only,
     )
     summary = summarise(layer, abn_rows, services, candidates_count=len(candidates))
     summary["counts"]["candidate_pages_missing"] = 0
@@ -1029,15 +1132,15 @@ def main(argv: list[str] | None = None) -> int:
             "statement_url": s["statement_url"],
             "reporting_period": s["reporting_period"],
             "candidate_reason": s["candidate_reason"],
-            "reporting_entities": [
-                {"name": _shown_name(r["name"]), "abn": r["abn"]} for r in s["parsed"]["reporting"]
-            ],
+            "reporting_entity_count": len(s["parsed"]["reporting"]),
+            "reporting_entity_abns": [r["abn"] for r in s["parsed"]["reporting"] if r["abn"]],
             "included_entities": len(s["parsed"]["included"]),
         }
         for s in candidates
     ]
     summary["inputs"] = [
-        f"data/processed/{p.name}" for p in (PROVIDER_ABN_CSV, PROFILE_CSV, SERVICES_CSV)
+        f"data/processed/{p.name}"
+        for p in (PROVIDER_ABN_CSV, ABN_DETAILS_CSV, PROFILE_CSV, SERVICES_CSV)
     ] + ["data/raw/msr/ (local only)"]
     SUMMARY_JSON.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     log.info("summary: %s", json.dumps(summary["counts"]))
