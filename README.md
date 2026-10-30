@@ -4,6 +4,8 @@ A volunteer, non-commercial, public-interest project. It joins Australia's publi
 regulatory records (quality ratings and enforcement actions from every regulator that publishes
 them) into one honest, longitudinal record per service and provider.
 
+**New to the project? Start with [`docs/03-handover.md`](docs/03-handover.md).**
+
 ## Status
 
 Data collection and joining are working. There is no public website yet: one follows only after
@@ -47,6 +49,7 @@ Western Australian content is used for non-commercial research under their terms
 - [`docs/01-gap-analysis.md`](docs/01-gap-analysis.md): what the Four Corners investigations found,
   the public data sources, and the gaps this project addresses.
 - [`docs/02-execution-plan.md`](docs/02-execution-plan.md): phases and workstreams.
+- [`docs/03-handover.md`](docs/03-handover.md): state, licence position, how to run it, open work.
 - [`docs/02-acecqa-consent-request.md`](docs/02-acecqa-consent-request.md): the consent request sent
   to ACECQA on 30 October 2026.
 - [`research/`](research/): dated audits of every register (format, join keys, licence, window).
