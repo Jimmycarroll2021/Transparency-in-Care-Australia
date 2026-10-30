@@ -17,10 +17,17 @@ hub gate and two Codex review rounds on PR #5. Script: `scrapers/build_msr_group
 This note and every MSR output carry only two kinds of name:
 
 1. Provider names from ACECQA (`provider_legal_name`, keyed by `provider_approval_number`).
-   Providers that ACECQA or the ABR classes as an individual or sole trader are excluded.
-2. Group names from the ABR: the ABR entity name of the reporting entity's ABN, shown only when
-   the ABR entity type for that ABN is held locally (`provider-abn.csv`, `abn-details.csv`) and is
-   not an individual or sole trader. Otherwise the group is shown by ABN and statement id only.
+   A provider is excluded, failing closed, when any local source marks it as an individual or
+   sole trader: the ACECQA-derived profile (likely individual, unknown form or withheld name),
+   `provider-abn.csv` (entity type IND, or the ABR lookup found an individual) or `abn-details.csv`.
+   It is also excluded when the ABR sources disagree on its entity type. This run excluded 1,100
+   providers on the profile, 0 on the ABR, with 0 type conflicts and 0 individual-status conflicts.
+2. Group names from the ABR: the ABR entity name of the reporting entity's ABN. It is shown only
+   when the ABR entity type for that ABN is held locally (`provider-abn.csv`, `abn-details.csv`),
+   the sources agree, the type is a company (PRV, PUB), government entity or statutory authority
+   (LGE, LGA, SGE, TGE), co-operative (COP) or other incorporated entity (OIE), and the name has no
+   wording that can embed a person's name (family trust, trustee for, as trustee, ATF). Trusts,
+   partnerships, unincorporated entities and any other type show the ABN and statement id only.
 
 No name read from the register is published. Review, co-reported and summary rows carry statement
 ids, URLs, ABNs and match methods only. The ABN Lookup API was not called for this layer.
@@ -62,7 +69,7 @@ statements behind the 18 edges cover reporting periods from 1 January 2023 to 31
 | of which latest match by ABN / by name with ABR agreement | 7 / 11 | 18 |
 | Providers with an edge | 17 | 1,210 priority providers (901 with an ABN) |
 | Groups they roll up to | 8 | |
-| Group names shown (ABR type non-individual) / ABN only (ABR type not held locally) | 2 / 6 | 8 groups |
+| Group names shown (ABR type PUB) / ABN only (ABR type not held locally) | 2 / 6 | 8 groups |
 | Services those providers operate | 254 | 18,186 current ACECQA services |
 | `group_parent_self` rows / providers (both names shown) | 2 / 2 | not ownership |
 | Services of group-head providers | 298 | 18,186; not ownership |
@@ -130,11 +137,21 @@ another source (for example ASIC extracts or annual reports) before any ownershi
 
 ## Completeness checks
 
-The run exits 2 and leaves every output unchanged if any candidate page is missing, a fetch fails
-(always with `--refresh`), the entity markup is not recognised, or the CSV lists included entities
-that the page does not yield. It exits 1 if nothing is usable. On the current snapshots the CSV
-and the pages agree for all 136 candidates: 38 list included entities in both, 98 in neither. If
-`acecqa-services-latest.csv` is missing, service counts are null (unknown), not zero.
+The run exits 2 and leaves every output unchanged when any of these happens:
+
+- a candidate page is missing, or a fetch fails (always 2 with `--refresh`);
+- a matching CSV row has no usable statement page id;
+- an entity section holds any element or text that is not a recognised entity, or an entity has
+  no name link;
+- the CSV lists included entities but the page yields none;
+- the page yields fewer included entities than a lower bound counted from the CSV
+  IncludedEntities field. A comma-separated segment counts only when it ends with an ABN in
+  brackets or a corporate suffix, because names can contain commas.
+
+It exits 1 if nothing is usable. On the current snapshots every candidate passes. 38 list
+included entities in both the CSV and the page, and 98 in neither. The lower bound equals the
+page count for 37 of the 38 and is below it for 1. If `acecqa-services-latest.csv` is missing,
+service counts are null (unknown), not zero.
 
 ## Review queue (103 rows)
 
