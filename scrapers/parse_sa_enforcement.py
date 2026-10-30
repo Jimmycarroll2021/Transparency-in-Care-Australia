@@ -105,6 +105,8 @@ FIELDNAMES = [
     "date_issued_raw",
     "period_label",
     "notes",
+    # Structured fact: the end of a printed date range, kept before free text is withheld.
+    "end_date",
 ]
 
 COUNT_FIELDNAMES = [
@@ -719,8 +721,11 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
     if inferred:
         notes.append("action type inferred from the printed section label, no action text printed")
     date_iso, date_raw = find_date(" ".join(f.get("date", [])))
-    if re.search(r"\d\s+to\s+\d", " ".join(f.get("date", []))):
+    end_date = None
+    date_range = re.split(r"(?<=[0-9])[ ]+to[ ]+(?=[0-9])", " ".join(f.get("date", [])), maxsplit=1)
+    if len(date_range) == 2:
         notes.append("date range printed; the start date is used as date_issued")
+        end_date = find_date(date_range[1])[0]
     if not date_raw:
         date_iso, date_raw = find_date(action_lines[0] if action_lines else "")
         if (
@@ -849,6 +854,7 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
         "legal_references": json.dumps(refs, ensure_ascii=False),
         "date_issued": date_iso,
         "date_issued_raw": date_raw,
+        "end_date": end_date,
         "notes": notes,
         "_hash_fallback": provider_raw_for_hash or service_name_hash,
         "_hash_service": service_name_hash,

@@ -383,3 +383,26 @@ def test_sa_record_ids_are_stable_and_unique():
     a, b = rows_for(CURRENT_FIXTURE), rows_for(CURRENT_FIXTURE)
     assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
     assert len({r["record_id"] for r in a}) == len(a)
+
+
+# --- Codex round 2, finding 4: the end of a printed date range is kept as a column ----------
+
+
+def _range_rows(date_text):
+    html = OLD_FIXTURE.replace(
+        "<p><strong>Date of action:</strong> 30/10/15</p>",
+        f"<p><strong>Date of action:</strong> {date_text}</p>",
+    )
+    return by_service(rows_for(html, period="2015"), "Little Sprouts")
+
+
+def test_date_range_end_is_kept_and_survives_withholding():
+    row = _range_rows("24/6/2015 to 23/9/2015")
+    assert row["action_type_raw"] == "(withheld)"
+    assert row["date_issued"] == "2015-06-24"
+    assert row["end_date"] == "2015-09-23"
+
+
+def test_single_date_means_null_end_date():
+    assert _range_rows("30/10/15")["end_date"] is None
+    assert by_service(rows_for(OLD_FIXTURE), "Cobbler Creek")["end_date"] is None

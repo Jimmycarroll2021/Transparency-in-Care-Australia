@@ -94,6 +94,8 @@ FIELDNAMES = [
     "notes",
     # Extra column, not in the schema: every other URL linked from the Details cell.
     "linked_documents",
+    # Structured fact taken from the printed headline before any free text is withheld.
+    "penalty_amount_aud",
 ]
 
 NO_APPROVAL_NOTE = "register prints no approval number; join by name and address"
@@ -140,6 +142,24 @@ def clean(text: str | None) -> str:
 def pieces(cell) -> list[str]:
     """Visible text fragments of a cell, in order, cleaned, blanks dropped."""
     return [c for c in (clean(s) for s in cell.stripped_strings) if c]
+
+
+_FINED = re.compile(r"(?i)(?<![a-z])fined(?![a-z])")
+_DOLLARS = re.compile(r"[$][ ]?([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:[.]([0-9]{2}))?(?![0-9])")
+
+
+def extract_fine_amount(text: str | None) -> int | float | None:
+    """The fine in a printed headline such as 'Approved provider fined $12,000 ...', in dollars.
+
+    Source-faithful: only when the text says 'fined' and prints exactly one distinct dollar
+    amount. Anything else (no amount, several amounts) is None, never a guess."""
+    if not text or not _FINED.search(text):
+        return None
+    amounts = set()
+    for m in _DOLLARS.finditer(text):
+        whole = int(m.group(1).replace(",", ""))
+        amounts.add(whole + int(m.group(2)) / 100 if m.group(2) else whole)
+    return amounts.pop() if len(amounts) == 1 else None
 
 
 def parse_date(raw: str) -> tuple[str | None, str | None]:
@@ -385,6 +405,7 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         "period_label": period,
         "notes": "; ".join(notes),
         "linked_documents": " ".join(u for u in hrefs if u != primary) or None,
+        "penalty_amount_aud": extract_fine_amount(action_type_raw),
         # In-memory only (not written): the printed content, names included, to spot a row the
         # register prints twice. Never published and never used as the record_id.
         "_fingerprint": printed_fingerprint(*(clean(c.get_text(" ")) for c in cells)),

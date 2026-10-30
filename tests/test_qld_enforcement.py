@@ -387,3 +387,28 @@ def test_qld_record_ids_survive_reordering_and_are_unique():
     by_date = lambda rows: {r["date_issued_raw"]: r["record_id"] for r in rows}  # noqa: E731
     assert by_date(a) == by_date(b)
     assert len({r["record_id"] for r in a}) == len(a)
+
+
+# --- Codex round 2, finding 4: a printed fine is kept as a structured column -----------------
+
+
+def test_fine_amount_is_kept_as_a_structured_column():
+    assert by_date("04/09/2026")["penalty_amount_aud"] == 12000
+
+
+def test_fine_amount_survives_withholding():
+    rows = privacy_rows()
+    assert rows["01/02/2026"]["action_type_raw"] == "(withheld)"
+    assert rows["01/02/2026"]["penalty_amount_aud"] == 5000
+    assert rows["04/02/2026"]["penalty_amount_aud"] == 2000
+    assert rows["02/02/2026"]["penalty_amount_aud"] is None
+
+
+def test_fine_amount_is_null_when_not_one_printed_amount():
+    from scrapers.parse_qld_enforcement import extract_fine_amount
+
+    assert extract_fine_amount("Approved provider fined $14,500 for missing child") == 14500
+    assert extract_fine_amount("Approved provider was fined $23,000") == 23000
+    assert extract_fine_amount("Fined $8,000 and $2,000 in costs") is None
+    assert extract_fine_amount("Compliance notice") is None
+    assert extract_fine_amount(None) is None

@@ -57,9 +57,11 @@
     "period_label": { "type": ["string", "null"], "description": "Register period the row came from, e.g. '2025 Q2' or 'August 2026'." },
     "notes": { "type": ["string", "null"], "description": "Parser warnings: duplicate rows, unparsable dates, missing keys." },
     "service_type": { "type": ["string", "null"], "description": "CTH only: service type as printed in its labelled field, kept only when it is one of the register's service types; otherwise null." },
-    "end_date": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "CTH only: the printed End date as ISO 8601. Null when not printed or not parsable; never inferred." },
+    "start_date": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "NSW only: the start of a printed suspension period ('from D until D') as ISO 8601. Null when not printed or not parsable; never inferred." },
+    "end_date": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "The printed end of the action as ISO 8601: CTH End date, NSW suspension period end, SA date range end. Null when not printed or not parsable; never inferred." },
     "date_charged": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "CTH only: the printed Date charged as ISO 8601. Null when not printed or not parsable; never inferred." },
     "date_of_sentence": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "CTH only: the printed Date of sentence as ISO 8601. Null when not printed or not parsable; never inferred." },
-    "plea": { "type": ["string", "null"], "description": "CTH only: the printed Plea, kept only when it is 'Guilty' or 'Not guilty'; otherwise null." }
+    "plea": { "type": ["string", "null"], "description": "CTH only: the printed Plea, kept only when it is 'Guilty' or 'Not guilty'; otherwise null." },
+    "penalty_amount_aud": { "type": ["number", "null"], "minimum": 0, "description": "QLD only: the fine in dollars when the printed headline says 'fined' and prints exactly one distinct dollar amount; otherwise null." }
   }
 }

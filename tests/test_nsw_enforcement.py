@@ -825,3 +825,42 @@ def test_record_id_ignores_the_withholding_decision():
     c = [_withheld_nsw("Mary Sample")]
     assign_record_ids(c)
     assert c[0]["record_id"] != a[0]["record_id"]  # a different printed row
+
+
+# --- Codex round 2, finding 4: a printed suspension period is kept as structured columns ----
+
+SUSPENSION = (
+    "Service approval suspended under section 72 of the National Law. "
+    "The period of suspension is from 17/12/2025 until 16/03/2026"
+)
+
+
+def test_suspension_period_is_kept_as_structured_columns():
+    row = make_row(
+        make_raw(
+            id="SE-40000001", name="Example Kids Pty Ltd", date="17/12/2025", nature=SUSPENSION
+        ),
+        label="2025-26 Q2",
+    )
+    assert row["start_date"] == "2025-12-17" and row["end_date"] == "2026-03-16"
+
+
+def test_suspension_period_with_to_and_survives_withholding():
+    row = make_row(
+        make_raw(
+            id="PR-40006858",
+            name="Jane Q Citizen",
+            date="24/10/2025",
+            nature=SUSPENSION.replace(
+                "from 17/12/2025 until 16/03/2026", "from 24/10/2025 to 28/01/2026"
+            ),
+        ),
+        label="2025-26 Q2",
+    )
+    assert row["action_type_raw"] == "(withheld)"
+    assert row["start_date"] == "2025-10-24" and row["end_date"] == "2026-01-28"
+
+
+def test_no_printed_period_means_null_dates():
+    row = _withheld_nsw()
+    assert row["start_date"] is None and row["end_date"] is None

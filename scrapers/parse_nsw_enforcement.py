@@ -77,6 +77,9 @@ FIELDNAMES = [
     "date_issued_raw",
     "period_label",
     "notes",
+    # Structured facts from a printed suspension period, kept before free text is withheld.
+    "start_date",
+    "end_date",
 ]
 
 
@@ -180,6 +183,24 @@ def clean_text(value: str | None) -> str:
         return ""
     text = re.sub(r"(?<=[A-Za-z])-\n(?=[A-Za-z])", "-", value)
     return re.sub(r"\s+", " ", text).strip()
+
+
+_SUSPENSION_PERIOD = re.compile(
+    r"(?i)period of suspension is from[ ]+([0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4})"
+    r"[ ]+(?:until|to)[ ]+([0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4})"
+)
+
+
+def extract_suspension_period(*texts: str | None) -> tuple[str | None, str | None]:
+    """(start, end) ISO dates from 'The period of suspension is from D until D' as printed.
+    (None, None) when no such sentence is printed or a date does not parse; never inferred."""
+    for text in texts:
+        m = _SUSPENSION_PERIOD.search(" ".join((text or "").split()))
+        if m:
+            start, end = parse_date(m.group(1)), parse_date(m.group(2))
+            if start and end:
+                return start, end
+    return None, None
 
 
 def parse_date(raw: str | None) -> str | None:
@@ -597,6 +618,7 @@ def build_row(
     if raw.continued:
         notes.append("row wrapped across a page break and was rejoined")
 
+    suspension = extract_suspension_period(nature, details)
     row = {
         "record_id": None,  # set by parse_file from non-name facts (assign_record_ids)
         "jurisdiction": JURISDICTION,
@@ -623,6 +645,8 @@ def build_row(
         "period_label": period_label,
         "notes": "; ".join(notes) if notes else None,
         "_details": details,
+        "start_date": suspension[0],
+        "end_date": suspension[1],
         # In-memory only, never written: the printed row, names included, so a repeated row is
         # spotted without the record_id ever depending on a name.
         "_fingerprint": printed_fingerprint(*(f"{k}: {v}" for k, v in sorted(f.items()))),
