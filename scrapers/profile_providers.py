@@ -151,8 +151,14 @@ _PARTNER_SPLIT = re.compile(r"\s*(?:&|\+|;|/|\band\b)\s*", _I)
 _ESTATE = re.compile(
     r"\b(?:estate\s+of|executors?|executrix|executrices|deceased|the\s+late)\b", _I
 )
-# An honorific in front of a word names a person.
-_TITLE = re.compile(r"(?:^|[\s&,;/(+-])(?:mr|mrs|ms|miss|mx|dr)\.?\s+[^\W\d_]", _I)
+# An honorific or personal title in front of a word names a person (Codex round 3, finding 2:
+# academic, religious and honorary titles too). 'Lady' and 'Lord' are left out because they
+# start well-known organisation names; 'Sisters of ...' does not match 'sister'.
+_TITLE = re.compile(
+    r"(?:^|[\s&,;/(+-])(?:mr|mrs|ms|miss|mx|dr|prof|professor|assoc\.?\s+prof|a/prof|rev|revd|"
+    r"reverend|sr|fr|hon|honourable|dame|sir|pastor|rabbi|imam)\.?\s+[^\W\d_]",
+    _I,
+)
 # Splits '<trustee> as trustee(s) for <trust>' and '<trustee> ATF <trust>'. Broader than _TRUSTEE,
 # which is kept as is so that entity_form labels do not move for organisation trustees.
 _TRUSTEE_SPLIT = re.compile(
@@ -451,7 +457,8 @@ def prose_may_name_person(text: str | None, known: tuple[str | None, ...] = ()) 
     for k in known:
         if k and len(k.strip()) > 3:
             text = re.sub(re.escape(k.strip()), " ", text, flags=re.IGNORECASE)
-    if _TITLE.search(text):
+    # In prose a title counts only before a capitalised word ('Rev Example', not 'rev up').
+    if any(m.group(0)[-1].isupper() for m in _TITLE.finditer(text)):
         return True
     return bool(_prose_runs(text))
 

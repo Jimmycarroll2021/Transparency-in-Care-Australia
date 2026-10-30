@@ -461,3 +461,61 @@ def test_prose_may_name_person_ignores_names_already_published_for_the_row():
     text = "Sunny Meadow Early Learning failed to notify the Regulatory Authority."
     assert pp.prose_may_name_person("Sunny Meadow failed to notify the Regulatory Authority.")
     assert not pp.prose_may_name_person(text, known=("Sunny Meadow Early Learning",))
+
+
+# --- Codex round 3, finding 2: more titles are person signals. Synthetic names. --------------
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Prof Jane Example",
+        "Professor Jane Example",
+        "Assoc Prof Jane Example",
+        "Rev Jane Example",
+        "Reverend Jane Example",
+        "Sr Jane Example",
+        "Fr John Example",
+        "Hon Jane Example",
+        "Dame Jane Example",
+        "Sir John Example",
+        "Pastor John Example",
+        "Prof. Jane Example Pty Ltd",
+        "Example Holdings Pty Ltd ATF Rev J Example Trust",
+    ],
+)
+def test_more_titles_are_person_signals(name):
+    assert pp.name_is_withheld(name)
+    assert pp.prose_may_name_person(f"Notice issued to {name}.")
+
+
+def test_title_words_inside_organisation_names_are_not_person_signals():
+    assert not pp.name_is_withheld("Sisters of Example Mercy Ltd")
+    assert not pp.name_is_withheld("Example Professional Services Pty Ltd")
+    assert not pp.name_is_withheld("Lady Gowrie Tasmania Inc")
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Prof",
+        "Professor",
+        "Assoc Prof",
+        "Rev",
+        "Revd",
+        "Reverend",
+        "Sr",
+        "Fr",
+        "Hon",
+        "Dame",
+        "Sir",
+        "Pastor",
+    ],
+)
+def test_title_beats_a_company_suffix(title):
+    assert pp.name_is_withheld(f"{title} Jane Example Pty Ltd")
+    assert pp.name_is_withheld(f"Example Holdings Pty Ltd ATF {title} Jane Example Unit Trust")
+
+
+def test_title_words_in_ordinary_prose_are_not_person_signals():
+    assert not pp.prose_may_name_person("the provider did not rev up the bus; hon. mention")
