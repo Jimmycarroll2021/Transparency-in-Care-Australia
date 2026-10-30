@@ -1,27 +1,45 @@
 {
-  "generated_at": "2026-10-30T19:41:02.521159+00:00",
-  "definition": "An edge means the provider's legal entity is named in a modern slavery statement on the Modern Slavery Statements Register: as a reporting entity (edge_type reporting_entity, matched by ABN) or as an entity included in the statement as owned or controlled by the reporting entity (edge_type included_entity, matched by exact normalised name agreeing with both the ACECQA legal name and the ABR entity name). It is not a verified ownership chain.",
+  "generated_at": "2026-10-30T19:49:04.407274+00:00",
+  "definitions": [
+    "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched by the included entity's ABN, or by exact normalised name agreeing with both the ACECQA legal name and the ABR entity name. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
+    "group_parent_self: the provider is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",
+    "co_reported_joint: the provider is named (as a reporting or included entity) in a Joint statement. Joint statements can combine unrelated bodies, so these rows are never edges."
+  ],
   "counts": {
     "candidate_statements": 136,
     "included_entities_parsed": 530,
     "included_entities_with_abn": 350,
-    "edges_by_match_method": {
-      "included_entity_abn_equals_provider_abn": 20,
-      "included_name_equals_acecqa_and_abr_name": 22,
-      "reporting_entity_abn_equals_provider_abn": 65
+    "relations_total": 107,
+    "relations_by_class": {
+      "co_reported_joint": 56,
+      "controlled_entity_of": 23,
+      "group_parent_self": 3,
+      "self_report_no_included_entities": 25
     },
-    "edges_reporting_entity": 65,
-    "edges_included_entity": 42,
-    "distinct_providers_with_edge": 44,
-    "distinct_providers_by_edge_type": {
-      "reporting_entity": 21,
-      "included_entity": 31
+    "controlled_entity_of": {
+      "edges": 18,
+      "distinct_providers": 17,
+      "groups": 8,
+      "priority_providers_gained_edge": 17,
+      "services_of_those_providers": 254,
+      "edges_by_latest_match_method": {
+        "included_entity_abn_equals_provider_abn": 7,
+        "included_name_equals_acecqa_and_abr_name": 11
+      }
+    },
+    "group_parent_self_not_ownership_edges": {
+      "rows": 2,
+      "distinct_providers": 2,
+      "services_of_those_providers": 298
+    },
+    "co_reported_joint_not_ownership": {
+      "rows": 56,
+      "distinct_providers": 25,
+      "statements": 23,
+      "providers_only_in_joint_statements": 21
     },
     "priority_providers_total": 1210,
     "priority_providers_with_abn": 901,
-    "priority_providers_gained_edge": 44,
-    "services_covered": 2379,
-    "services_covered_by_included_entity_providers": 665,
     "services_total": 18186,
     "review_queue": 103,
     "review_by_reason": {
@@ -34,194 +52,133 @@
     "candidate_pages_missing": 0
   },
   "window": {
-    "reporting_periods_earliest": "2019-07-01 to 2020-06-30",
-    "reporting_periods_latest": "2025-01-01 to 2025-12-31"
+    "edge_reporting_periods_earliest": "2023-01-01 to 2023-12-31",
+    "edge_reporting_periods_latest": "2025-01-01 to 2025-12-31"
   },
   "groups": [
     {
       "group_key": "95123828553",
       "group_name": "G8 EDUCATION LIMITED",
-      "providers": 10
-    },
-    {
-      "group_key": "MSR-29210",
-      "group_name": "BUSY BEES AUSTRALIA BIDCO PTY LTD; BUSY BEES AUSTRALIA HOLDING PTY LTD; BUSY BEES EARLY LEARNING AUSTRALIA PTY LTD; THINK CHILDCARE LIMITED",
-      "providers": 9
-    },
-    {
-      "group_key": "MSR-23594",
-      "group_name": "Armidale Catholic Schools; AUSTRALIAN CATHOLIC UNIVERSITY LIMITED; CABRINI AUSTRALIA LIMITED; CATHOLIC ARCHDIOCESE OF MELBOURNE; CATHOLIC ARCHDIOCESE OF SYDNEY; Catholic Church Diocese of Darwin Education Property Trust; CATHOLIC CHURCH ENDOWMENT SOCIETY INC; CATHOLIC EDUCATION DIOCESE OF BATHURST LIMITED; CATHOLIC EDUCATION SANDHURST LIMITED; CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED; CATHOLIC HEALTHCARE LIMITED; CATHOLIC SCHOOLS NSW LIMITED; CATHOLIC SCHOOLS PARRAMATTA DIOCESE LIMITED; DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED; DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED; DIOCESE OF SALE CATHOLIC EDUCATION LIMITED; DOMINICAN EDUCATION AUSTRALIA LTD; LITTLE COMPANY OF MARY HEALTH CARE LIMITED; MACKILLOP FAMILY SERVICES LIMITED; MARIST SCHOOLS AUSTRALIA LIMITED; MATER MISERICORDIAE LTD; MERCYCARE LIMITED; MERCY EDUCATION LIMITED; MERCY HEALTH AUSTRALIA LTD; OZCARE; Roman Catholic Church Trust Corporation of The Archdiocese of Hobart; SOUTHERN CROSS CARE (NSW & ACT) LIMITED; SOUTHERN CROSS CARE (QLD) LTD; SOUTHERN CROSS CARE (WA) INC; ST JOHN OF GOD HEALTH CARE INC; ST VINCENT DE PAUL SOCIETY NSW; ST VINCENT DE PAUL SOCIETY QUEENSLAND; ST VINCENT'S HEALTH AUSTRALIA LTD; THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; The Trustee for Catholic Cemeteries & Crematoria Trust; THE UNIVERSITY OF NOTRE DAME AUSTRALIA; TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN; TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM; TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA; TRUSTEES OF THE DIOCESE OF WAGGA WAGGA ATF CATHOLIC SCHOOLS OFFICE; TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE; VICTORIAN CATHOLIC EDUCATION AUTHORITY LIMITED; VILLA MARIA CATHOLIC HOMES LIMITED",
-      "providers": 8
-    },
-    {
-      "group_key": "MSR-13790",
-      "group_name": "Archdiocese of Hobart - Catholic Education Office; AUSTRALIAN CATHOLIC UNIVERSITY LIMITED; CABRINI HEALTH LIMITED; CABRINI OUTREACH LIMITED; CABRINI PROPERTY LIMITED; CATHOLIC ARCHDIOCESE OF SYDNEY; [withheld: may name an individual]; [withheld: may name an individual]; CATHOLIC CHURCH INSURANCE LIMITED; CATHOLIC DEVELOPMENT FUND - ARCHDIOCESE OF SYDNEY; Catholic Development Fund Tasmania; Catholic Diocese of Parramatta; CATHOLIC EDUCATION CENTRE; CATHOLIC EDUCATION COMMISSION OF VICTORIA LIMITED; CATHOLIC EDUCATION DIOCESE OF BATHURST; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE DIOCESE OF PARRAMATTA; CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED; CATHOLIC HEALTHCARE LIMITED; CATHOLIC METROPOLITAN CEMETERIES TRUST; CATHOLIC SCHOOLS NSW LIMITED; CENTACARE EVOLVE HOUSING LIMITED; CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE - CENTACARE ADMINISTRATION SERVICES; DENCROSS PTY LTD; DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED; DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED; LITTLE COMPANY OF MARY HEALTH CARE LIMITED; MACKILLOP FAMILY SERVICES LIMITED; MARILLAC; MATER EDUCATION LIMITED; MATER MISERICORDIAE LTD; MATER RESEARCH LTD; MELBOURNE ARCHDIOCESE CATHOLIC SCHOOLS EARLY YEARS EDUCATION LTD; MELBOURNE ARCHDIOCESE CATHOLIC SCHOOLS LTD; MELBOURNE ARCHDIOCESE CATHOLIC SPECIALIST SCHOOLS LTD; MERCY AGED AND COMMUNITY CARE LTD; MERCYCARE LIMITED; MERCY COMMUNITY SERVICES LIMITED; MERCY COMMUNITY SERVICES SEQ LIMITED; MERCY EDUCATION LIMITED; MERCY HEALTH AUSTRALIA LTD; MERCY HEALTH FOUNDATION LTD; MERCY HEALTH PROPERTY LTD; MERCY HEALTH SERVICE ALBURY LIMITED; MERCY HOSPITALS NSW LTD; MERCY HOSPITALS VICTORIA LTD; MERCY HUMAN SERVICES LIMITED; MERCY PALLIATIVE CARE LTD; OZCARE; RICE VILLAGE LIMITED; Roman Catholic Church Trust Corporation of The Archdiocese of Hobart; Roman Catholic Church Trust Corporation of The Archdiocese of Hobart; SANDHURST CATHOLIC EARLY CHILDHOOD EDUCATION & CARE LIMITED; SOUTHERN CROSS CARE (NSW & ACT) LIMITED; SOUTHERN CROSS CARE (VIC); ST BRIGID'S CONVENT OF MERCY PERTH LIMITED; STELLA MARIS APOSTLESHIP OF THE SEAMACKAY HAY POINT; ST JOHN OF GOD BERWICK HEALTH CAMPUS LTD; ST JOHN OF GOD FOUNDATION INC.; ST JOHN OF GOD HEALTH CARE INC; ST JOHN OF GOD MIDLAND HEALTH CAMPUS LTD; ST JOHN OF GOD OUTREACH SERVICES; St Joseph Affordable Homes Inc.; [withheld: may name an individual]; ST VINCENT DE PAUL SOCIETY NSW; ST VINCENT DE PAUL SOCIETY QUEENSLAND; ST VINCENT DE PAUL SOCIETY QUEENSLAND HOUSING; ST VINCENT'S CARE SERVICES BOONDALL LTD; ST VINCENT'S CARE SERVICES CARSELDINE LTD; ST VINCENT'S CARE SERVICES LTD; ST VINCENT'S HEALTH AUSTRALIA LTD; ST VINCENT'S HEALTHCARE LTD; ST. VINCENT'S HOSPITAL (MELBOURNE) LIMITED; ST. VINCENT'S HOSPITAL SYDNEY LIMITED; ST VINCENT'S PRIVATE HOSPITALS LTD; THE BLUELINE LAUNDRY INC; THE CONGREGATION OF RELIGIOUS SISTERS OF CHARITY OF AUSTRALIA; THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; THE ROMAN CATHOLIC TRUSTS CORPORATION FOR THE DIOCESE OF MELBOURNE; The Trustee for CatholicCare Sydney Trust; THE TRUSTEE FOR MATER FOUNDATION; The Trustee for Sydney Catholic Schools Trust; The Trustee for the Diocese of Rockhampton Trust Fund; THE UNIVERSITY OF NOTRE DAME AUSTRALIA; TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN; TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM; TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA; TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE; VILLA MARIA CATHOLIC HOMES LIMITED; XAVIER CHILDREN'S SUPPORT NETWORK",
-      "providers": 7
-    },
-    {
-      "group_key": "MSR-18637",
-      "group_name": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED; CABRINI AUSTRALIA LIMITED; CATHOLIC ARCHDIOCESE OF MELBOURNE; CATHOLIC ARCHDIOCESE OF SYDNEY; CATHOLIC CHURCH ENDOWMENT SOCIETY INC; CATHOLIC CHURCH INSURANCE LIMITED; CATHOLIC EDUCATION CENTRE; CATHOLIC EDUCATION DIOCESE OF BATHURST; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION SANDHURST LIMITED; CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED; CATHOLIC FAMILY SERVICES; CATHOLIC HEALTHCARE LIMITED; CATHOLIC METROPOLITAN CEMETERIES TRUST; CATHOLIC SCHOOLS NSW LIMITED; CATHOLIC SCHOOLS PARRAMATTA DIOCESE LIMITED; DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED; DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED; DIOCESE OF SALE CATHOLIC EDUCATION LIMITED; DOMINICAN EDUCATION AUSTRALIA LTD; LITTLE COMPANY OF MARY HEALTH CARE LIMITED; MACKILLOP FAMILY SERVICES LIMITED; MARIST SCHOOLS AUSTRALIA LIMITED; MATER MISERICORDIAE LTD; MERCY AGED AND COMMUNITY CARE LTD; MERCYCARE LIMITED; MERCY COMMUNITY SERVICES LIMITED; MERCY COMMUNITY SERVICES SEQ LIMITED; MERCY EDUCATION LIMITED; MERCY HEALTH AUSTRALIA LTD; OZCARE; Roman Catholic Church Trust Corporation of The Archdiocese of Hobart; SOUTHERN CROSS CARE (NSW & ACT) LIMITED; SOUTHERN CROSS CARE (QLD) LTD; ST JOHN OF GOD HEALTH CARE INC; ST VINCENT DE PAUL SOCIETY NSW; ST VINCENT DE PAUL SOCIETY QUEENSLAND; ST VINCENT'S HEALTH AUSTRALIA LTD; THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; THE ROMAN CATHOLIC TRUSTS CORPORATION FOR THE DIOCESE OF MELBOURNE; THE UNIVERSITY OF NOTRE DAME AUSTRALIA; TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN; TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM; TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA; TRUSTEES OF THE DIOCESE OF WAGGA WAGGA ATF CATHOLIC SCHOOLS OFFICE; TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE; VICTORIAN CATHOLIC EDUCATION AUTHORITY LIMITED; VILLA MARIA CATHOLIC HOMES LIMITED",
-      "providers": 7
-    },
-    {
-      "group_key": "MSR-7369",
-      "group_name": "BIG FAT SMILE GROUP LTD; GOODSTART EARLY LEARNING LTD; GOODSTART EARLY YEARS LIMITED ( Mission Australia Early Learning Ltd )",
-      "providers": 3
+      "controlled_providers": 9,
+      "services_of_controlled_providers": 54,
+      "head_provider": "PR-00000898"
     },
     {
       "group_key": "68670538780",
       "group_name": "SHEL HOLDCO PTY LIMITED",
-      "providers": 2
+      "controlled_providers": 2,
+      "services_of_controlled_providers": 46,
+      "head_provider": null
     },
     {
       "group_key": "69139967794",
       "group_name": "GOODSTART EARLY LEARNING LTD",
-      "providers": 2
-    },
-    {
-      "group_key": "MSR-25744",
-      "group_name": "GOODSTART EARLY LEARNING LTD",
-      "providers": 2
-    },
-    {
-      "group_key": "MSR-29606",
-      "group_name": "Armidale Catholic Schools; AUSTRALIAN CATHOLIC UNIVERSITY LIMITED; CABRINI AUSTRALIA LIMITED; CATHOLIC ARCHDIOCESE OF MELBOURNE; CATHOLIC ARCHDIOCESE OF SYDNEY; CATHOLIC CHURCH ENDOWMENT SOCIETY INC; CATHOLIC EDUCATION CENTRE; CATHOLIC EDUCATION DIOCESE OF BATHURST; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE DIOCESE OF PARRAMATTA; CATHOLIC EDUCATION SANDHURST LIMITED; CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED; CATHOLIC HEALTHCARE LIMITED; DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED; DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED; DIOCESE OF SALE CATHOLIC EDUCATION LIMITED; DOMINICAN EDUCATION AUSTRALIA LTD; LITTLE COMPANY OF MARY HEALTH CARE LIMITED; MACKILLOP FAMILY SERVICES LIMITED; MARIST SCHOOLS AUSTRALIA LIMITED; MATER MISERICORDIAE LTD; MERCYCARE LIMITED; MERCY EDUCATION LIMITED; MERCY HEALTH AUSTRALIA LTD; OZCARE; SOUTHERN CROSS CARE (NSW & ACT) LIMITED; SOUTHERN CROSS CARE (QLD) LTD; SOUTHERN CROSS CARE (TASMANIA) INC; SOUTHERN CROSS CARE (WA) INC; ST JOHN OF GOD HEALTH CARE INC; ST VINCENT DE PAUL SOCIETY NSW; ST VINCENT DE PAUL SOCIETY QUEENSLAND; ST VINCENT'S HEALTH AUSTRALIA LTD; THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; The Trustee for Sydney Catholic Schools Trust; THE UNIVERSITY OF NOTRE DAME AUSTRALIA; TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN; TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM; TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA; TRUSTEES OF THE DIOCESE OF WAGGA WAGGA ATF Catholic Education Diocese of Wagga Wagga; TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE; VICTORIAN CATHOLIC EDUCATION AUTHORITY LIMITED; VILLA MARIA CATHOLIC HOMES LIMITED",
-      "providers": 2
-    },
-    {
-      "group_key": "MSR-5780",
-      "group_name": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED; CABRINI AUSTRALIA LIMITED; CATHOLIC ARCHDIOCESE OF MELBOURNE; CATHOLIC ARCHDIOCESE OF SYDNEY; CATHOLIC CHURCH INSURANCE LIMITED; CATHOLIC EDUCATION COMMISSION OF VICTORIA LIMITED; CATHOLIC EDUCATION DIOCESE OF BATHURST; CATHOLIC EDUCATION MELBOURNE; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE DIOCESE OF PARRAMATTA; CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED; CATHOLIC HEALTHCARE LIMITED; CATHOLIC METROPOLITAN CEMETERIES TRUST; CATHOLIC SCHOOLS NSW LIMITED; DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED; LITTLE COMPANY OF MARY HEALTH CARE LIMITED; MATER MISERICORDIAE LTD; MERCY EDUCATION LIMITED; MERCY HEALTH AUSTRALIA LTD; Roman Catholic Church Trust Corporation of The Archdiocese of Hobart; ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; SOUTHERN CROSS CARE (NSW & ACT) LIMITED; ST JOHN OF GOD HEALTH CARE INC; ST VINCENT DE PAUL SOCIETY NSW; ST VINCENT DE PAUL SOCIETY QUEENSLAND; THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE ROMAN CATHOLIC ARCHBISHOP OF PERTH CORPORATION SOLE; The Trustee for Sydney Catholic Schools Trust; THE UNIVERSITY OF NOTRE DAME AUSTRALIA; TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN; TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM; TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA; TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE; VILLA MARIA CATHOLIC HOMES LIMITED",
-      "providers": 2
-    },
-    {
-      "group_key": "MSR-9643",
-      "group_name": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED; CABRINI AUSTRALIA LIMITED; CATHOLIC ARCHDIOCESE OF MELBOURNE; CATHOLIC ARCHDIOCESE OF SYDNEY; CATHOLIC CHURCH INSURANCE LIMITED; CATHOLIC EDUCATION DIOCESE OF BATHURST; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE DIOCESE OF PARRAMATTA; CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED; CATHOLIC HEALTHCARE LIMITED; CATHOLIC METROPOLITAN CEMETERIES TRUST; CATHOLIC SCHOOLS NSW; DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED; DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED; LITTLE COMPANY OF MARY HEALTH CARE LIMITED; MACKILLOP FAMILY SERVICES LIMITED; MATER MISERICORDIAE LTD; MELBOURNE ARCHDIOCESE CATHOLIC SCHOOLS LTD; MERCY AGED AND COMMUNITY CARE LTD; MERCY COMMUNITY SERVICES SEQ LIMITED; MERCY EDUCATION LIMITED; MERCY HEALTH AUSTRALIA LTD; OZCARE; Roman Catholic Church Trust Corporation of The Archdiocese of Hobart; SOUTHERN CROSS CARE (NSW & ACT) LIMITED; SOUTHERN CROSS QUEENSLAND PTY LTD; ST JOHN OF GOD HEALTH CARE INC; ST VINCENT DE PAUL SOCIETY NSW; ST VINCENT DE PAUL SOCIETY QUEENSLAND; THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; The Trustee for Sydney Catholic Schools Trust; THE UNIVERSITY OF NOTRE DAME AUSTRALIA; TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN; TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM; TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA; TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE; VILLA MARIA CATHOLIC HOMES LIMITED",
-      "providers": 2
+      "controlled_providers": 2,
+      "services_of_controlled_providers": 50,
+      "head_provider": null
     },
     {
       "group_key": "32025287736",
       "group_name": "THE CORPORATION OF THE SYNOD OF THE DIOCESE OF BRISBANE",
-      "providers": 1
-    },
-    {
-      "group_key": "34002919584",
-      "group_name": "ST PHILIP'S CHRISTIAN EDUCATION FOUNDATION LTD",
-      "providers": 1
-    },
-    {
-      "group_key": "34002919584",
-      "group_name": "ST PHILIP`S CHRISTIAN EDUCATION FOUNDATION LTD",
-      "providers": 1
+      "controlled_providers": 1,
+      "services_of_controlled_providers": 6,
+      "head_provider": null
     },
     {
       "group_key": "39703442583",
       "group_name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA)",
-      "providers": 1
-    },
-    {
-      "group_key": "42164655145",
-      "group_name": "WESLEY COMMUNITY SERVICES LIMITED",
-      "providers": 1
+      "controlled_providers": 1,
+      "services_of_controlled_providers": 89,
+      "head_provider": null
     },
     {
       "group_key": "46141203125",
       "group_name": "MQ HEALTH PTY LIMITED",
-      "providers": 1
-    },
-    {
-      "group_key": "59150737849",
-      "group_name": "The Creche and Kindergarten Association Limited",
-      "providers": 1
+      "controlled_providers": 1,
+      "services_of_controlled_providers": 4,
+      "head_provider": null
     },
     {
       "group_key": "65124826722",
       "group_name": "Christian Education Ministries Ltd",
-      "providers": 1
-    },
-    {
-      "group_key": "89755348137",
-      "group_name": "TECHNICAL AND FURTHER EDUCATION COMMISSION",
-      "providers": 1
+      "controlled_providers": 1,
+      "services_of_controlled_providers": 5,
+      "head_provider": null
     },
     {
       "group_key": "90952801237",
       "group_name": "MACQUARIE UNIVERSITY",
-      "providers": 1
+      "controlled_providers": 1,
+      "services_of_controlled_providers": 4,
+      "head_provider": null
+    }
+  ],
+  "joint_statements_for_manual_confirmation": [
+    {
+      "statement_id": "2023-2461",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/15563/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "reporting_entity_count": 1,
+      "first_listed_reporting_entity": "GOODSTART EARLY LEARNING LTD",
+      "included_providers": [
+        "PR-00004831"
+      ]
     },
     {
-      "group_key": "96060703120",
-      "group_name": "CAMP AUSTRALIA PROPRIETARY LIMITED",
-      "providers": 1
+      "statement_id": "2024-1335",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18637/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "reporting_entity_count": 53,
+      "first_listed_reporting_entity": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED",
+      "included_providers": [
+        "PR-00000702",
+        "PR-40015072",
+        "PR-40023899",
+        "PR-40028424"
+      ]
     },
     {
-      "group_key": "MSR-10973",
-      "group_name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (TAS.); THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA); UNITING AGEWELL LIMITED; UNITING ETHICAL INVESTORS LIMITED; UNITING (VICTORIA AND TASMANIA) LIMITED",
-      "providers": 1
+      "statement_id": "2025-1579",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23594/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "reporting_entity_count": 44,
+      "first_listed_reporting_entity": "Armidale Catholic Schools",
+      "included_providers": [
+        "PR-00000702",
+        "PR-00007426",
+        "PR-40015072",
+        "PR-40023899",
+        "PR-40028424"
+      ]
     },
     {
-      "group_key": "MSR-15643",
-      "group_name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (TAS.); THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA); UNITING AGEWELL LIMITED; UNITING ETHICAL INVESTORS LIMITED; UNITING (VICTORIA AND TASMANIA) LIMITED",
-      "providers": 1
-    },
-    {
-      "group_key": "MSR-20448",
-      "group_name": "GOODSTART EARLY LEARNING LTD",
-      "providers": 1
-    },
-    {
-      "group_key": "MSR-23357",
-      "group_name": "NEST EARLY EDUCATION SERVICES PTY LTD; NIDO EDUCATION LTD",
-      "providers": 1
-    },
-    {
-      "group_key": "MSR-25237",
-      "group_name": "THE YOUNG MEN'S CHRISTIAN ASSOCIATION OF VICTORIA INCORPORATED; VICTORIAN YMCA COMMUNITY PROGRAMMING PTY LTD",
-      "providers": 1
-    },
-    {
-      "group_key": "MSR-25594",
-      "group_name": "GUARDIAN NETWORK PTY. LTD.; UNITING AGEWELL LIMITED; UNITING HOUSING (AUSTRALIA) LIMITED; UNITING HOUSING (VICTORIA) LIMITED; UNITING (VICTORIA AND TASMANIA) LIMITED",
-      "providers": 1
-    },
-    {
-      "group_key": "MSR-27289",
-      "group_name": "THE YOUNG MEN'S CHRISTIAN ASSOCIATION OF VICTORIA INCORPORATED; VICTORIAN YMCA COMMUNITY PROGRAMMING PTY LTD",
-      "providers": 1
-    },
-    {
-      "group_key": "MSR-28864",
-      "group_name": "NEST EARLY EDUCATION SERVICES PTY LTD; NIDO EDUCATION LTD",
-      "providers": 1
-    },
-    {
-      "group_key": "MSR-3441",
-      "group_name": "ACTIVATING COMMUNITIES LIMITED; THE YOUNG MEN'S CHRISTIAN ASSOCIATION OF VICTORIA INCORPORATED; VICTORIAN YMCA ACCOMMODATION SERVICES PTY LTD; VICTORIAN YMCA COMMUNITY PROGRAMMING PTY LTD; VICTORIAN YMCA YOUTH & COMMUNITY SERVICES INC; YMCA AQUATIC AND EVENT SERVICES LIMITED; YMCA Aquatic Education Limited; YMCA CAMPING LIMITED",
-      "providers": 1
-    },
-    {
-      "group_key": "MSR-400",
-      "group_name": "GUARDIAN NETWORK PTY. LTD.; THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (TAS.); THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA); UCA CASH MANAGEMENT FUND LIMITED; UCA GROWTH FUND LIMITED; UNITING AGEWELL LIMITED; UNITING ETHICAL INVESTORS LIMITED; UNITING HOUSING (AUSTRALIA) LIMITED; UNITING HOUSING (VICTORIA) LIMITED; UNITING (VICTORIA AND TASMANIA) LIMITED",
-      "providers": 1
-    },
-    {
-      "group_key": "MSR-4811",
-      "group_name": "COMMUNITY VENUES LTD; HILLSONG CHILD CARE LTD; HILLSONG CHURCH AUSTRALIA LTD; HILLSONG CHURCH LTD; [withheld: may name an individual]; HILLSONG MEDIA & PERFORMING ARTS LTD.; The Trustee for Community Venues; The Trustee for Hillsong Church Australia; The Trustee for Hillsong Foundation",
-      "providers": 1
-    },
-    {
-      "group_key": "MSR-6810",
-      "group_name": "GUARDIAN NETWORK PTY. LTD.; THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (TAS.); THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA); UCA CASH MANAGEMENT FUND LIMITED; UCA GROWTH FUND LIMITED; UNITING AGEWELL LIMITED; UNITING ETHICAL INVESTORS LIMITED; UNITING HOUSING (AUSTRALIA) LIMITED; UNITING HOUSING (VICTORIA) LIMITED; UNITING (VICTORIA AND TASMANIA) LIMITED",
-      "providers": 1
+      "statement_id": "2026-1450",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29210/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "reporting_entity_count": 4,
+      "first_listed_reporting_entity": "BUSY BEES AUSTRALIA BIDCO PTY LTD",
+      "included_providers": [
+        "PR-00008264",
+        "PR-40001784",
+        "PR-40002197",
+        "PR-40002206",
+        "PR-40003561",
+        "PR-40004076",
+        "PR-40010506",
+        "PR-40012436",
+        "PR-40012628"
+      ]
     }
   ],
   "caveats": [
-    "An edge means the provider's legal entity is named in a modern slavery statement on the Modern Slavery Statements Register: as a reporting entity (edge_type reporting_entity, matched by ABN) or as an entity included in the statement as owned or controlled by the reporting entity (edge_type included_entity, matched by exact normalised name agreeing with both the ACECQA legal name and the ABR entity name). It is not a verified ownership chain.",
+    "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched by the included entity's ABN, or by exact normalised name agreeing with both the ACECQA legal name and the ABR entity name. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
+    "group_parent_self: the provider is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",
+    "co_reported_joint: the provider is named (as a reporting or included entity) in a Joint statement. Joint statements can combine unrelated bodies, so these rows are never edges.",
     "The register covers entities with annual consolidated revenue of at least AUD 100 million, plus voluntary reporters. Absence of an edge says nothing about ownership.",
-    "Included entities are listed by name only. An included_entity edge needs the MSR name to equal, after normalisation, exactly one ACECQA provider legal name and that provider's ABR entity name. It is not verified by ABN or ACN.",
-    "A reporting_entity edge from a joint statement (group_key MSR-<page id>) means the provider reported jointly with the other listed entities. Joint reporting is not, by itself, evidence of common ownership.",
-    "Edges span every reporting period on the register. A provider included in an older statement may since have changed hands; check reporting_period.",
+    "Name-matched edges are not verified by ABN or ACN; they need the ACECQA legal name and the ABR entity name to agree.",
+    "Each edge is collapsed to one row per provider and group from the latest statement; statement_ids lists every statement. A provider in an older statement may since have changed hands.",
     "MSR licence unclear (Copyright Attorney-General's Department). Raw MSR files are not committed. Ask the department before any public display.",
-    "services_covered counts current ACECQA service approvals held by providers with an edge, from acecqa-services-latest.csv. ACECQA content is not openly licensed."
+    "Service counts are current ACECQA service approvals from acecqa-services-latest.csv. ACECQA content is not openly licensed."
   ],
   "source": {
     "csv_url_pattern": "https://modernslaveryregister.gov.au/resources/all-statement-information_<date>.csv",
