@@ -353,7 +353,8 @@ def filter_details_names(row: dict, known: set[str] | None = None) -> dict:
         return row
     notes = [n for n in (row.get("note") or "").split("; ") if n]
     notes = [n for n in notes if "withheld" not in n]
-    if not name_is_safe(row.get("entity_name"), known):
+    already = str(row.get("name_withheld") or "").lower() == "true"
+    if already or not name_is_safe(row.get("entity_name"), known):
         row.update(entity_name=None, business_names=None, business_names_withheld=None)
         row["name_withheld"] = "true"
         notes.append(ENTITY_NAME_WITHHELD_NOTE)

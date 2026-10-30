@@ -160,6 +160,8 @@ def apply_name_filter(
             legal and name_is_withheld(legal)
         )
         withhold = withhold or row.get("match_kind") in (KIND_EXCLUDED, KIND_EXCLUDED_ABR)
+        # A row withheld by an earlier run stays withheld: the filter is idempotent.
+        withhold = withhold or str(row.get("name_withheld") or "").lower() == "true"
         if withhold:
             had_name = any(row.get(c) for c in ("legal_name", "abr_entity_name", "business_names"))
             row.update(legal_name=None, abr_entity_name=None, business_names=None)

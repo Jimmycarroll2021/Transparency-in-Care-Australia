@@ -596,3 +596,41 @@ def test_groups_mark_withheld_names():
     assert by_pr["PR-00000021"]["name_withheld"] == "true"
     assert by_pr["PR-00000022"]["name_withheld"] == "false"
     assert "name_withheld" in bpg.GROUP_COLUMNS
+
+
+def test_refilter_is_idempotent_and_keeps_the_withheld_flag_and_note():
+    rows = [
+        {
+            "abn": ABN,
+            "lookup_status": "ok",
+            "entity_name": "Example Holdings Pty Ltd ATF the Jane Example Family Trust",
+            "business_names": "Sunny Days Childcare Centre",
+            "business_names_withheld": "0",
+            "note": "",
+        }
+    ]
+    once = al.refilter_details_rows(rows, known=set())
+    as_csv = [{k: ("" if v is None else str(v)) for k, v in r.items()} for r in once]
+    twice = al.refilter_details_rows(as_csv, known=set())
+    assert twice[0]["name_withheld"] == "true"
+    assert twice[0]["entity_name"] is None and twice[0]["business_names"] is None
+    assert al.ENTITY_NAME_WITHHELD_NOTE in (twice[0]["note"] or "")
+    assert twice == once
+
+
+def test_provider_abn_filter_is_idempotent():
+    rows = [
+        {
+            **abn_row("PR-00000031", "11111111111"),
+            "legal_name": "Example Holdings Pty Ltd ATF Jane Example Family Trust",
+        }
+    ]
+    profiles = {"PR-00000031": profile("PR-00000031", "Example Holdings Pty Ltd")}
+    bpg.apply_name_filter(rows, profiles, known=set())
+    first = [dict(r) for r in rows]
+    as_csv = [{k: ("" if v is None else str(v)) for k, v in r.items()} for r in rows]
+    bpg.apply_name_filter(as_csv, profiles, known=set())
+    assert as_csv[0]["name_withheld"] == "true"
+    assert as_csv[0]["legal_name"] is None
+    assert bpg.NAME_WITHHELD_NOTE in (as_csv[0]["note"] or "")
+    assert as_csv == first
