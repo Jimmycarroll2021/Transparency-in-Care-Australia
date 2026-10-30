@@ -700,6 +700,7 @@ def parse_all() -> tuple[list[dict], list[dict], list[Path]]:
         inputs.append(path)
     if "index" in snaps:
         inputs.append(snaps["index"][0])
+    common.withhold_source_locations(count_rows)  # URL and snapshot rule (Codex round 6)
     return action_rows, count_rows, inputs
 
 

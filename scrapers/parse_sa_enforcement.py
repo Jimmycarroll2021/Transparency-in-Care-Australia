@@ -1076,6 +1076,7 @@ def parse_all() -> tuple[list[dict], list[dict], list[Path]]:
         inputs.append(path)
     for slug in sorted(NON_DATA_SLUGS & set(snaps)):
         inputs.append(snaps[slug][0])
+    common.withhold_source_locations(count_rows)  # URL and snapshot rule (Codex round 6)
     return action_rows, count_rows, inputs
 
 

@@ -400,21 +400,49 @@ URL_WITHHELD_NOTE = "source URL withheld: may name an individual"
 # Columns holding URLs (linked_documents holds several, separated by spaces). A URL is never
 # altered: it is kept whole or nulled (Codex round 4, finding 1).
 URL_COLUMNS = ("source_document", "linked_documents")
-_URL_SEPARATORS = re.compile("[-_./+=&?~:;,]+")
+_URL_SEPARATORS = re.compile(r"[-_./+=&?~:;,\\\s]+")
+# Codex round 6: snapshot and raw paths (their file names are slugs of document URLs).
+SNAPSHOT_WITHHELD_NOTE = "source snapshot path withheld: may name an individual"
+SNAPSHOT_TEXT_WITHHELD = "(source snapshot path withheld: may name an individual)"
+SNAPSHOT_COLUMNS = ("source_snapshot",)
+_SCHEME = re.compile(r"(?i)^https?://")
+_URL_LIST_SPLIT = re.compile(r"\s+(?=https?://)", re.IGNORECASE)
 
 
 def _url_words(url: str) -> str:
     """The decoded path and query of a URL as words: '/docs/Notice-to-Jane%20Example.pdf' ->
-    'docs Notice to Jane Example pdf'. The host is left out (it names the regulator)."""
+    'docs Notice to Jane Example pdf'. The host is left out (it names the regulator). A
+    path without a scheme (a snapshot or raw path) is split the same way, whole: every
+    segment and the file-name stem, on - _ . / \\ and spaces."""
+    if not _SCHEME.match(url):
+        return _URL_SEPARATORS.sub(" ", unquote(url)).strip()
     parts = urlsplit(url)
     return _URL_SEPARATORS.sub(" ", f"{unquote(parts.path)} {unquote(parts.query)}").strip()
 
 
 URL_TEXT_WITHHELD = "(URL withheld: may name an individual)"
 # A URL, or a path or file name of a document, inside free text (summaries, notes, log lines).
+# Codex round 6: a URL or path whose file name holds spaces is matched (and checked) whole.
+_EXT = r"\.(?:pdf|docx?|html?|json|csv|xlsx?|txt)\b"
+_TOKEN = r"[^\s'\",;()\[\]<>]+"
 _URL_IN_TEXT = re.compile(
-    r"https?://[^\s'\",;()\[\]<>]+"
-    r"|[^\s'\",;()\[\]<>:]+\.(?:pdf|docx?|html?|json|csv|xlsx?|txt)\b",
+    # A URL ending in a document name with no space: matched first, so it never runs on into
+    # the following words.
+    r"https?://[^\s'\",;()\[\]<>]+?"
+    + _EXT
+    # A URL whose document name holds spaces.
+    + r"|https?://"
+    + _TOKEN
+    + r"(?:[ ]"
+    + _TOKEN
+    + r"){1,8}?"
+    + _EXT
+    + r"|https?://"
+    + _TOKEN
+    + r"|(?:[^\s'\",;()\[\]<>:]+[/\\])+[^'\",;()\[\]<>:/\\\n]*?"
+    + _EXT
+    + r"|[^\s'\",;()\[\]<>:]+"
+    + _EXT,
     re.IGNORECASE,
 )
 
@@ -446,10 +474,13 @@ def redact_urls(text: str | None, names=None) -> str | None:
     if not text:
         return text
     names = _run_wide_names() if names is None else names
-    return _URL_IN_TEXT.sub(
-        lambda m: URL_TEXT_WITHHELD if url_may_name_person(m.group(0), names) else m.group(0),
-        text,
-    )
+
+    def replace(m):
+        if not url_may_name_person(m.group(0), names):
+            return m.group(0)
+        return URL_TEXT_WITHHELD if _SCHEME.match(m.group(0)) else SNAPSHOT_TEXT_WITHHELD
+
+    return _URL_IN_TEXT.sub(replace, text)
 
 
 def redact_urls_in_obj(obj, names=None):
@@ -488,6 +519,44 @@ def _add_note(row: dict, note: str) -> None:
     row["notes"] = sep.join(dict.fromkeys([*segments, note]))
 
 
+def _withhold_locations(row: dict, flagged, counts: dict[str, int]) -> None:
+    """Keep each URL or snapshot path whole or null it (Codex rounds 4 and 6)."""
+    url_hit = False
+    for col in URL_COLUMNS:
+        value = row.get(col)
+        if not isinstance(value, str) or not value:
+            continue
+        urls = _URL_LIST_SPLIT.split(value.strip()) if col == "linked_documents" else [value]
+        kept_urls = [u for u in urls if not flagged(_url_words(u))]
+        if len(kept_urls) != len(urls):
+            row[col] = " ".join(kept_urls) or None
+            counts[col] = counts.get(col, 0) + 1
+            url_hit = True
+    if url_hit:
+        _add_note(row, URL_WITHHELD_NOTE)
+    for col in SNAPSHOT_COLUMNS:
+        value = row.get(col)
+        if isinstance(value, str) and value and flagged(_url_words(value)):
+            row[col] = None
+            counts[col] = counts.get(col, 0) + 1
+            _add_note(row, SNAPSHOT_WITHHELD_NOTE)
+
+
+def withhold_source_locations(rows: list[dict], person_names=None) -> dict[str, int]:
+    """The URL and snapshot-path rule alone, for rows that have no prose (count tables)."""
+    from scrapers.profile_providers import prose_may_name_person
+
+    names = _run_wide_names()
+    if person_names is not None:
+        names.update(person_names)
+    counts: dict[str, int] = {}
+    for row in rows:
+        _withhold_locations(
+            row, lambda t: isinstance(t, str) and prose_may_name_person(t, (), names), counts
+        )
+    return counts
+
+
 def withhold_prose_naming_people(rows: list[dict], person_names=None) -> dict[str, int]:
     """The shared prose rule, on every row, in place (Codex round 2, finding 1).
 
@@ -515,20 +584,8 @@ def withhold_prose_naming_people(rows: list[dict], person_names=None) -> dict[st
         def flagged(text, known=known):
             return isinstance(text, str) and prose_may_name_person(text, known, names)
 
-        # URLs, on every row (withheld rows too): each URL is kept whole or nulled.
-        url_hit = False
-        for col in URL_COLUMNS:
-            value = row.get(col)
-            if not isinstance(value, str) or not value:
-                continue
-            urls = value.split()
-            kept_urls = [u for u in urls if not flagged(_url_words(u))]
-            if len(kept_urls) != len(urls):
-                row[col] = " ".join(kept_urls) or None
-                counts[col] = counts.get(col, 0) + 1
-                url_hit = True
-        if url_hit:
-            _add_note(row, URL_WITHHELD_NOTE)
+        # URLs and snapshot paths, on every row (withheld rows too): kept whole or nulled.
+        _withhold_locations(row, flagged, counts)
 
         notes = row.get("notes") or ""
         if FREE_TEXT_WITHHELD_NOTE in notes:
@@ -683,7 +740,10 @@ def write_processed(
         "written_at": utc_now().isoformat(),
         "rows": len(rows),
         "schema": schema,
-        "raw_inputs": [p.relative_to(PROJECT_ROOT).as_posix() for p in raw_inputs],
+        "raw_inputs": [
+            SNAPSHOT_TEXT_WITHHELD if url_may_name_person(rel) else rel
+            for rel in (p.relative_to(PROJECT_ROOT).as_posix() for p in raw_inputs)
+        ],
         "notes": notes,
     }
     # Codex round 5: no URL or path that may name an individual reaches a provenance file.

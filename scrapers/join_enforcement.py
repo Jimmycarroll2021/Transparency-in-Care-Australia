@@ -500,6 +500,8 @@ def usable_provider_name(value: str | None) -> bool:
 PROSE_WITHHELD_NOTE = "free text withheld: may name an individual"
 # The URL rule's note (scrapers.common.URL_WITHHELD_NOTE): a URL was withheld, not the name.
 URL_WITHHELD_NOTE = "source URL withheld: may name an individual"
+# The snapshot-path rule's note (scrapers.common.SNAPSHOT_WITHHELD_NOTE).
+SNAPSHOT_WITHHELD_NOTE = "source snapshot path withheld: may name an individual"
 
 
 def name_withheld_row(row: dict) -> bool:
@@ -509,6 +511,7 @@ def name_withheld_row(row: dict) -> bool:
         .lower()
         .replace(PROSE_WITHHELD_NOTE, "")
         .replace(URL_WITHHELD_NOTE.lower(), "")
+        .replace(SNAPSHOT_WITHHELD_NOTE.lower(), "")
     )
     return "withheld" in notes or "individual" in notes
 
