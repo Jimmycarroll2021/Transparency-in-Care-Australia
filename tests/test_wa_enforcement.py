@@ -171,9 +171,13 @@ def test_provider_key_printed_without_brackets_is_removed_from_the_name():
 
 
 def test_provider_key_printed_first_leaves_the_name_after_it():
-    name, pr, _, _ = extract_provider_info("PR-40011786 METHODIST LADIES' COLLEGE")
-    assert name == "METHODIST LADIES' COLLEGE"
+    name, pr, _, _ = extract_provider_info("PR-40011786 EXAMPLE LADIES' COLLEGE LIMITED")
+    assert name == "EXAMPLE LADIES' COLLEGE LIMITED"
     assert pr == "PR-40011786"
+    # Codex round 1, finding 4: an institutional word alone is not organisation evidence, so the
+    # name is withheld, but the key printed first is still read.
+    name, pr, _, notes = extract_provider_info("PR-40011786 METHODIST LADIES' COLLEGE")
+    assert name is None and pr == "PR-40011786"
 
 
 def test_text_after_the_provider_key_is_removed_and_noted_without_repeating_it():

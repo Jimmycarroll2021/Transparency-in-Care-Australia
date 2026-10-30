@@ -256,20 +256,13 @@ def test_name_not_positively_an_organisation_is_withheld(name):
         "Jane Citizen Pty Ltd",
         "Hillview Kindergarten Inc",
         "Exampleton Shire Council",
-        "Example Parish Child Care",
         "Valley Co-operative Child Care Society Ltd",
         "ABC Services Pty Ltd as trustee for The Example Family Trust",
         "Example Holdings Pty Ltd ATF Smith Family Trust",
-        "The Trustee for the Example Education Trust",
-        "The Example Education Trust",
-        "Exampleton Primary School",
-        "Exampleton Grammar School",
         "Example Valley Aboriginal Corporation",
         "MS Example Education Pty Ltd",
         "Corporation of the Trustees of the Example Diocese - Example Services",
         "Little Stars Exampleton Pty Ltd ATF Little Stars Exampleton Unit Trust",
-        "Exampleton Regional Community Services",
-        "Exampleton Pre-School Kindergarten",
     ],
 )
 def test_organisation_name_is_still_shown(name):
@@ -331,3 +324,80 @@ def test_build_profile_fails_closed_on_trustees_estates_and_accents(tmp_path, mo
         assert by_pr[pr]["legal_name"], pr
     text = (out / "summary.json").read_text(encoding="utf-8")
     assert "Example Family" not in text and "Exämple" not in text and "executor" not in text
+
+
+# Codex round 1, finding 4: an institutional keyword alone is not organisation evidence. These
+# names were shown before; they are now withheld unless a legal form, a government form or a
+# non-individual ABR entity type supports them.
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Example Parish Child Care",
+        "The Trustee for the Example Education Trust",
+        "The Example Education Trust",
+        "Exampleton Primary School",
+        "Exampleton Grammar School",
+        "Exampleton Regional Community Services",
+        "Exampleton Pre-School Kindergarten",
+        "Jane Example Primary School",
+        "Jane Example Community Kindergarten",
+        "Jane Example Aboriginal Community Services",
+    ],
+)
+def test_institutional_keyword_alone_is_withheld(name):
+    assert pp.name_is_withheld(name) is True
+
+
+@pytest.mark.parametrize(
+    ("name", "abr_type", "withheld"),
+    [
+        ("Exampleton Primary School", "SGE", False),
+        ("Exampleton Regional Community Services", "OIE", False),
+        ("Example Child Care Centre", "PRV", False),
+        ("The Example Education Trust", "DTT", True),  # a trust type is not organisation evidence
+        ("Jane Example", "PRV", True),  # person signals always win
+        ("Example Holdings Pty Ltd ATF Jane Example Family Trust", "PRV", True),
+        ("Exampleton Primary School", None, True),
+        ("Exampleton Primary School", "IND", True),
+    ],
+)
+def test_abr_entity_type_is_organisation_evidence(name, abr_type, withheld):
+    assert pp.name_is_withheld(name, abr_entity_type=abr_type) is withheld
+
+
+def test_build_profile_uses_abr_entity_type_as_evidence(tmp_path, monkeypatch):
+    providers = tmp_path / "providers.csv"
+    services = tmp_path / "services.csv"
+    abn = tmp_path / "provider-abn.csv"
+    providers.write_text(
+        "Legal Name,Trading Name,State,Date Approval Granted,provider_approval_number\n"
+        "Exampleton Primary School,,VIC,01/01/2020,PR-00000041\n"
+        "Westvale Primary School,,VIC,01/01/2020,PR-00000042\n",
+        encoding="utf-8",
+    )
+    services.write_text(
+        "provider_approval_number,State,ServiceType,NumberOfApprovedPlaces\n"
+        "PR-00000041,VIC,Centre-Based Care,30\nPR-00000042,VIC,Centre-Based Care,30\n",
+        encoding="utf-8",
+    )
+    abn.write_text(
+        "provider_approval_number,abn,match_kind,entity_type_code\n"
+        "PR-00000041,11111111111,accepted_unique,SGE\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "out"
+    out.mkdir()
+    monkeypatch.setattr(pp, "PROVIDERS_CSV", providers)
+    monkeypatch.setattr(pp, "SERVICES_CSV", services)
+    monkeypatch.setattr(pp, "PROVIDER_ABN_CSV", abn)
+    monkeypatch.setattr(pp, "SUMMARY_JSON", out / "summary.json")
+    monkeypatch.setattr(pp, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(pp, "PROCESSED_DIR", out)
+    written = {}
+    monkeypatch.setattr(
+        pp, "write_processed", lambda name, rows, fieldnames, **k: written.update(rows=rows)
+    )
+    pp.build_profile()
+    by_pr = {r["provider_approval_number"]: r for r in written["rows"]}
+    assert by_pr["PR-00000041"]["name_withheld"] == "false"
+    assert by_pr["PR-00000042"]["name_withheld"] == "true"

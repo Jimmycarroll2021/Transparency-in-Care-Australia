@@ -542,7 +542,7 @@ def test_refilter_details_rows_applies_the_rule_to_committed_rows():
             "note": "",
         },
     ]
-    out = al.refilter_details_rows(rows, known=set())
+    out = al.refilter_details_rows(rows, known={"BRIGHT START KINDY"})
     assert out[0]["abn"] == ABN
     assert out[0]["entity_name"] is None and out[0]["business_names"] is None
     assert out[0]["name_withheld"] == "true"

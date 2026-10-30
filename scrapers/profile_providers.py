@@ -10,7 +10,9 @@ Privacy (CLAUDE.md rule 2, applied at ingest, fail closed): a provider's Legal N
 Name are published only when the legal name is positively an organisation (see name_is_withheld).
 Every other provider keeps a row in the CSV, but both names are null and name_withheld is true:
 likely individuals, individual trustees, deceased estates and executors, trusts named after a
-person, and unknown names with no organisation marker. Withheld names never appear in the summary,
+person, and any name without positive organisation evidence (a legal form such as Pty Ltd, Ltd,
+Inc, Co-operative or Corporation, a government form, or a non-individual ABR entity type from
+provider-abn.csv). Withheld names never appear in the summary,
 in log lines or in any printed list. Street addresses are not carried over.
 
 ACECQA content is not openly licensed: outputs are for internal use only.
@@ -37,6 +39,9 @@ except ImportError:  # run as a plain script: python3 scrapers/profile_providers
 PROVIDERS_CSV = PROCESSED_DIR / "acecqa-providers-latest.csv"
 SERVICES_CSV = PROCESSED_DIR / "acecqa-services-latest.csv"
 SUMMARY_JSON = PROCESSED_DIR / "provider-profile-summary.json"
+# ABR entity types from an earlier ABN match, used only as organisation evidence.
+PROVIDER_ABN_CSV = PROCESSED_DIR / "provider-abn.csv"
+_ABR_ACCEPTED = {"accepted_unique", "accepted_unique_in_state"}
 
 ENTITY_FORMS = (
     "company",
@@ -237,9 +242,13 @@ def classify_entity_form(legal_name: str | None) -> str:
 # Fail-closed name withholding
 # ---------------------------------------------------------------------------
 
-# Forms that are positively an organisation on their own.
-_ORGANISATION_FORMS = frozenset(
-    {"company", "incorporated_association", "cooperative", "government", "church_or_religious"}
+# Positive organisation evidence in a name: a legal-form suffix or word.
+_CORPORATION = re.compile(r"\b(?:corporation|corp)\b\.?", _I)
+# ABR entity types that are a non-individual organisation. Trusts and partnerships are left out:
+# their type says nothing about whether the trustee or partners are people.
+ABR_ORGANISATION_TYPES = frozenset(
+    # Codes seen in provider-abn.csv, plus the Commonwealth government entity code.
+    {"PRV", "PUB", "OIE", "UIE", "COP", "CGE", "SGE", "TGE", "LGE", "LGA"}
 )
 # Words dropped from a trust's name before asking whether what is left is a person's name.
 _TRUST_FILLER = frozenset(
@@ -248,29 +257,20 @@ _TRUST_FILLER = frozenset(
     investment investments superannuation super fund settlement no number
     """.split()
 )
-# Words that mark an organisation in a name the classifier left as unknown.
-_ORGANISATION_WORDS = _BUSINESS_WORDS | frozenset({"early"})
-# Words a sole trader or family day care educator puts after their own name ('Jane Example
-# Family Day Care'). When one of these is the first organisation word, the words in front of it
-# must not be person-shaped. In front of any other organisation word ('Exampleton North Primary
-# School', 'Exampleton Regional Community Services') a run of capitalised words is a place.
-_SOLE_TRADER_WORDS = frozenset(
-    """
-    child children childcare care kids kid daycare nursery early learning education educational
-    services service group holdings enterprises investments management partners partnership
-    operations solutions
-    """.split()
-)
-# Institutional words: anywhere in an unknown-form name they mark an organisation.
-_INSTITUTION_WORDS = frozenset(
-    """
-    school schools college grammar university tafe institute corporation corp aboriginal
-    islander hospital council shire mission church committee board society foundation
-    association ymca
-    """.split()
-)
-# 'J Example ...' or 'J & K Example ...': initials then a capitalised word lead a person's name.
-_INITIALS_LEAD = re.compile(r"^\s*(?:[A-Z]{1,2}\.?\s*(?:&|and|\+)\s*)*[A-Z]{1,2}\.?\s+[A-Z][a-z]")
+
+
+def has_organisation_evidence(name: str | None) -> bool:
+    """True when a name itself carries a legal form (Pty Ltd, Ltd, Limited, Inc, Incorporated,
+    Co-operative, Corporation and the like) or reads as a government body. An institutional or
+    business word alone (school, community, childcare) is not evidence."""
+    if not name or not name.strip():
+        return False
+    text = name.strip()
+    if _COMPANY.search(text) or _INC.search(text) or _COOP.search(text):
+        return True
+    if _CORPORATION.search(text):
+        return True
+    return classify_entity_form(text) == "government"
 
 
 def _strip_leading_the(text: str) -> str:
@@ -306,38 +306,16 @@ def _trust_names_a_person(trust: str, trustee: str = "") -> bool:
     return _looks_like_person(rest)
 
 
-def _unknown_name_is_organisation(name: str) -> bool:
-    """An unknown-form name is shown only with an organisation word and no person-shaped lead."""
-    left = _TRADING_AS.split(name.strip(), maxsplit=1)[0]
-    if _INITIALS_LEAD.match(left):
-        return False
-    tokens = left.replace(",", " ").split()
-    token_keys = [
-        {_word_key(token), *(_word_key(part) for part in token.split("-"))} for token in tokens
-    ]
-    if any(keys & _INSTITUTION_WORDS for keys in token_keys):
-        return True
-    for i, keys in enumerate(token_keys):
-        found = keys & _ORGANISATION_WORDS
-        if not found:
-            continue
-        if not found <= _SOLE_TRADER_WORDS:
-            return True
-        prefix = " ".join(tokens[:i]).strip(" &+;/-")
-        return not (prefix and _looks_like_person(prefix))
-    return False
+def name_is_withheld(
+    legal_name: str | None, form: str | None = None, abr_entity_type: str | None = None
+) -> bool:
+    """Fail closed: True unless there is positive evidence that the name is an organisation.
 
-
-def name_is_withheld(legal_name: str | None, form: str | None = None) -> bool:
-    """Fail closed: True unless the legal name is positively an organisation.
-
-    Shown: company, incorporated association, cooperative, government and church or religious
-    bodies; a trust whose trustee is such an organisation (or is not named) and whose own name
-    is not a person's; and an unknown-form name carrying an organisation word (school, college,
-    corporation, childcare and similar) with no person-shaped words in front of it. Withheld:
-    everything else, including likely individuals, individual trustees, deceased estates,
-    executors, honorifics and names the classifier cannot place. A blank name has nothing to
-    withhold and returns False.
+    Evidence is a legal form or government form in the name (has_organisation_evidence), or an
+    ABR entity type for this provider that is a non-individual organisation
+    (ABR_ORGANISATION_TYPES). Even with evidence a name is withheld when it carries a person
+    signal: a likely individual, a deceased estate or executor, a trustee without evidence, or a
+    trust named after a person. A blank name has nothing to withhold and returns False.
     """
     if not legal_name or not legal_name.strip():
         return False
@@ -345,19 +323,20 @@ def name_is_withheld(legal_name: str | None, form: str | None = None) -> bool:
     form = form or classify_entity_form(name)
     if form == "likely_individual" or _ESTATE.search(name):
         return True
+    abr_org = (abr_entity_type or "").strip().upper() in ABR_ORGANISATION_TYPES
     split = _TRUSTEE_SPLIT.search(name)
     if split:
         trustee = _strip_leading_the(name[: split.start()])
-        if trustee:
-            trustee_form = classify_entity_form(trustee)
-            if trustee_form not in _ORGANISATION_FORMS and name_is_withheld(trustee, trustee_form):
-                return True
+        if trustee and classify_entity_form(trustee) == "likely_individual":
+            return True
+        if not (abr_org or (trustee and has_organisation_evidence(trustee))):
+            return True
         return _trust_names_a_person(name[split.end() :], trustee)
-    if form in _ORGANISATION_FORMS:
-        return False
     if form == "trust_or_trustee":
+        if not (abr_org or has_organisation_evidence(name)):
+            return True
         return _trust_names_a_person(name)
-    return not _unknown_name_is_organisation(name)
+    return not (abr_org or has_organisation_evidence(name))
 
 
 # ---------------------------------------------------------------------------
@@ -400,9 +379,21 @@ def _band(n: int) -> str:
     return "25+"
 
 
+def _abr_entity_types() -> dict[str, str]:
+    """PR -> ABR entity type code for accepted ABN matches in provider-abn.csv, if present."""
+    if not PROVIDER_ABN_CSV.exists():
+        return {}
+    return {
+        r["provider_approval_number"]: r["entity_type_code"]
+        for r in _read(PROVIDER_ABN_CSV)
+        if r.get("abn") and r.get("match_kind") in _ABR_ACCEPTED and r.get("entity_type_code")
+    }
+
+
 def build_profile() -> dict:
     providers = _read(PROVIDERS_CSV)
     services = _read(SERVICES_CSV)
+    abr_types = _abr_entity_types()
 
     by_provider: dict[str, list[dict[str, str]]] = defaultdict(list)
     unlinked_services = 0
@@ -432,7 +423,7 @@ def build_profile() -> dict:
             continue
         seen.add(pr)
         form = classify_entity_form(p.get("Legal Name"))
-        withheld = name_is_withheld(p.get("Legal Name"), form)
+        withheld = name_is_withheld(p.get("Legal Name"), form, abr_types.get(pr))
         svcs = by_provider.get(pr, [])
         states = sorted({s["State"] for s in svcs if s.get("State")})
         places = [_to_int(s.get("NumberOfApprovedPlaces")) for s in svcs]
@@ -490,10 +481,12 @@ def build_profile() -> dict:
             "One row per provider (provider_approval_number). entity_form is a conservative "
             "classification of Legal Name by suffix and keyword; it is a heuristic, not a legal "
             "determination. Names are withheld fail closed (CLAUDE.md rule 2): legal_name and "
-            "trading_name are null and name_withheld is true unless the legal name is positively "
-            "an organisation (company, incorporated association, cooperative, government, church, "
-            "an organisation trustee of a trust not named after a person, or an unknown-form name "
-            "with an organisation word). Addresses are not carried over. "
+            "trading_name are null and name_withheld is true unless there is positive evidence "
+            "of an organisation: a legal form in the name (Pty Ltd, Ltd, Limited, Inc, "
+            "Incorporated, Co-operative, Corporation), a government form, or a non-individual "
+            "ABR entity type from an accepted ABN match. An institutional word alone is not "
+            "evidence. Person signals (individual trustees, estates, trusts named after a "
+            "person) withhold the name whatever the evidence. Addresses are not carried over. "
             "service_count joins on provider_approval_number in the services table; providers "
             "with no services in that table have service_count 0, which is not evidence that "
             "they operate none. ACECQA content is not openly licensed: internal use only."
