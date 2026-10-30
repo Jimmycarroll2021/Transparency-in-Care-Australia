@@ -10,15 +10,17 @@ only entities with consolidated revenue of at least AUD 100 million, plus volunt
 Steps:
 1. Read the MSR resources page, find the all-statements CSV, download it. Columns that could hold
    an individual's name (signatories, approvers, contacts) are dropped before anything is stored.
-2. Candidate statements: any reporting-entity ABN equals a provider ABN in provider-abn.csv, or the
-   reporting entities' text contains a childcare term.
+2. Candidate statements: any ABN listed on the statement (the CSV ABN column holds reporting and
+   included entities' ABNs) equals a provider ABN in provider-abn.csv, or the reporting entities'
+   text contains a childcare term.
 3. Fetch each candidate's statement page (at least 2 s apart, robots.txt honoured) and parse the
-   reporting entities (name, ABN) and the included entities (name only).
-4. Edges: reporting_entity when a reporting-entity ABN equals a provider ABN; included_entity when
-   an included entity's normalised name equals exactly one ACECQA provider legal name AND that
-   provider has an ABN whose ABR entity name normalises to the same key. Everything else that
-   looks like a match (ambiguous, ABR disagreement, provider without an ABN, corporate-suffix
-   differences, reporting entities named without an ABN) goes to the review queue, never to edges.
+   reporting entities and included entities (name, and ABN where the statement gives one).
+4. Edges, strongest first: an entity's ABN equals a provider ABN (reporting_entity or
+   included_entity); or an included entity listed without an ABN whose normalised name equals
+   exactly one ACECQA provider legal name AND that provider's ABR entity name. Everything else that
+   looks like a match (ambiguous names, ABR or ABN disagreement, providers without a resolved ABN,
+   corporate-suffix differences, reporting entities named without an ABN) goes to the review
+   queue, never to edges.
 
 Licence: the MSR shows "Copyright Attorney-General's Department" and no open licence. Raw MSR files
 and their sidecars stay in data/raw/msr/, which is gitignored. Only derived facts are written to
@@ -109,6 +111,12 @@ _SUFFIX_TAIL = re.compile(r"\s+(?:PTY LTD|LTD|INC)$")
 EXCLUDED_FORMS = {"likely_individual", "unknown"}
 ACCEPTED_KINDS = {"accepted_unique", "accepted_unique_in_state"}
 WITHHELD = "[withheld: may name an individual]"
+# One edge per provider and statement: the strongest method wins.
+_RANK = {
+    "reporting_entity_abn_equals_provider_abn": 0,
+    "included_entity_abn_equals_provider_abn": 1,
+    "included_name_equals_acecqa_and_abr_name": 2,
+}
 
 EDGE_COLUMNS = [
     "provider_approval_number",
@@ -265,16 +273,19 @@ def _entities(section) -> list[dict]:
 
 
 def parse_statement_page(page_html: str) -> dict:
-    """Reporting entities (name, ABN) and included entities (names, de-duplicated)."""
+    """Reporting and included entities as {name, abn}. Included entities are de-duplicated.
+
+    Many statements list included entities by name only; others give an ABN for some or all.
+    """
     soup = BeautifulSoup(page_html, "html.parser")
     reporting = _entities(soup.find(id="statement-reporting-entities"))
-    included: list[str] = []
-    seen: set[str] = set()
+    included: list[dict] = []
+    seen: set[tuple[str, str | None]] = set()
     for ent in _entities(soup.find(id="statement-included-entities")):
-        key = normalise(ent["name"])
-        if key and key not in seen:
+        key = (normalise(ent["name"]), ent["abn"])
+        if key[0] and key not in seen:
             seen.add(key)
-            included.append(ent["name"])
+            included.append(ent)
     return {"reporting": reporting, "included": included}
 
 
@@ -300,10 +311,15 @@ def _excluded(profile: dict) -> bool:
 
 
 def _shown_name(name: str | None) -> str | None:
-    """An MSR entity name, or WITHHELD when it is, or may be, an individual's name."""
+    """An MSR entity name, or WITHHELD when it reads as a person's name.
+
+    MSR names are entities named in a statement under the Act, so a name the classifier cannot
+    place ('unknown', for example a university or a school) is shown. A name that reads as a
+    person ('likely_individual') is always withheld, even though most are organisations.
+    """
     if not name:
         return None
-    return WITHHELD if classify_entity_form(name) in EXCLUDED_FORMS else name
+    return WITHHELD if classify_entity_form(name) == "likely_individual" else name
 
 
 def _group(statement: dict) -> tuple[str, str]:
@@ -378,7 +394,7 @@ def build_edges(
 
     def add_edge(s: dict, pr: str, edge_type: str, method: str, msr_name: str) -> None:
         k = (pr, s["page_id"])
-        if k in edges and edges[k]["edge_type"] == "reporting_entity":
+        if k in edges and _RANK[edges[k]["match_method"]] <= _RANK[method]:
             return
         edges[k] = {
             **base(s),
@@ -387,7 +403,7 @@ def build_edges(
             "provider_abn": idx.abn_of.get(pr),
             "edge_type": edge_type,
             "match_method": method,
-            "msr_entity_name": msr_name,
+            "msr_entity_name": _shown_name(msr_name),
         }
 
     def add_review(s: dict, role: str, name: str, abn: str | None, reason: str, prs) -> None:
@@ -407,7 +423,12 @@ def build_edges(
             }
         )
 
-    def match_name(s: dict, role: str, name: str, abn: str | None) -> None:
+    def match_entity(s: dict, role: str, name: str, abn: str | None) -> None:
+        matched = idx.by_abn.get(abn or "", [])
+        for pr in matched:
+            add_edge(s, pr, role, f"{role}_abn_equals_provider_abn", name)
+        if matched:
+            return
         key = normalise(name)
         if not key:
             return
@@ -423,14 +444,20 @@ def build_edges(
             if not visible:
                 return
             (pr,) = visible
-            if role == "reporting_entity":
-                add_review(s, role, name, abn, "reporting_entity_name_only", visible)
+            if abn and pr in idx.abn_of:
+                reason = "msr_abn_differs_from_provider_abn"
+            elif abn:
+                reason = "name_match_provider_abn_not_resolved"
+            elif role == "reporting_entity":
+                reason = "reporting_entity_name_only"
             elif pr not in idx.abn_of:
-                add_review(s, role, name, abn, "name_unique_provider_without_abn", visible)
+                reason = "name_unique_provider_without_abn"
             elif normalise(idx.abr_name.get(pr)) == key:
-                add_edge(s, pr, "included_entity", "included_name_equals_acecqa_and_abr_name", name)
+                add_edge(s, pr, role, "included_name_equals_acecqa_and_abr_name", name)
+                return
             else:
-                add_review(s, role, name, abn, "abr_name_disagrees", visible)
+                reason = "abr_name_disagrees"
+            add_review(s, role, name, abn, reason, visible)
             return
         loose = idx.by_loose.get(loose_key(name), set())
         if loose & idx.excluded:
@@ -441,20 +468,11 @@ def build_edges(
     for s in statements:
         parsed = s.get("parsed") or {"reporting": [], "included": []}
         for rep in parsed["reporting"]:
-            matched = idx.by_abn.get(rep["abn"] or "", [])
-            for pr in matched:
-                add_edge(
-                    s,
-                    pr,
-                    "reporting_entity",
-                    "reporting_entity_abn_equals_provider_abn",
-                    rep["name"],
-                )
-            if not matched:
-                match_name(s, "reporting_entity", rep["name"], rep["abn"])
+            match_entity(s, "reporting_entity", rep["name"], rep["abn"])
         stats["included_entities_parsed"] += len(parsed["included"])
-        for name in parsed["included"]:
-            match_name(s, "included_entity", name, None)
+        stats["included_entities_with_abn"] += sum(1 for i in parsed["included"] if i["abn"])
+        for inc in parsed["included"]:
+            match_entity(s, "included_entity", inc["name"], inc["abn"])
 
     out = sorted(
         edges.values(),
@@ -492,6 +510,7 @@ def summarise(
         1 for s in services if normalise_pr(s.get("provider_approval_number")) in prs
     )
     by_type = Counter(e["edge_type"] for e in edges)
+    inc_prs = {e["provider_approval_number"] for e in edges if e["edge_type"] == "included_entity"}
     periods = sorted(e["reporting_period"] for e in edges if e.get("reporting_period"))
     providers_by_type = {
         t: len({e["provider_approval_number"] for e in edges if e["edge_type"] == t})
@@ -506,6 +525,10 @@ def summarise(
         "counts": {
             "candidate_statements": candidates_count,
             "included_entities_parsed": stats.get("included_entities_parsed", 0),
+            "included_entities_with_abn": stats.get("included_entities_with_abn", 0),
+            "edges_by_match_method": dict(
+                sorted(Counter(e["match_method"] for e in edges).items())
+            ),
             "edges_reporting_entity": by_type.get("reporting_entity", 0),
             "edges_included_entity": by_type.get("included_entity", 0),
             "distinct_providers_with_edge": len(prs),
@@ -514,6 +537,9 @@ def summarise(
             "priority_providers_with_abn": len(priority_with_abn),
             "priority_providers_gained_edge": len(prs & priority),
             "services_covered": services_covered,
+            "services_covered_by_included_entity_providers": sum(
+                1 for sv in services if normalise_pr(sv.get("provider_approval_number")) in inc_prs
+            ),
             "services_total": len(services),
             "review_queue": len(review),
             "review_by_reason": dict(sorted(Counter(r["reason"] for r in review).items())),
@@ -534,6 +560,9 @@ def summarise(
             "Included entities are listed by name only. An included_entity edge needs the MSR name "
             "to equal, after normalisation, exactly one ACECQA provider legal name and that "
             "provider's ABR entity name. It is not verified by ABN or ACN.",
+            "A reporting_entity edge from a joint statement (group_key MSR-<page id>) means the "
+            "provider reported jointly with the other listed entities. Joint reporting is not, by "
+            "itself, evidence of common ownership.",
             "Edges span every reporting period on the register. A provider included in an older "
             "statement may since have changed hands; check reporting_period.",
             "MSR licence unclear (Copyright Attorney-General's Department). Raw MSR files are not "

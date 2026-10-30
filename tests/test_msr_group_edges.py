@@ -85,7 +85,7 @@ def entity_div(name, abn=None):
 
 def statement_page(reporting, included=()):
     rep = "".join(entity_div(n, a) for n, a in reporting)
-    inc = "".join(entity_div(n) for n in included)
+    inc = "".join(entity_div(*n) if isinstance(n, tuple) else entity_div(n) for n in included)
     inc_block = ""
     if included:
         inc_block = f"""
@@ -320,14 +320,23 @@ def test_childcare_term_matches_listed_terms_only():
 def test_parse_statement_page_reporting_and_included():
     page = statement_page(
         [("KOOKABURRA LEARNING GROUP LIMITED", "11000000001")],
-        ["Wattle Kids Pty Ltd", "Wattle Kids Pty Ltd", "Sunrise Property Trust"],
+        [
+            "Wattle Kids Pty Ltd",
+            "Wattle Kids Pty Ltd",
+            "Sunrise Property Trust",
+            ("Banksia Early Years Pty Ltd", "11000000003"),
+        ],
     )
     parsed = msr.parse_statement_page(page)
     assert parsed["reporting"] == [
         {"name": "KOOKABURRA LEARNING GROUP LIMITED", "abn": "11000000001"}
     ]
-    # duplicates listed on the page are kept once
-    assert parsed["included"] == ["Wattle Kids Pty Ltd", "Sunrise Property Trust"]
+    # duplicates listed on the page are kept once; an included entity's ABN is kept when given
+    assert parsed["included"] == [
+        {"name": "Wattle Kids Pty Ltd", "abn": None},
+        {"name": "Sunrise Property Trust", "abn": None},
+        {"name": "Banksia Early Years Pty Ltd", "abn": "11000000003"},
+    ]
 
 
 def test_parse_statement_page_without_included_section_and_without_abn():
@@ -379,7 +388,15 @@ def build(statements_and_pages):
             "type": extra.get("type", "Single"),
             "captured_at": "2026-10-31T00:00:00+00:00",
             "page_sha256": "abc",
-            "parsed": {"reporting": reporting, "included": included},
+            "parsed": {
+                "reporting": reporting,
+                "included": [
+                    {"name": i[0], "abn": i[1]}
+                    if isinstance(i, tuple)
+                    else {"name": i, "abn": None}
+                    for i in included
+                ],
+            },
         }
         stmts.append(s)
     return msr.build_edges(stmts, PROFILES, ABN_ROWS)
@@ -486,7 +503,7 @@ def test_review_withholds_msr_names_that_may_be_individuals():
             "page_sha256": "s",
             "parsed": {
                 "reporting": [{"name": "PARENT LTD", "abn": "99000000009"}],
-                "included": ["Jane Example"],
+                "included": [{"name": "Jane Example", "abn": None}],
             },
         }
     ]
@@ -494,6 +511,66 @@ def test_review_withholds_msr_names_that_may_be_individuals():
     (r,) = review
     assert "Jane Example" not in repr(r)
     assert r["msr_entity_name"] == msr.WITHHELD
+
+
+def test_included_entity_edge_by_abn():
+    edges, review, _ = build(
+        [
+            (
+                [{"name": "PARENT LTD", "abn": "99000000009"}],
+                [("Renamed Wattle Co", "11000000002")],
+                {},
+            )
+        ]
+    )
+    (e,) = edges
+    assert e["provider_approval_number"] == "PR-00000002"
+    assert e["edge_type"] == "included_entity"
+    assert e["match_method"] == "included_entity_abn_equals_provider_abn"
+    assert e["group_key"] == "99000000009"
+    assert review == []
+
+
+def test_included_abn_beats_included_name_in_same_statement():
+    edges, _, _ = build(
+        [
+            (
+                [{"name": "PARENT LTD", "abn": "99000000009"}],
+                ["Wattle Kids Pty Ltd", ("Wattle Kids Pty Ltd", "11000000002")],
+                {},
+            )
+        ]
+    )
+    (e,) = edges
+    assert e["match_method"] == "included_entity_abn_equals_provider_abn"
+
+
+def test_msr_abn_that_differs_from_provider_abn_goes_to_review():
+    edges, review, _ = build(
+        [
+            (
+                [{"name": "PARENT LTD", "abn": "99000000009"}],
+                [("Wattle Kids Pty Ltd", "55000000005")],
+                {},
+            )
+        ]
+    )
+    assert edges == []
+    assert review[0]["reason"] == "msr_abn_differs_from_provider_abn"
+    assert review[0]["msr_entity_abn"] == "55000000005"
+
+
+def test_msr_abn_with_provider_abn_unresolved_goes_to_review():
+    edges, review, _ = build(
+        [([{"name": "Waratah Centres Pty Ltd", "abn": "66000000006"}], [], {})]
+    )
+    assert edges == []
+    assert review[0]["reason"] == "name_match_provider_abn_not_resolved"
+
+
+def test_unplaceable_organisation_names_are_shown_person_like_names_are_not():
+    assert msr._shown_name("WOMBAT UNIVERSITY") == "WOMBAT UNIVERSITY"
+    assert msr._shown_name("Jane Example") == msr.WITHHELD
 
 
 def test_reporting_edge_wins_over_included_edge_in_same_statement():
@@ -582,4 +659,5 @@ def test_summary_counts_priority_providers_and_services():
     assert c["priority_providers_gained_edge"] == 2
     assert c["priority_providers_total"] == len(ABN_ROWS)
     assert c["services_covered"] == 3
+    assert c["services_covered_by_included_entity_providers"] == 1
     assert c["review_queue"] == 1
