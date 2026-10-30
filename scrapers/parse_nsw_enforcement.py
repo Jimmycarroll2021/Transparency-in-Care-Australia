@@ -4,6 +4,11 @@ Source: NSW Department of Education, CC BY 4.0 (see research/2026-10-29-register
 Attribution: (c) State of New South Wales (Department of Education).
 
 Run: python3 scrapers/parse_nsw_enforcement.py [--force] [--skip-fetch]
+
+Exit status: 0 when every document was identified and parsed and the outputs were written; 1 when
+no snapshot was parsed; 2 when the run was incomplete (an unidentified snapshot or a document
+with no parsable copy). On 1 or 2 data/processed/nsw-enforcement-actions.* are left unchanged and the
+run summary is printed to stdout only.
 """
 
 from __future__ import annotations
@@ -705,12 +710,16 @@ def snapshot_rel_path(path: Path, root: Path = PROJECT_ROOT) -> str:
 
 
 def read_meta(path: Path) -> dict:
+    """The snapshot's meta sidecar, or {} when it is missing, unreadable or not a JSON object."""
     meta_path = Path(f"{path}.meta.json")
     if meta_path.exists():
         try:
-            return json.loads(meta_path.read_text())
+            meta = json.loads(meta_path.read_text())
         except json.JSONDecodeError:
-            pass
+            return {}
+        if isinstance(meta, dict):
+            return meta
+        log.warning("meta sidecar of %s is not a JSON object; ignored", path.name)
     return {}
 
 
@@ -848,6 +857,21 @@ def main(argv: list[str] | None = None) -> int:
         log.error("no PDF snapshots to parse")
         print(json.dumps({"fetch": fetch_summary, "parse": summary}, indent=2))
         return 1
+    if not summary["complete"]:
+        # A partial run must not replace the last good outputs: the join would silently lose the
+        # missing documents' actions. The summary is printed to stdout instead; no file is written.
+        log.error(
+            "run incomplete; %s left unchanged. Unidentified snapshots: %s. Failed documents: %s",
+            f"data/processed/{OUTPUT_NAME}.*",
+            ", ".join(summary["unidentified_snapshots"]) or "none",
+            "; ".join(
+                f"{fd['document']} ({', '.join(fd['snapshots'])})"
+                for fd in summary["failed_documents"]
+            )
+            or "none",
+        )
+        print(json.dumps({"fetch": fetch_summary, "parse": summary}, indent=2))
+        return 2
     for row in rows:
         row.pop("_details", None)
     notes = provenance_notes(summary)

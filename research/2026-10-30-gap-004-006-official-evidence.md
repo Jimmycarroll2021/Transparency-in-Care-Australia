@@ -36,8 +36,10 @@ and rated. The baseline should be corrected; this note does not edit it.
 
 Inferences:
 
-- State and territory counts exist but are unpublished, given the ROGS attribution. They are
-  targets for a question on notice or a freedom of information request. Medium. `[Verify This]`
+- The ROGS attribution "state and territory governments, unpublished" shows that state and
+  territory governments hold unpublished information on services outside the NQF. It does not
+  show that they hold a count of these services. Whether such counts exist is a question for a
+  question on notice or a freedom of information request. Medium. `[Verify This]`
 - A 2021 Closing the Gap early childhood care and development sector strengthening plan reportedly
   says 59 of 154 CCCFR (Community Child Care Fund Restricted) services were outside the NQF's
   scope. This is dated, partial and not a total; the PDF was not read. Low. `[Verify This]`

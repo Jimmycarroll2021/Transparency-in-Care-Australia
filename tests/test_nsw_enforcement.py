@@ -661,3 +661,93 @@ def test_processed_outputs_record_posix_paths_on_every_platform(tmp_path, monkey
     assert provenance["output"] == "data/processed/x.csv"
     assert provenance["raw_inputs"] == [f"data/raw/{SOURCE}/2026-10-29T0718Z-q1-x.pdf"]
     assert snapshot_rel_path(raw, root=tmp_path) == provenance["raw_inputs"][0]
+
+
+# --- incomplete runs and malformed sidecars -----------------------------------
+
+
+def _patch_main_paths(tmp_path, monkeypatch):
+    """Point main() at snapshots and processed outputs under tmp_path; no fetch, no data/raw."""
+    from scrapers import common
+    from scrapers import parse_nsw_enforcement as nsw
+
+    monkeypatch.setattr(common, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(common, "PROCESSED_DIR", tmp_path / "data" / "processed")
+    real_parse_all = nsw.parse_all
+    monkeypatch.setattr(
+        nsw, "parse_all", lambda: real_parse_all(base_dir=tmp_path / "raw", root=tmp_path)
+    )
+    monkeypatch.setattr(nsw, "read_pdf_records", _fake_reader(set()))
+    src = tmp_path / "raw" / SOURCE
+    src.mkdir(parents=True)
+    return nsw, src, tmp_path / "data" / "processed"
+
+
+def test_an_incomplete_run_leaves_the_previous_outputs_and_exits_non_zero(tmp_path, monkeypatch):
+    # A run that could not identify or parse every document must not replace the last good
+    # outputs with a partial set; the join would silently lose that document's actions.
+    nsw, src, processed = _patch_main_paths(tmp_path, monkeypatch)
+    _write_pdf_snapshot(
+        src,
+        "2026-10-29T0718Z-q2-cancellations-services-2025-2026.pdf",
+        "https://education.nsw.gov.au/x/Q2_Cancellations_Services_2025_2026.pdf",
+    )
+    _write_pdf_snapshot(src, "2026-11-02T0718Z-q1-cancellations-services-2025-2026.pdf", None)
+    processed.mkdir(parents=True)
+    csv_path = processed / f"{nsw.OUTPUT_NAME}.csv"
+    prov_path = processed / f"{nsw.OUTPUT_NAME}.provenance.json"
+    csv_path.write_text("previous good csv\n")
+    prov_path.write_text('{"previous": "good provenance"}\n')
+
+    code = nsw.main(["--skip-fetch"])
+
+    assert code != 0
+    assert csv_path.read_text() == "previous good csv\n"
+    assert prov_path.read_text() == '{"previous": "good provenance"}\n'
+    assert sorted(p.name for p in processed.iterdir()) == sorted([csv_path.name, prov_path.name])
+
+
+def test_a_complete_run_writes_the_outputs_and_exits_zero(tmp_path, monkeypatch):
+    nsw, src, processed = _patch_main_paths(tmp_path, monkeypatch)
+    name = "2026-10-29T0718Z-q2-cancellations-services-2025-2026.pdf"
+    _write_pdf_snapshot(
+        src, name, "https://education.nsw.gov.au/x/Q2_Cancellations_Services_2025_2026.pdf"
+    )
+    processed.mkdir(parents=True)
+    csv_path = processed / f"{nsw.OUTPUT_NAME}.csv"
+    csv_path.write_text("previous good csv\n")
+
+    code = nsw.main(["--skip-fetch"])
+
+    assert code == 0
+    lines = csv_path.read_text(encoding="utf-8").splitlines()
+    assert lines[0].split(",") == nsw.FIELDNAMES
+    assert len(lines) == 2
+    provenance = json.loads((processed / f"{nsw.OUTPUT_NAME}.provenance.json").read_text())
+    assert provenance["rows"] == 1
+    assert provenance["raw_inputs"] == [f"raw/{SOURCE}/{name}"]
+
+
+def test_a_sidecar_that_is_not_a_json_object_is_reported_as_unidentified(tmp_path, monkeypatch):
+    # A sidecar holding a JSON list (or string, or number) has no URL field. It must be reported
+    # like any other unusable sidecar, not abort the run with an AttributeError.
+    from scrapers import parse_nsw_enforcement as nsw
+
+    src = tmp_path / SOURCE
+    src.mkdir()
+    q2 = "https://education.nsw.gov.au/x/Q2_Cancellations_Services_2025_2026.pdf"
+    ok = "2026-10-29T0718Z-q2-cancellations-services-2025-2026.pdf"
+    as_list = "2026-11-02T0718Z-q1-cancellations-services-2025-2026.pdf"
+    as_string = "2026-11-02T0718Z-q3-cancellations-services-2025-2026.pdf"
+    _write_pdf_snapshot(src, ok, q2)
+    _write_pdf_snapshot(src, as_list, None)
+    (src / f"{as_list}.meta.json").write_text(json.dumps([{"url": q2}]))
+    _write_pdf_snapshot(src, as_string, None)
+    (src / f"{as_string}.meta.json").write_text(json.dumps(q2))
+    monkeypatch.setattr(nsw, "read_pdf_records", _fake_reader(set()))
+
+    rows, parsed, summary = parse_all(base_dir=tmp_path, root=tmp_path)
+
+    assert [p.name for p in parsed] == [ok]
+    assert summary["unidentified_snapshots"] == [as_list, as_string]
+    assert summary["complete"] is False
