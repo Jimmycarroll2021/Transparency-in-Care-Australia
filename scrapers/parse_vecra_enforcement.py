@@ -537,8 +537,9 @@ def parse_actions(
             withhold_free_text(row, (withheld_marker,))
             note_withheld_subject(subject_raw)  # in-memory name set, never written
         rows.append(row)
-    withhold_prose_naming_people(rows)  # shared prose rule, every row
     assign_record_ids(rows)
+    # After the ids: the id never depends on what the prose or URL rule withholds.
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     return rows
 
 

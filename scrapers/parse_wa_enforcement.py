@@ -418,8 +418,9 @@ def parse_wa_html_table(html_content: str, source_snapshot: str, captured_at: st
             note_withheld_subject(prov_raw)  # in-memory name set, never written
         rows.append(row)
 
-    withhold_prose_naming_people(rows)  # shared prose rule, every row
     assign_record_ids(rows)
+    # After the ids: the id never depends on what the prose or URL rule withholds.
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     return rows
 
 

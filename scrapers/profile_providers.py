@@ -391,6 +391,7 @@ _PROSE_STOPWORDS = (
         cancel immediate meeting worker workers assistance tax system practice corporations
         associations incorporations medical subsidy safe safety protection police inappropriate
         risk assessment record records register registered what constitutes outside hours based
+        involuntary voluntary
         primary high secondary centre center offence offences fine fined penalty
         new south north east west southern northern eastern western central upper lower greater
         inner outer wa nsw vic qld sa tas nt australia australian victoria queensland tasmania
@@ -412,7 +413,11 @@ _PROSE_EDGE = ".,;:()[]{}<>\"'\u2018\u2019\u201c\u201d!?*"
 
 def _prose_key(core: str) -> str:
     key = core.lower().replace("\u2019", "'")
-    return key[:-2] if key.endswith("'s") else key
+    key = key[:-2] if key.endswith("'s") else key
+    # A plural of a stopword is a stopword ('Suspensions', 'Cancellations').
+    if key not in _PROSE_STOPWORDS and key.endswith("s") and key[:-1] in _PROSE_STOPWORDS:
+        return key[:-1]
+    return key
 
 
 _MONTH_WORDS = frozenset(

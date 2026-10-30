@@ -129,3 +129,37 @@ def test_consolidated_linked_documents_match_the_qld_output():
     with qld_path.open(newline="", encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
             assert joined[row["record_id"]].get("linked_documents") == row["linked_documents"]
+
+
+def test_register_file_names_with_plural_action_words_are_kept():
+    url = (
+        "https://education.nsw.gov.au/content/dam/main-education/register-of-published-"
+        "enforcement-actions/Q2_Involuntary_Suspensions_2025_2026.pdf"
+    )
+    row = _row(source_document=url)
+    common.withhold_prose_naming_people([row])
+    assert row["source_document"] == url
+    assert not pp.prose_may_name_person("Cancellations Providers Conditions Notices")
+
+
+def test_record_id_does_not_depend_on_the_url_rule():
+    import copy
+
+    from scrapers import parse_sa_enforcement as sa
+
+    from tests.test_sa_enforcement import CURRENT_FIXTURE
+
+    named = "https://www.esb.sa.gov.au/Notice-Jane-Example"
+    rows = sa.parse_actions(
+        CURRENT_FIXTURE,
+        source_document=named,
+        captured_at="2026-10-29T03:00:00+00:00",
+        period_label="Current compliance action",
+        source_snapshot="data/raw/sa-enforcement/x.html",
+    )
+    assert all(r["source_document"] is None for r in rows)
+    expected = copy.deepcopy(rows)
+    for r in expected:
+        r["source_document"] = named
+    common.assign_record_ids(expected)
+    assert [r["record_id"] for r in rows] == [r["record_id"] for r in expected]

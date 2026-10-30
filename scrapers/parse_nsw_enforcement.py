@@ -779,8 +779,9 @@ def _parse_snapshot(path: Path, root: Path, summary: dict) -> list[dict] | None:
     rel = snapshot_rel_path(path, root=root)
     file_rows = [build_row(r, meta=meta, snapshot_rel=rel, period_label=label) for r in raws]
     summary["duplicates"] += mark_duplicates(file_rows)
-    withhold_prose_naming_people(file_rows)  # shared prose rule, every row
     assign_record_ids(file_rows)
+    # After the ids: the id never depends on what the prose or URL rule withholds.
+    withhold_prose_naming_people(file_rows)  # shared prose rule, every row
     summary["by_file"][path.name] = {"rows": len(file_rows), **stats}
     log.info("parsed %s: %d rows %s", path.name, len(file_rows), stats)
     return file_rows

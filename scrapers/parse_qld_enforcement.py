@@ -446,8 +446,9 @@ def parse_register(
             if seen[row["_fingerprint"]] > 1:
                 row["notes"] += "; duplicate row: another row prints the same text"
             rows.append(row)
-    withhold_prose_naming_people(rows)  # shared prose rule, every row
     assign_record_ids(rows, source_id=page_url)
+    # After the ids: the id never depends on what the prose or URL rule withholds.
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     return rows
 
 
