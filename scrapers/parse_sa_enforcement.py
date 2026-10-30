@@ -1040,6 +1040,7 @@ def write_counts(rows: list[dict], raw_inputs: list[Path]) -> Path:
             "with that caveat. Absence of an entry is not evidence of safety."
         ),
     }
+    provenance = common.redact_urls_in_obj(provenance)  # the URL rule (Codex round 5)
     atomic_write_text(
         PROCESSED_DIR / f"{COUNTS_NAME}.provenance.json", json.dumps(provenance, indent=2) + "\n"
     )

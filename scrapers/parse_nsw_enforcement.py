@@ -39,6 +39,7 @@ from scrapers.common import (
     normalise_se,
     note_withheld_subject,
     printed_fingerprint,
+    redact_urls_in_obj,
     refuse_if_reparse_incomplete,
     withhold_free_text,
     withhold_prose_naming_people,
@@ -855,7 +856,9 @@ def parse_all(
         if r["notes"] and "provider name withheld" in r["notes"]:
             summary["withheld_provider_names"] += 1
     summary["rows"] = len(rows)
-    return rows, parsed, summary
+    # Codex round 5: document URLs and snapshot names in the summary (and so in the provenance
+    # notes and the printed output) go through the URL rule.
+    return rows, parsed, redact_urls_in_obj(summary)
 
 
 def provenance_notes(summary: dict) -> str:
@@ -893,7 +896,7 @@ def main(argv: list[str] | None = None) -> int:
     rows, parsed, summary = parse_all()
     if not parsed:
         log.error("no PDF snapshots to parse")
-        print(json.dumps({"fetch": fetch_summary, "parse": summary}, indent=2))
+        print(json.dumps(redact_urls_in_obj({"fetch": fetch_summary, "parse": summary}), indent=2))
         return 1
     if not summary["complete"]:
         # A partial run must not replace the last good outputs: the join would silently lose the
@@ -908,7 +911,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             or "none",
         )
-        print(json.dumps({"fetch": fetch_summary, "parse": summary}, indent=2))
+        print(json.dumps(redact_urls_in_obj({"fetch": fetch_summary, "parse": summary}), indent=2))
         return 2
     for row in rows:
         row.pop("_details", None)
@@ -921,7 +924,7 @@ def main(argv: list[str] | None = None) -> int:
         schema=SCHEMA_PATH,
         notes=notes,
     )
-    print(json.dumps({"fetch": fetch_summary, "parse": summary}, indent=2))
+    print(json.dumps(redact_urls_in_obj({"fetch": fetch_summary, "parse": summary}), indent=2))
     return 0
 
 

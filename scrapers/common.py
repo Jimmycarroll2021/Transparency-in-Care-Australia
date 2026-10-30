@@ -410,6 +410,77 @@ def _url_words(url: str) -> str:
     return _URL_SEPARATORS.sub(" ", f"{unquote(parts.path)} {unquote(parts.query)}").strip()
 
 
+URL_TEXT_WITHHELD = "(URL withheld: may name an individual)"
+# A URL, or a path or file name of a document, inside free text (summaries, notes, log lines).
+_URL_IN_TEXT = re.compile(
+    r"https?://[^\s'\",;()\[\]<>]+"
+    r"|[^\s'\",;()\[\]<>:]+\.(?:pdf|docx?|html?|json|csv|xlsx?|txt)\b",
+    re.IGNORECASE,
+)
+
+
+def _run_wide_names():
+    from scrapers.profile_providers import PersonNames
+
+    names = PersonNames()
+    for base in (_PERSON_NAMES, _RUN_NAMES):
+        if base is not None:
+            names.update(base)
+    return names
+
+
+def url_may_name_person(url: str | None, names=None) -> bool:
+    """True when a URL's (or a path's) decoded path and file name may name an individual, by the
+    person detector or the run-wide name set (Codex round 4 and 5)."""
+    if not url:
+        return False
+    from scrapers.profile_providers import prose_may_name_person
+
+    names = _run_wide_names() if names is None else names
+    return prose_may_name_person(_url_words(url), (), names)
+
+
+def redact_urls(text: str | None, names=None) -> str | None:
+    """Replace, whole, every URL or document path in `text` that may name an individual with
+    URL_TEXT_WITHHELD. Other text is unchanged. For summaries, provenance notes and logs."""
+    if not text:
+        return text
+    names = _run_wide_names() if names is None else names
+    return _URL_IN_TEXT.sub(
+        lambda m: URL_TEXT_WITHHELD if url_may_name_person(m.group(0), names) else m.group(0),
+        text,
+    )
+
+
+def redact_urls_in_obj(obj, names=None):
+    """redact_urls applied to every string (dictionary keys included) in a JSON-like object."""
+    names = _run_wide_names() if names is None else names
+    if isinstance(obj, str):
+        return redact_urls(obj, names)
+    if isinstance(obj, dict):
+        return {redact_urls_in_obj(k, names): redact_urls_in_obj(v, names) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [redact_urls_in_obj(v, names) for v in obj]
+    return obj
+
+
+class _UrlRuleLogFilter(logging.Filter):
+    """Applies the URL rule to every log line of the scrapers logger."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        try:
+            message = record.getMessage()
+        except Exception:
+            return True
+        redacted = redact_urls(message)
+        if redacted != message:
+            record.msg, record.args = redacted, None
+        return True
+
+
+log.addFilter(_UrlRuleLogFilter())
+
+
 def _add_note(row: dict, note: str) -> None:
     notes = row.get("notes") or ""
     sep = " | " if " | " in notes else "; "
@@ -615,6 +686,8 @@ def write_processed(
         "raw_inputs": [p.relative_to(PROJECT_ROOT).as_posix() for p in raw_inputs],
         "notes": notes,
     }
+    # Codex round 5: no URL or path that may name an individual reaches a provenance file.
+    provenance = redact_urls_in_obj(provenance)
     atomic_write_text(
         PROCESSED_DIR / f"{name}.provenance.json", json.dumps(provenance, indent=2) + "\n"
     )

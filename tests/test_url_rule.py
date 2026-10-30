@@ -163,3 +163,59 @@ def test_record_id_does_not_depend_on_the_url_rule():
         r["source_document"] = named
     common.assign_record_ids(expected)
     assert [r["record_id"] for r in rows] == [r["record_id"] for r in expected]
+
+
+# --- Codex round 5, finding 2: the URL rule in summaries, provenance notes and logs ---------
+
+
+def test_nsw_fallback_summary_and_provenance_withhold_a_named_url(tmp_path, monkeypatch, caplog):
+    import logging
+
+    from scrapers import parse_nsw_enforcement as nsw
+
+    from tests.test_nsw_enforcement import SOURCE, _fake_reader, _write_pdf_snapshot
+
+    names = pp.PersonNames()
+    names.add_subject("Jane Example")
+    monkeypatch.setattr(common, "_PERSON_NAMES", names)
+    src = tmp_path / SOURCE
+    src.mkdir()
+    url = "https://education.nsw.gov.au/x/Notice_to_Jane_Example.pdf"
+    old = "2026-10-29T0718Z-notice-to-jane-example.pdf"
+    new = "2026-11-02T0718Z-notice-to-jane-example.pdf"
+    _write_pdf_snapshot(src, old, url)
+    _write_pdf_snapshot(src, new, url)
+    monkeypatch.setattr(nsw, "read_pdf_records", _fake_reader({new}))
+    with caplog.at_level(logging.INFO, logger="scrapers"):
+        rows, parsed, summary = nsw.parse_all(base_dir=tmp_path, root=tmp_path)
+    assert summary["fallbacks"] and len(rows) == 1
+    published = json.dumps(summary) + nsw.provenance_notes(summary)
+    assert "jane" not in published.lower()
+    assert common.URL_TEXT_WITHHELD in published
+    assert "jane" not in caplog.text.lower()
+
+
+def test_write_processed_provenance_applies_the_url_rule(tmp_path, monkeypatch):
+    monkeypatch.setattr(common, "PROCESSED_DIR", tmp_path)
+    monkeypatch.setattr(common, "PROJECT_ROOT", tmp_path)
+    raw = tmp_path / "raw" / "Notice-Jane-Example.pdf"
+    common.write_processed(
+        "x",
+        [{"a": "1"}],
+        ["a"],
+        raw_inputs=[raw, tmp_path / "raw" / "register.html"],
+        notes="Parsed from https://example.gov.au/docs/Jane-Example-notice.pdf and register.html.",
+    )
+    prov = (tmp_path / "x.provenance.json").read_text(encoding="utf-8")
+    assert "jane" not in prov.lower()
+    assert "raw/register.html" in prov and "register.html." in prov
+
+
+def test_log_lines_apply_the_url_rule(caplog):
+    import logging
+
+    with caplog.at_level(logging.INFO, logger="scrapers"):
+        common.log.warning("could not fetch %s: %s", "https://x.gov.au/Jane-Example.pdf", "404")
+        common.log.info("parsed %s", "https://x.gov.au/register.pdf")
+    assert "jane" not in caplog.text.lower()
+    assert "https://x.gov.au/register.pdf" in caplog.text

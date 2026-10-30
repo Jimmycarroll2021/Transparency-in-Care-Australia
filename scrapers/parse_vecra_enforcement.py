@@ -649,6 +649,7 @@ def write_counts(rows: list[dict], raw_inputs: list[Path]) -> Path:
             "but their details are not published, so counts exceed published rows."
         ),
     }
+    provenance = common.redact_urls_in_obj(provenance)  # the URL rule (Codex round 5)
     atomic_write_text(
         PROCESSED_DIR / f"{COUNTS_NAME}.provenance.json", json.dumps(provenance, indent=2) + "\n"
     )
