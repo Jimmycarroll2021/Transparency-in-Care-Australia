@@ -305,9 +305,9 @@ def test_person_named_trust_provider_is_withheld_by_shared_rule():
     assert pr == "PR-00008204"
     assert "Jane" not in " ".join(notes)
     kept, _, _, _ = extract_provider_info(
-        "Example Holdings Pty Ltd ATF Smith Family Trust (PR-00008205)"
+        "Example Holdings Pty Ltd ATF Sunrise Unit Trust (PR-00008205)"
     )
-    assert kept == "Example Holdings Pty Ltd ATF Smith Family Trust"
+    assert kept == "Example Holdings Pty Ltd ATF Sunrise Unit Trust"
 
 
 # --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------

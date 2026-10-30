@@ -775,8 +775,8 @@ def test_individual_trustee_and_estate_names_are_withheld():
 
 
 def test_organisation_trustee_name_is_kept():
-    name, note = provider_name_if_entity("Example Holdings Pty Ltd ATF Smith Family Trust")
-    assert name == "Example Holdings Pty Ltd ATF Smith Family Trust" and note is None
+    name, note = provider_name_if_entity("Example Holdings Pty Ltd ATF Sunrise Unit Trust")
+    assert name == "Example Holdings Pty Ltd ATF Sunrise Unit Trust" and note is None
 
 
 # --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------

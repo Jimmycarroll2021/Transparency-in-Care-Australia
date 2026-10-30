@@ -250,6 +250,10 @@ ABR_ORGANISATION_TYPES = frozenset(
     # Codes seen in provider-abn.csv, plus the Commonwealth government entity code.
     {"PRV", "PUB", "OIE", "UIE", "COP", "CGE", "SGE", "TGE", "LGE", "LGA"}
 )
+# Words that are places or institutions in a trust's name ('Archdiocese of Exampleton').
+_PLACE_WORDS = frozenset(
+    "archdiocese diocese parish corporation trustees roman catholic sisters order".split()
+)
 # Words dropped from a trust's name before asking whether what is left is a person's name.
 _TRUST_FILLER = frozenset(
     """
@@ -283,27 +287,32 @@ def _word_key(token: str) -> str:
     return re.sub(r"['’]s$", "", key)
 
 
-def _trust_names_a_person(trust: str, trustee: str = "") -> bool:
-    """True when a trust's name, once its filler words are dropped, reads as a person's name.
+_FAMILY_TRUST = re.compile(r"\bfamily\s+trust\b", _I)
 
-    A trust named with the same words as its organisation trustee ('Example Kids Pty Ltd ATF
-    Example Kids Trust') adds nothing to the trustee's own name and is not treated as a person.
+
+def _trust_names_a_person(trust: str) -> bool:
+    """True when a trust's name may contain a personal name.
+
+    Filler words (the, trust, unit, family ...), business words and church or government words
+    are dropped first; if two or more name-like words are left, they may be a person's name and
+    the trust is treated as naming one, even when the trust also carries a business word
+    ('the Jane Example Childcare Trust'). There is no exemption for a trust named like its
+    trustee company: that exemption let a person's name through.
     """
     trust = _TRADING_AS.split(trust, maxsplit=1)[0]
-    if _TITLE.search(trust) or _ESTATE.search(trust):
+    if _TITLE.search(trust) or _ESTATE.search(trust) or _FAMILY_TRUST.search(trust):
         return True
-    words = [
-        w
-        for w in re.split(r"[\s,()]+", trust)
-        if w and _word_key(w) not in _TRUST_FILLER and not re.fullmatch(r"[\d.#]+", w)
-    ]
-    rest = " ".join(words).strip(" &+;/-")
-    if not rest:
-        return False
-    trustee_keys = {_word_key(w) for w in re.split(r"[\s,()&+/]+", trustee) if w}
-    if trustee_keys and all(_word_key(w) in trustee_keys for w in words if w not in "&+/;-"):
-        return False
-    return _looks_like_person(rest)
+    words = []
+    for w in re.split(r"[\s,()&+/;-]+", trust):
+        key = _word_key(w)
+        if not key or re.fullmatch(r"[\d.#]+", w):
+            continue
+        if key in _TRUST_FILLER or key in _BUSINESS_WORDS:
+            continue
+        if _CHURCH.fullmatch(key) or _GOV_STRONG.fullmatch(key) or key in _PLACE_WORDS:
+            continue
+        words.append(w)
+    return len(words) >= 2 and _person_segment(words[:5])
 
 
 def name_is_withheld(
@@ -321,7 +330,10 @@ def name_is_withheld(
         return False
     name = legal_name.strip()
     form = form or classify_entity_form(name)
-    if form == "likely_individual" or _ESTATE.search(name):
+    # Person signals first: they withhold the name whatever company or trust evidence follows.
+    if form == "likely_individual" or _ESTATE.search(name) or _TITLE.search(name):
+        return True
+    if _FAMILY_TRUST.search(name):
         return True
     abr_org = (abr_entity_type or "").strip().upper() in ABR_ORGANISATION_TYPES
     split = _TRUSTEE_SPLIT.search(name)
@@ -329,13 +341,13 @@ def name_is_withheld(
         trustee = _strip_leading_the(name[: split.start()])
         if trustee and classify_entity_form(trustee) == "likely_individual":
             return True
-        if not (abr_org or (trustee and has_organisation_evidence(trustee))):
+        if _trust_names_a_person(name[split.end() :]):
             return True
-        return _trust_names_a_person(name[split.end() :], trustee)
-    if form == "trust_or_trustee":
-        if not (abr_org or has_organisation_evidence(name)):
+        return not (abr_org or (trustee and has_organisation_evidence(trustee)))
+    if form == "trust_or_trustee" or _TRUST_WORD.search(name):
+        if _trust_names_a_person(name):
             return True
-        return _trust_names_a_person(name)
+        return not (abr_org or has_organisation_evidence(name))
     return not (abr_org or has_organisation_evidence(name))
 
 

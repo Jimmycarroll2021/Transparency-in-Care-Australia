@@ -257,12 +257,10 @@ def test_name_not_positively_an_organisation_is_withheld(name):
         "Hillview Kindergarten Inc",
         "Exampleton Shire Council",
         "Valley Co-operative Child Care Society Ltd",
-        "ABC Services Pty Ltd as trustee for The Example Family Trust",
-        "Example Holdings Pty Ltd ATF Smith Family Trust",
+        "ABC Services Pty Ltd as trustee for The ABC Services Unit Trust",
+        "Example Holdings Pty Ltd ATF Sunrise Unit Trust",
         "Example Valley Aboriginal Corporation",
-        "MS Example Education Pty Ltd",
-        "Corporation of the Trustees of the Example Diocese - Example Services",
-        "Little Stars Exampleton Pty Ltd ATF Little Stars Exampleton Unit Trust",
+        "Corporation of the Trustees of the Roman Catholic Archdiocese of Exampleton",
     ],
 )
 def test_organisation_name_is_still_shown(name):
@@ -280,7 +278,7 @@ def test_build_profile_fails_closed_on_trustees_estates_and_accents(tmp_path, mo
             "Mrs Mary Example",
         ),
         ("PR-00000013", "Zoë Exämple", ""),
-        ("PR-00000014", "Example Holdings Pty Ltd ATF Smith Family Trust", "Sunny Days"),
+        ("PR-00000014", "Example Holdings Pty Ltd ATF Sunrise Unit Trust", "Sunny Days"),
         ("PR-00000015", "Sunny Days Pty Ltd", "Sunny Days"),
     ]
     with providers.open("w", newline="", encoding="utf-8") as fh:
@@ -401,3 +399,24 @@ def test_build_profile_uses_abr_entity_type_as_evidence(tmp_path, monkeypatch):
     by_pr = {r["provider_approval_number"]: r for r in written["rows"]}
     assert by_pr["PR-00000041"]["name_withheld"] == "false"
     assert by_pr["PR-00000042"]["name_withheld"] == "true"
+
+
+# Codex round 2, finding 2: person signals are checked before company and trust evidence, and a
+# trust that contains a personal name is withheld even with a business word. Synthetic names.
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Mrs Jane Example Pty Ltd",
+        "MS Example Education Pty Ltd",
+        "Dr Jane Example Childcare Pty Ltd",
+        "Example Holdings Pty Ltd ATF Smith Family Trust",
+        "ABC Services Pty Ltd as trustee for The Example Family Trust",
+        "The Trustee for the Jane Example Childcare Trust",
+        "Example Pty Ltd as trustee for Jane Example Early Learning Trust",
+        "Jane Example Pty Ltd ATF Jane Example Unit Trust",
+        "Little Stars Exampleton Pty Ltd ATF Little Stars Exampleton Unit Trust",
+    ],
+)
+def test_person_signal_beats_company_and_trust_evidence(name):
+    assert pp.name_is_withheld(name) is True
+    assert pp.name_is_withheld(name, abr_entity_type="PRV") is True

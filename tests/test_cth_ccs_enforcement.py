@@ -58,7 +58,7 @@ def entry(service, provider, location, service_type, sanction, grounds, date, en
 
 COMPANY = entry(
     "Riverbend Early Learning Centre",
-    "Riverbend Kids Pty Ltd Atf The Example Family Trust – ABN: 11222333444",
+    "Riverbend Kids Pty Ltd Atf The Riverbend Unit Trust – ABN: 11222333444",
     "Gayndah, queensland",
     "Centre Based Day Care",
     "Sanction under section 197H - Cancellation of Provider Approval",
@@ -122,7 +122,7 @@ def test_entries_split_and_toc_and_site_menu_ignored():
 def test_company_row_abn_and_mapping():
     r = rows()[0]
     assert r["jurisdiction"] == "CTH"
-    assert r["provider_name"] == "Riverbend Kids Pty Ltd Atf The Example Family Trust"
+    assert r["provider_name"] == "Riverbend Kids Pty Ltd Atf The Riverbend Unit Trust"
     assert r["notes"].startswith("ccs_identifier: ABN 11222333444")
     assert "service_type: Centre Based Day Care" in r["notes"]
     assert r["suburb"] == "Gayndah" and r["state"] == "QLD"
@@ -341,7 +341,9 @@ def test_main_returns_2_when_site_unreachable(monkeypatch):
 def test_is_individual_applies_the_shared_fail_closed_rule():
     assert is_individual("Example Holdings Pty Ltd ATF Jane Example Unit Trust")
     assert is_individual("Jane Example ATF Example Unit Trust")
-    assert not is_individual("Example Holdings Pty Ltd ATF Smith Family Trust")
+    assert not is_individual("Example Holdings Pty Ltd ATF Sunrise Unit Trust")
+    # Codex round 2, finding 2: a family trust names a family, so it is withheld.
+    assert is_individual("Example Holdings Pty Ltd ATF Smith Family Trust")
 
 
 # --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------

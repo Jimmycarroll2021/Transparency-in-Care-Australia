@@ -276,7 +276,7 @@ PRIVACY_FIXTURE = f"""
   <td>N/A</td></tr>
 <tr><td>Jane Example - executor of the estate of John Example</td><td>05/02/2026</td>
   <td><a href="/docs/w.pdf">Compliance notice</a></td><td>N/A</td></tr>
-<tr><td><p>Example Holdings Pty Ltd ATF Smith Family Trust</p><p>Sunny Days</p></td>
+<tr><td><p>Example Holdings Pty Ltd ATF Sunrise Unit Trust</p><p>Sunny Days</p></td>
   <td>06/02/2026</td>
   <td><a href="/docs/v.pdf">Compliance notice</a></td><td>N/A</td></tr>
 </table>
@@ -335,14 +335,14 @@ def test_estate_or_executor_subject_is_withheld():
 
 def test_organisation_trustee_is_still_shown():
     r = privacy_rows()["06/02/2026"]
-    assert r["provider_name"] == "Example Holdings Pty Ltd ATF Smith Family Trust"
+    assert r["provider_name"] == "Example Holdings Pty Ltd ATF Sunrise Unit Trust"
     assert r["service_name"] == "Sunny Days"
 
 
 def test_person_named_trust_with_company_trustee_is_withheld():
     # Shared fail-closed rule: a company trustee does not make a person-named trust shown.
     html = PRIVACY_FIXTURE.replace(
-        "Example Holdings Pty Ltd ATF Smith Family Trust",
+        "Example Holdings Pty Ltd ATF Sunrise Unit Trust",
         "Example Holdings Pty Ltd ATF Jane Example Unit Trust",
     )
     r = {
