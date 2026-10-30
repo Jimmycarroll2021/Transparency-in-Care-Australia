@@ -29,11 +29,12 @@ Steps:
 5. Edges and group heads are collapsed to one row per provider and group from the latest
    statement, listing every statement id and URL. The group key is the reporting entity's ABN,
    taken from the statement, else from another candidate statement naming the same entity with
-   one ABN, else NAME:<normalised name>.
+   one ABN (organisation names only), else MSR-<statement page id>. No key is derived from a name.
 
 Licence: the MSR shows "Copyright Attorney-General's Department" and no open licence. Raw MSR files
 and their sidecars stay in data/raw/msr/, which is gitignored. Only derived facts are written to
-data/processed/. Providers that are, or may be, individuals never appear in any output.
+data/processed/. Providers that are, or may be, individuals never appear in any output. An MSR
+name is shown only when it is positively classed as an organisation; otherwise it is withheld.
 
 Writes data/processed/provider-group-edges-msr.csv (controlled_entity_of only),
 provider-group-heads-msr.csv, provider-coreported-msr.csv and provider-group-review-msr.csv, each
@@ -42,6 +43,10 @@ with a provenance JSON, plus provider-group-edges-msr-summary.json.
 Run:
   python3 scrapers/build_msr_group_edges.py              fetch the CSV and candidate pages
   python3 scrapers/build_msr_group_edges.py --no-fetch   rebuild from the newest local snapshots
+  python3 scrapers/build_msr_group_edges.py --refresh    take a new snapshot of every candidate page
+
+Exit codes: 0 complete; 2 a candidate page is missing or unparseable (outputs left unchanged);
+1 nothing usable (no CSV snapshot, no candidate, or no page readable).
 """
 
 from __future__ import annotations
@@ -61,8 +66,6 @@ from bs4 import BeautifulSoup
 try:
     from scrapers.common import (
         PROCESSED_DIR,
-        PROJECT_ROOT,
-        RAW_DIR,
         Fetched,
         fetch,
         list_snapshots,
@@ -80,8 +83,6 @@ except ImportError:  # run as a plain script
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from scrapers.common import (
         PROCESSED_DIR,
-        PROJECT_ROOT,
-        RAW_DIR,
         Fetched,
         fetch,
         list_snapshots,
@@ -100,6 +101,11 @@ SOURCE_RESOURCES = "msr/resources"
 SOURCE_CSV = "msr/all-statements"
 SOURCE_PAGES = "msr/statements"
 PAGE_DELAY_SECONDS = 2.0
+SERVICES_MISSING_NOTE = (
+    "data/processed/acecqa-services-latest.csv was not available, so every service count is "
+    "null (unknown), not zero. Run python3 scrapers/snapshot_acecqa_registers.py --no-fetch "
+    "and rebuild."
+)
 
 PROFILE_CSV = PROCESSED_DIR / "provider-profile.csv"
 PROVIDER_ABN_CSV = PROCESSED_DIR / "provider-abn.csv"
@@ -123,6 +129,22 @@ _SUFFIX_TAIL = re.compile(r"\s+(?:PTY LTD|LTD|INC)$")
 EXCLUDED_FORMS = {"likely_individual", "unknown"}
 ACCEPTED_KINDS = {"accepted_unique", "accepted_unique_in_state"}
 WITHHELD = "[withheld: may name an individual]"
+ORGANISATION_FORMS = {
+    "company",
+    "incorporated_association",
+    "trust_or_trustee",
+    "cooperative",
+    "government",
+    "church_or_religious",
+}
+_ORG_WORDS = re.compile(
+    r"\b(?:universit(?:y|ies)|college|schools?|society|foundation|institute|ministr(?:y|ies)|"
+    r"church|diocese|archdiocese|parish|congregation|communit(?:y|ies)|services|education|"
+    r"health|healthcare|hospitals?|care|network|centres?|centers?|association|group|holdings|"
+    r"corporation|authority|commission|council|department|trust|fund|llc|gmbh|plc|sdn\s+bhd)\b",
+    re.IGNORECASE,
+)
+_ACN_STYLE = re.compile(r"\bA\.?\s?C\.?\s?N\.?\s*\d", re.IGNORECASE)
 # One edge per provider and statement: the strongest method wins.
 _RANK = {
     "reporting_entity_abn_equals_provider_abn": 0,
@@ -374,16 +396,27 @@ def _excluded(profile: dict) -> bool:
     ).strip().lower() == "true"
 
 
-def _shown_name(name: str | None) -> str | None:
-    """An MSR entity name, or WITHHELD when it reads as a person's name.
+def is_organisation_name(name: str | None) -> bool:
+    """True only when a name is positively classed as an organisation. Fails closed.
 
-    MSR names are entities named in a statement under the Act, so a name the classifier cannot
-    place ('unknown', for example a university or a school) is shown. A name that reads as a
-    person ('likely_individual') is always withheld, even though most are organisations.
+    An organisation form from the project classifier (company, association, trust, cooperative,
+    government, church) qualifies. A name the classifier cannot place qualifies only when it
+    carries organisation wording (university, school, services and the like) or an ACN. A name
+    that reads as a person never qualifies.
     """
-    if not name:
+    if not name or not name.strip():
+        return False
+    form = classify_entity_form(name)
+    if form in ORGANISATION_FORMS:
+        return True
+    return form == "unknown" and bool(_ORG_WORDS.search(name) or _ACN_STYLE.search(name))
+
+
+def _shown_name(name: str | None) -> str | None:
+    """An MSR entity name if it is positively an organisation, else WITHHELD (None if blank)."""
+    if not name or not name.strip():
         return None
-    return WITHHELD if classify_entity_form(name) == "likely_individual" else name
+    return name if is_organisation_name(name) else WITHHELD
 
 
 class _Index:
@@ -441,11 +474,15 @@ def _statement_facts(statement: dict) -> dict:
 
 
 def _name_abn_map(statements: list[dict]) -> dict[str, str]:
-    """Normalised reporting-entity name -> ABN, where every statement giving one agrees."""
+    """Normalised reporting-entity name -> ABN, where every statement giving one agrees.
+
+    Only names positively classed as organisations take part, so a name that may be a person's
+    is never used to derive anything. The map is internal and never written out.
+    """
     seen: dict[str, set[str]] = defaultdict(set)
     for s in statements:
         for rep in (s.get("parsed") or {}).get("reporting", []):
-            if rep["abn"] and normalise(rep["name"]):
+            if rep["abn"] and normalise(rep["name"]) and is_organisation_name(rep["name"]):
                 seen[normalise(rep["name"])].add(rep["abn"])
     return {k: next(iter(v)) for k, v in seen.items() if len(v) == 1}
 
@@ -453,13 +490,13 @@ def _name_abn_map(statements: list[dict]) -> dict[str, str]:
 def _single_group(statement: dict, name_abn: dict[str, str]) -> dict:
     """Group key and name of a statement with exactly one reporting entity."""
     rep = statement["parsed"]["reporting"][0]
-    key = normalise(rep["name"])
+    key = normalise(rep["name"]) if is_organisation_name(rep["name"]) else None
     if rep["abn"]:
         group_key, source = rep["abn"], "abn_on_statement"
-    elif key in name_abn:
+    elif key and key in name_abn:
         group_key, source = name_abn[key], "abn_of_same_name_on_another_statement"
     else:
-        group_key, source = f"NAME:{key}", "name_only"
+        group_key, source = f"MSR-{statement['page_id']}", "statement_page_no_abn"
     return {
         "group_key": group_key,
         "group_key_source": source,
@@ -652,7 +689,10 @@ def build_layer(statements: list[dict], profiles: list[dict], abn_rows: list[dic
 # ---------------------------------------------------------------------------
 
 
-def _services(services: list[dict], prs: set[str]) -> int:
+def _services(services: list[dict] | None, prs: set[str]) -> int | None:
+    """Services held by the providers, or None when the services table is unavailable."""
+    if services is None:
+        return None
     return sum(1 for s in services if normalise_pr(s.get("provider_approval_number")) in prs)
 
 
@@ -683,7 +723,7 @@ def joint_manual_candidates(coreported: list[dict]) -> list[dict]:
 
 
 def summarise(
-    layer: dict, abn_rows: list[dict], services: list[dict], *, candidates_count: int
+    layer: dict, abn_rows: list[dict], services: list[dict] | None, *, candidates_count: int
 ) -> dict:
     edges, heads, coreported = layer["edges"], layer["heads"], layer["coreported"]
     relations, review, stats = layer["relations"], layer["review"], layer["stats"]
@@ -745,7 +785,8 @@ def summarise(
             },
             "priority_providers_total": len(priority),
             "priority_providers_with_abn": len(priority_with_abn),
-            "services_total": len(services),
+            "services_total": None if services is None else len(services),
+            "services_note": None if services is not None else SERVICES_MISSING_NOTE,
             "review_queue": len(review),
             "review_by_reason": dict(sorted(Counter(r["reason"] for r in review).items())),
             "matches_to_excluded_providers": stats.get("matches_to_excluded_providers", 0),
@@ -790,84 +831,143 @@ def _meta(path: Path) -> dict:
     return json.loads(meta.read_text(encoding="utf-8")) if meta.exists() else {}
 
 
-def acquire_csv(no_fetch: bool) -> tuple[Path, dict]:
-    """Newest privacy-filtered all-statements CSV snapshot, fetching a new one unless no_fetch."""
+def acquire_csv(no_fetch: bool) -> tuple[Path, dict] | None:
+    """Newest privacy-filtered all-statements CSV snapshot, fetching a new one unless no_fetch.
+
+    Returns None when no snapshot exists.
+    """
     if not no_fetch:
         page = fetch(RESOURCES_URL)
         write_snapshot(SOURCE_RESOURCES, page, "html")
         url = find_all_statements_link(page.text)
         if not url:
-            raise SystemExit("no all-statements CSV link on the MSR resources page")
-        got = fetch(url)
-        text, kept, dropped = privacy_filter_csv(got.content.decode("utf-8-sig"))
-        filtered = got
-        if dropped:
-            filtered = Fetched(**{**got.__dict__, "content": text.encode("utf-8")})
-        write_snapshot(
-            SOURCE_CSV,
-            filtered,
-            "csv",
-            extra_meta={
-                "source_sha256": got.sha256,
-                "source_bytes": len(got.content),
-                "columns_kept": kept,
-                "columns_dropped_for_privacy": dropped,
-            },
-        )
+            log.error("no all-statements CSV link on the MSR resources page")
+        else:
+            got = fetch(url)
+            text, kept, dropped = privacy_filter_csv(got.content.decode("utf-8-sig"))
+            filtered = got
+            if dropped:
+                filtered = Fetched(**{**got.__dict__, "content": text.encode("utf-8")})
+            write_snapshot(
+                SOURCE_CSV,
+                filtered,
+                "csv",
+                extra_meta={
+                    "source_sha256": got.sha256,
+                    "source_bytes": len(got.content),
+                    "columns_kept": kept,
+                    "columns_dropped_for_privacy": dropped,
+                },
+            )
     snaps = list_snapshots(SOURCE_CSV)
     if not snaps:
-        raise SystemExit("no MSR CSV snapshot: run without --no-fetch first")
+        return None
     return snaps[-1], _meta(snaps[-1])
 
 
-def acquire_page(statement: dict, no_fetch: bool, last: list[float]) -> tuple[Path | None, dict]:
-    """Newest snapshot of a statement page; fetched only when no local copy exists."""
+def acquire_page(
+    statement: dict, no_fetch: bool, last: list[float], *, refresh: bool = False
+) -> tuple[Path | None, dict]:
+    """Newest snapshot of a statement page.
+
+    A page is fetched when no local copy exists, or always with refresh. A fetch writes a new
+    timestamped snapshot beside the old ones; raw files are never overwritten.
+    """
     source = f"{SOURCE_PAGES}/{statement['page_id']}"
     snaps = list_snapshots(source)
-    if not snaps and not no_fetch:
+    if (refresh or not snaps) and not no_fetch:
         wait = PAGE_DELAY_SECONDS - (time.monotonic() - last[0])
         if wait > 0:
             time.sleep(wait)
-        got = fetch(statement["statement_url"])
-        last[0] = time.monotonic()
-        write_snapshot(source, got, "html")
+        try:
+            got = fetch(statement["statement_url"])
+        except Exception as exc:  # robots refusal or HTTP error: the page counts as missing
+            log.error("statement page %s not fetched: %s", statement["statement_url"], exc)
+        else:
+            write_snapshot(source, got, "html")
+        finally:
+            last[0] = time.monotonic()
         snaps = list_snapshots(source)
     if not snaps:
         return None, {}
     return snaps[-1], _meta(snaps[-1])
 
 
-def main(argv: list[str] | None = None) -> None:
+def _parse_page(path: Path) -> dict | None:
+    """Parsed page, or None when it cannot be read or names no reporting entity."""
+    try:
+        parsed = parse_statement_page(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        log.error("statement page %s unreadable: %s", path.name, exc)
+        return None
+    return parsed if parsed["reporting"] else None
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Exit 0 when complete, 2 when any candidate page is missing or unparseable (outputs left
+    unchanged), 1 when nothing is usable (no CSV snapshot, no candidate, or no page parsed)."""
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--no-fetch", action="store_true", help="use local snapshots only")
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="fetch every candidate page again, as a new snapshot beside the old ones",
+    )
     args = parser.parse_args(argv)
 
-    csv_path, csv_meta = acquire_csv(args.no_fetch)
+    got_csv = acquire_csv(args.no_fetch)
+    if got_csv is None:
+        log.error("no MSR CSV snapshot in data/raw/msr/all-statements/: nothing to build")
+        return 1
+    csv_path, csv_meta = got_csv
     statements = parse_statements_csv(csv_path.read_text(encoding="utf-8-sig"))
     abn_rows = _load_csv(PROVIDER_ABN_CSV)
     provider_abns = {r["abn"] for r in abn_rows if r.get("abn")}
     candidates = select_candidates(statements, provider_abns)
     log.info("%d statements, %d candidates", len(statements), len(candidates))
+    if not candidates:
+        log.error("no candidate statements: nothing to build")
+        return 1
 
     last = [0.0]
     page_paths: list[Path] = []
-    missing = []
+    missing: list[str] = []
+    unparseable: list[str] = []
     for s in candidates:
-        path, meta = acquire_page(s, args.no_fetch, last)
+        path, meta = acquire_page(s, args.no_fetch, last, refresh=args.refresh)
         if path is None:
-            missing.append(s["statement_id"])
+            missing.append(f"{s['statement_id']} ({s['statement_url']})")
+            continue
+        parsed = _parse_page(path)
+        if parsed is None:
+            unparseable.append(f"{s['statement_id']} ({path.as_posix()})")
             continue
         page_paths.append(path)
-        s["parsed"] = parse_statement_page(path.read_text(encoding="utf-8"))
+        s["parsed"] = parsed
         s["captured_at"] = meta.get("fetched_at")
         s["page_sha256"] = meta.get("sha256")
 
+    if not page_paths:
+        log.error("no candidate statement page could be read: nothing to build")
+        return 1
+    if missing or unparseable:
+        # A partial run must not replace the last good outputs (as in parse_nsw_enforcement.py).
+        log.error(
+            "run incomplete; data/processed/%s* left unchanged. Missing pages (%d): %s. "
+            "Unparseable pages (%d): %s",
+            EDGES_NAME,
+            len(missing),
+            "; ".join(missing) or "none",
+            len(unparseable),
+            "; ".join(unparseable) or "none",
+        )
+        return 2
+
     profiles = _load_csv(PROFILE_CSV)
-    parsed = [s for s in candidates if "parsed" in s]
-    layer = build_layer(parsed, profiles, abn_rows)
-    services = _load_csv(SERVICES_CSV) if SERVICES_CSV.exists() else []
-    if not services:
-        log.warning("no %s: service counts will be 0", SERVICES_CSV.name)
+    layer = build_layer(candidates, profiles, abn_rows)
+    services = _load_csv(SERVICES_CSV) if SERVICES_CSV.exists() else None
+    if services is None:
+        log.warning("%s missing: service counts are null (unknown)", SERVICES_CSV.name)
 
     raw_inputs = [csv_path, *page_paths, PROVIDER_ABN_CSV, PROFILE_CSV]
     local_only = (
@@ -882,7 +982,8 @@ def main(argv: list[str] | None = None) -> None:
         notes=EDGE_DEFINITION
         + " One row per provider and group, from the latest statement; statement_ids and "
         "statement_urls list every statement. group_key is the reporting entity's ABN "
-        "(group_key_source says where it came from) or NAME:<normalised name>." + local_only,
+        "(group_key_source says where it came from) or MSR-<statement page id> when no ABN is "
+        "known. No key is derived from a name." + local_only,
     )
     write_processed(
         HEADS_NAME,
@@ -905,11 +1006,11 @@ def main(argv: list[str] | None = None) -> None:
         raw_inputs=raw_inputs,
         notes="Possible links that did not meet the matching rule: ambiguous names, ABR or ABN "
         "disagreement, providers without a resolved ABN, corporate-suffix differences and "
-        "reporting entities matched by name only. Not evidence of ownership. MSR names that may "
-        f"be an individual's are shown as '{WITHHELD}'." + local_only,
+        "reporting entities matched by name only. Not evidence of ownership. MSR names not "
+        f"positively classed as an organisation are shown as '{WITHHELD}'." + local_only,
     )
     summary = summarise(layer, abn_rows, services, candidates_count=len(candidates))
-    summary["counts"]["candidate_pages_missing"] = len(missing)
+    summary["counts"]["candidate_pages_missing"] = 0
     summary["source"] = {
         "csv_url_pattern": f"{BASE_URL}/resources/all-statement-information_<date>.csv",
         "csv_fetched_at": csv_meta.get("fetched_at"),
@@ -929,20 +1030,19 @@ def main(argv: list[str] | None = None) -> None:
             "reporting_period": s["reporting_period"],
             "candidate_reason": s["candidate_reason"],
             "reporting_entities": [
-                {"name": _shown_name(r["name"]), "abn": r["abn"]}
-                for r in (s.get("parsed") or {}).get("reporting", [])
+                {"name": _shown_name(r["name"]), "abn": r["abn"]} for r in s["parsed"]["reporting"]
             ],
-            "included_entities": len((s.get("parsed") or {}).get("included", [])),
+            "included_entities": len(s["parsed"]["included"]),
         }
         for s in candidates
     ]
     summary["inputs"] = [
-        p.relative_to(PROJECT_ROOT).as_posix()
-        for p in (PROVIDER_ABN_CSV, PROFILE_CSV, SERVICES_CSV)
-    ] + [RAW_DIR.relative_to(PROJECT_ROOT).as_posix() + "/msr/ (local only)"]
+        f"data/processed/{p.name}" for p in (PROVIDER_ABN_CSV, PROFILE_CSV, SERVICES_CSV)
+    ] + ["data/raw/msr/ (local only)"]
     SUMMARY_JSON.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     log.info("summary: %s", json.dumps(summary["counts"]))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

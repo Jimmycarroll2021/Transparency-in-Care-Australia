@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 
 import pytest
 from scrapers import build_msr_group_edges as msr
@@ -507,6 +508,47 @@ def test_unplaceable_organisation_names_are_shown_person_like_names_are_not():
     assert msr._shown_name("Jane Example") == msr.WITHHELD
 
 
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Bilby Wombat",  # unclassified, no organisation wording
+        "Quoll",
+        "Jane Example",
+        "CAMPION HOUSE",  # reads as a person to the classifier
+        "",
+    ],
+)
+def test_shown_name_fails_closed(name):
+    # Codex round 1, finding 2: show only names positively classed as organisations.
+    assert msr._shown_name(name) in (msr.WITHHELD, None)
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Wattle Kids Pty Ltd",
+        "A.C.N. 078 042 378 Pty Ltd",
+        "Sunrise Property Trust",
+        "Coolabah Community Services Inc",
+        "WOMBAT UNIVERSITY",
+        "ST NUMBATS PRIMARY SCHOOL",
+        "BILBY EDUCATION HOLDINGS LLC",
+        "Diocese of Quokka",
+    ],
+)
+def test_shown_name_shows_positively_classified_organisations(name):
+    assert msr._shown_name(name) == name
+
+
+def test_provider_identity_kept_when_msr_name_is_withheld():
+    # Codex round 1, finding 2: provider_approval_number and the ACECQA legal name stay.
+    out = layer(stmt([PARENT], [("Bilby Wombat", "11000000002")]))
+    (e,) = out["edges"]
+    assert e["provider_approval_number"] == "PR-00000002"
+    assert e["provider_legal_name"] == "Wattle Kids Pty Ltd"
+    assert e["msr_entity_name"] == msr.WITHHELD
+
+
 # ---------------------------------------------------------------------------
 # Classification
 # ---------------------------------------------------------------------------
@@ -606,11 +648,25 @@ def test_group_key_borrowed_from_same_name_on_another_statement():
     assert e["statement_count"] == 2
 
 
-def test_group_key_falls_back_to_name_without_any_abn():
-    out = layer(stmt([{"name": "Parent Limited", "abn": None}], ["Wattle Kids Pty Ltd"]))
+def test_group_key_without_any_abn_uses_statement_page_not_name():
+    # Codex round 1, finding 1: no key or column is derived from an unmasked name.
+    out = layer(stmt([{"name": "Parent Limited", "abn": None}], ["Wattle Kids Pty Ltd"], page=777))
     (e,) = out["edges"]
-    assert e["group_key"] == "NAME:PARENT LTD"
-    assert e["group_key_source"] == "name_only"
+    assert e["group_key"] == "MSR-777"
+    assert e["group_key_source"] == "statement_page_no_abn"
+    assert "PARENT" not in e["group_key"]
+
+
+def test_person_like_reporting_entity_never_reaches_any_output():
+    # Codex round 1, finding 1: a reporting entity that may be a person leaves no trace,
+    # and its name is never used to borrow an ABN from another statement.
+    out = layer(
+        stmt([{"name": "Jane Example", "abn": None}], ["Wattle Kids Pty Ltd"], page=778),
+        stmt([{"name": "Jane Example", "abn": "77000000007"}], ["Wattle Kids Pty Ltd"], page=779),
+    )
+    assert "Jane Example" not in repr(out) and "JANE EXAMPLE" not in repr(out)
+    keys = {e["group_key"]: e["group_key_source"] for e in out["edges"]}
+    assert keys == {"MSR-778": "statement_page_no_abn", "77000000007": "abn_on_statement"}
 
 
 def test_other_statement_types_are_unclassified():
@@ -674,3 +730,293 @@ def test_summary_counts_each_class_separately():
     assert g["group_name"] == "KOOKABURRA LEARNING GROUP LIMITED"
     assert g["head_provider"] == "PR-00000001"
     assert len(s["joint_statements_for_manual_confirmation"]) == 1
+
+
+# ---------------------------------------------------------------------------
+# Normalisation of numbered entities
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "a,b",
+    [
+        ("Story House Early Learning No 1 Pty Ltd", "Story House Early Learning No 21 Pty Ltd"),
+        (
+            "Ramsay Bourne Acquisitions (No. 2) Pty Limited",
+            "Ramsay Bourne Acquisitions (No.1) Pty Limited",
+        ),
+    ],
+)
+def test_normalise_keeps_numbered_entities_apart(a, b):
+    assert msr.normalise(a) != msr.normalise(b)
+    assert msr.loose_key(a) != msr.loose_key(b)
+
+
+def test_numbered_entity_never_matches_another_number():
+    profiles = PROFILES + [
+        {
+            "provider_approval_number": "PR-00000021",
+            "legal_name": "Story House Early Learning No 21 Pty Ltd",
+            "entity_form": "company",
+            "name_withheld": "false",
+        },
+    ]
+    abn_rows = ABN_ROWS + [
+        {
+            "provider_approval_number": "PR-00000021",
+            "legal_name": "Story House Early Learning No 21 Pty Ltd",
+            "abn": "21000000021",
+            "abr_entity_name": "STORY HOUSE EARLY LEARNING NO 21 PTY LTD",
+            "entity_type_code": "PRV",
+            "match_kind": "accepted_unique",
+        },
+    ]
+    out = msr.build_layer(
+        [stmt([PARENT], ["Story House Early Learning No 1 Pty Ltd"])], profiles, abn_rows
+    )
+    assert out["edges"] == [] and out["review"] == []
+
+
+# ---------------------------------------------------------------------------
+# Main: exit codes, outputs on disk, services, refresh
+# ---------------------------------------------------------------------------
+
+SENTINEL = "SENTINEL FULL STATEMENT TEXT THAT MUST NEVER BE COPIED"
+
+
+def _write_csv(path, rows, fields):
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.DictWriter(fh, fieldnames=fields)
+        w.writeheader()
+        for r in rows:
+            w.writerow({k: r.get(k, "") for k in fields})
+
+
+@pytest.fixture
+def env(tmp_path, monkeypatch):
+    """A tmp raw dir with one CSV snapshot and two statement pages, and tmp processed inputs."""
+    from scrapers import common
+
+    raw = tmp_path / "raw"
+    rows = [
+        csv_row(
+            "2024-501", "501", "KOOKABURRA LEARNING GROUP LIMITED (11 000 000 001)", "11000000001"
+        ),
+        csv_row(
+            "2024-502",
+            "502",
+            "PARENT LTD (99 000 000 009), BANKSIA EARLY YEARS PTY LTD (11 000 000 003)",
+            "99000000009, 11000000003",
+            type_="Joint",
+        ),
+    ]
+    (raw / "msr" / "all-statements").mkdir(parents=True)
+    (raw / "msr" / "all-statements" / "2026-01-01T0000Z.csv").write_text(
+        csv_text(rows), encoding="utf-8"
+    )
+    pages = {
+        "501": statement_page(
+            [("KOOKABURRA LEARNING GROUP LIMITED", "11000000001")],
+            ["Wattle Kids Pty Ltd", "Gumnut Care Pty Ltd", "Grevillea Kindergarten"],
+        ),
+        "502": statement_page(
+            [("PARENT LTD", "99000000009"), ("BANKSIA EARLY YEARS PTY LTD", "11000000003")],
+            ["Lilly Pilly Childcare Pty Ltd"],
+        ),
+    }
+    for pid, html in pages.items():
+        d = raw / "msr" / "statements" / pid
+        d.mkdir(parents=True)
+        html = html.replace("</body>", f"<p>{SENTINEL}</p></body>")
+        (d / "2026-01-01T0000Z.html").write_text(html, encoding="utf-8")
+    proc = tmp_path / "processed"
+    proc.mkdir()
+    _write_csv(
+        proc / "provider-profile.csv",
+        PROFILES,
+        ["provider_approval_number", "legal_name", "entity_form", "name_withheld"],
+    )
+    _write_csv(
+        proc / "provider-abn.csv",
+        ABN_ROWS,
+        [
+            "provider_approval_number",
+            "legal_name",
+            "abn",
+            "abr_entity_name",
+            "entity_type_code",
+            "match_kind",
+        ],
+    )
+    _write_csv(
+        proc / "acecqa-services-latest.csv",
+        [{"provider_approval_number": "PR-00000002"}],
+        ["provider_approval_number"],
+    )
+    written: dict = {}
+
+    def fake_write_processed(name, rows, fieldnames, **kwargs):
+        written[name] = {"rows": rows, "fieldnames": fieldnames, "notes": kwargs.get("notes")}
+
+    def fake_write_snapshot(source, fetched, ext, **kwargs):
+        return common.write_snapshot(source, fetched, ext, base_dir=raw, **kwargs)
+
+    monkeypatch.setattr(
+        msr, "list_snapshots", lambda source: common.list_snapshots(source, base_dir=raw)
+    )
+    monkeypatch.setattr(msr, "write_snapshot", fake_write_snapshot)
+    monkeypatch.setattr(common, "PROJECT_ROOT", tmp_path)  # write_snapshot logs a relative path
+    monkeypatch.setattr(msr, "write_processed", fake_write_processed)
+    monkeypatch.setattr(msr, "PROFILE_CSV", proc / "provider-profile.csv")
+    monkeypatch.setattr(msr, "PROVIDER_ABN_CSV", proc / "provider-abn.csv")
+    monkeypatch.setattr(msr, "SERVICES_CSV", proc / "acecqa-services-latest.csv")
+    monkeypatch.setattr(msr, "SUMMARY_JSON", proc / "summary.json")
+    return {"raw": raw, "proc": proc, "written": written}
+
+
+def _summary(env):
+    return json.loads((env["proc"] / "summary.json").read_text(encoding="utf-8"))
+
+
+def test_main_exit_0_when_complete(env):
+    assert msr.main(["--no-fetch"]) == 0
+    assert set(env["written"]) == {
+        msr.EDGES_NAME,
+        msr.HEADS_NAME,
+        msr.COREPORTED_NAME,
+        msr.REVIEW_NAME,
+    }
+    assert (env["proc"] / "summary.json").exists()
+
+
+def test_main_edges_file_holds_only_controlled_entities(env):
+    # A joint relation, a fuzzy match and an ambiguous match can never reach the edges file.
+    assert msr.main(["--no-fetch"]) == 0
+    edges = env["written"][msr.EDGES_NAME]["rows"]
+    assert [e["provider_approval_number"] for e in edges] == ["PR-00000002"]
+    assert {e["relation"] for e in edges} == {msr.CONTROLLED}
+    joint = env["written"][msr.COREPORTED_NAME]["rows"]
+    assert {r["provider_approval_number"] for r in joint} == {"PR-00000003"}
+    reasons = {r["reason"] for r in env["written"][msr.REVIEW_NAME]["rows"]}
+    assert {"ambiguous_matches_several_providers", "fuzzy_corporate_suffix_differs"} <= reasons
+    for pr in ("PR-00000003", "PR-00000004", "PR-00000005", "PR-00000009"):
+        assert pr not in repr(edges)
+
+
+def test_main_outputs_contain_no_raw_statement_text(env):
+    assert msr.main(["--no-fetch"]) == 0
+    blob = repr(env["written"]) + (env["proc"] / "summary.json").read_text(encoding="utf-8")
+    assert SENTINEL not in blob
+    assert "<div" not in blob and "statement-entity" not in blob
+
+
+def test_main_exit_2_and_no_writes_when_a_page_is_missing(env):
+    for f in (env["raw"] / "msr" / "statements" / "502").iterdir():
+        f.unlink()
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+    assert not (env["proc"] / "summary.json").exists()
+
+
+def test_main_exit_2_when_a_page_is_unparseable(env):
+    (env["raw"] / "msr" / "statements" / "502" / "2026-01-01T0000Z.html").write_text(
+        "<html><body>maintenance page</body></html>", encoding="utf-8"
+    )
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+    assert not (env["proc"] / "summary.json").exists()
+
+
+def test_main_exit_1_when_no_page_is_usable(env):
+    for pid in ("501", "502"):
+        for f in (env["raw"] / "msr" / "statements" / pid).iterdir():
+            f.unlink()
+    assert msr.main(["--no-fetch"]) == 1
+    assert env["written"] == {}
+
+
+def test_main_exit_1_when_no_csv_snapshot(env):
+    for f in (env["raw"] / "msr" / "all-statements").iterdir():
+        f.unlink()
+    assert msr.main(["--no-fetch"]) == 1
+    assert env["written"] == {}
+
+
+def test_main_missing_services_is_null_not_zero(env):
+    (env["proc"] / "acecqa-services-latest.csv").unlink()
+    assert msr.main(["--no-fetch"]) == 0
+    s = _summary(env)
+    c = s["counts"]
+    assert c["services_total"] is None
+    assert c["controlled_entity_of"]["services_of_those_providers"] is None
+    assert c["group_parent_self_not_ownership_edges"]["services_of_those_providers"] is None
+    assert "acecqa-services-latest.csv" in c["services_note"]
+    assert all(g["services_of_controlled_providers"] is None for g in s["groups"])
+
+
+def test_main_services_present_are_counted(env):
+    assert msr.main(["--no-fetch"]) == 0
+    c = _summary(env)["counts"]
+    assert c["services_total"] == 1
+    assert c["controlled_entity_of"]["services_of_those_providers"] == 1
+    assert c["services_note"] is None
+
+
+def _fake_fetch(calls):
+    from scrapers.common import Fetched
+
+    def fake(url, **kwargs):
+        calls.append(url)
+        page = statement_page(
+            [("KOOKABURRA LEARNING GROUP LIMITED", "11000000001")], ["Wattle Kids Pty Ltd"]
+        )
+        return Fetched(
+            url=url,
+            final_url=url,
+            status=200,
+            content=page.encode("utf-8"),
+            content_type="text/html",
+            last_modified=None,
+            etag=None,
+            fetched_at="2026-10-31T01:00:00+00:00",
+        )
+
+    return fake
+
+
+def test_refresh_takes_a_new_snapshot_alongside_the_old(env, monkeypatch):
+    calls: list = []
+    monkeypatch.setattr(msr, "fetch", _fake_fetch(calls))
+    monkeypatch.setattr(msr, "PAGE_DELAY_SECONDS", 0.0)
+    page_dir = env["raw"] / "msr" / "statements" / "501"
+    (old,) = list(page_dir.iterdir())
+    old_bytes = old.read_bytes()
+    s = {"page_id": "501", "statement_url": "https://modernslaveryregister.gov.au/statements/501/"}
+    path, _ = msr.acquire_page(s, False, [0.0], refresh=True)
+    snaps = sorted(p for p in page_dir.iterdir() if not p.name.endswith(".meta.json"))
+    assert calls == [s["statement_url"]]
+    assert len(snaps) == 2 and old in snaps
+    assert old.read_bytes() == old_bytes  # never overwritten
+    assert path != old and path in snaps
+
+
+def test_without_refresh_an_existing_snapshot_is_reused(env, monkeypatch):
+    calls: list = []
+    monkeypatch.setattr(msr, "fetch", _fake_fetch(calls))
+    s = {"page_id": "501", "statement_url": "https://modernslaveryregister.gov.au/statements/501/"}
+    path, _ = msr.acquire_page(s, False, [0.0])
+    assert calls == []
+    assert path.name == "2026-01-01T0000Z.html"
+
+
+def test_committed_msr_outputs_hold_no_raw_html():
+    from scrapers.common import PROCESSED_DIR
+
+    names = [msr.EDGES_NAME, msr.HEADS_NAME, msr.COREPORTED_NAME, msr.REVIEW_NAME]
+    paths = [PROCESSED_DIR / f"{n}.csv" for n in names] + [msr.SUMMARY_JSON]
+    present = [p for p in paths if p.exists()]
+    if not present:
+        pytest.skip("no MSR outputs built")
+    for p in present:
+        text = p.read_text(encoding="utf-8")
+        assert "<div" not in text and "<p>" not in text and "statement-entity" not in text
