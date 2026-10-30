@@ -27,3 +27,7 @@ data/processed/acecqa-providers-latest.csv
 # ABN Lookup responses: local cache only. Candidate lists can contain individuals' names
 # (CLAUDE.md rule 2), so they never reach the public repo. Processed outputs carry the sha256.
 data/raw/abr-lookup/
+
+# Modern Slavery Register snapshots: licence unclear ("Copyright Attorney-General's Department"),
+# so raw files and their sidecars stay local. Only derived facts in data/processed/ are committed.
+data/raw/msr/
