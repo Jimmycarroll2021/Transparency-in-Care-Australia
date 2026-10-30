@@ -146,10 +146,14 @@ def test_action_type_mapping():
 
 
 def test_personal_names_removed_and_counted():
+    # Codex round 2, finding 1: the shared fail-closed prose rule replaces the honorific-only
+    # stripper. A reason that may name a person is withheld whole, not partly redacted.
     second = org_rows()[1]
-    assert "Mary Example" not in second["reason"]
-    assert "[name removed]" in second["reason"]
-    assert "1 personal name" in second["notes"]
+    assert second["provider_name"] == "Example Care Pty Ltd"
+    assert second["reason"] is None
+    assert "Mary" not in str(second)
+    assert "free text withheld: may name an individual" in second["notes"]
+    assert not hasattr(vecra, "strip_personal_names")
 
 
 def test_individual_provider_name_withheld():

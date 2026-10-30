@@ -46,6 +46,7 @@ from scrapers.common import (
     normalise_se,
     printed_fingerprint,
     withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
     write_snapshot,
 )
@@ -262,6 +263,7 @@ def parse_page(
             withhold_free_text(row, tuple(withheld_markers))
         rows.append(row)
 
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     assign_record_ids(rows, source_id=page_url)
     return rows
 

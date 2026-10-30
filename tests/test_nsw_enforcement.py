@@ -864,3 +864,33 @@ def test_suspension_period_with_to_and_survives_withholding():
 def test_no_printed_period_means_null_dates():
     row = _withheld_nsw()
     assert row["start_date"] is None and row["end_date"] is None
+
+
+def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
+    # Codex round 2, finding 1: the shared prose rule runs on every row, not only withheld ones.
+    from scrapers.common import withhold_prose_naming_people
+
+    row = make_row(
+        make_raw(
+            id="PR-40000001",
+            name="Example Kids Pty Ltd",
+            date="4/07/2025",
+            nature="Compliance notice",
+            details="Notice issued after educator Jane Example left a child alone",
+            reason="Educator Jane Example failed to supervise children. Regulation 168",
+        ),
+        label="2025-26 Q1",
+    )
+    withhold_prose_naming_people([row])
+    assert row["provider_name"] == "Example Kids Pty Ltd"
+    assert row["reason"] is None and row["_details"] is None
+    assert "free text withheld: may name an individual" in row["notes"]
+    assert "jane" not in str({k: v for k, v in row.items() if k != "_fingerprint"}).lower()
+
+
+def test_snapshot_parsing_applies_the_prose_rule():
+    import inspect
+
+    from scrapers import parse_nsw_enforcement as nsw_mod
+
+    assert "withhold_prose_naming_people(file_rows)" in inspect.getsource(nsw_mod._parse_snapshot)

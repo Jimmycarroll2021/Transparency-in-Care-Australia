@@ -470,3 +470,21 @@ def test_structured_columns_in_fieldnames_and_schema():
         assert key in props
     for key in ("end_date", "date_charged", "date_of_sentence"):
         assert props[key]["pattern"] == props["date_issued"]["pattern"]
+
+
+def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
+    # Codex round 2, finding 1: the shared prose rule runs on every row, not only withheld ones.
+    named = entry(
+        "Riverbend Early Learning Centre",
+        "Riverbend Kids Pty Ltd",
+        "Gayndah, queensland",
+        "Centre Based Day Care",
+        "Sanction under section 197H - Cancellation of Provider Approval",
+        "Educator Jane Example failed to meet Section 195H requirements.",
+        "22 April 2025",
+    )
+    r = rows(page(named))[0]
+    assert r["provider_name"] == "Riverbend Kids Pty Ltd"
+    assert r["reason"] is None
+    assert "free text withheld: may name an individual" in r["notes"]
+    assert "Jane" not in json.dumps(r)

@@ -52,6 +52,7 @@ from scrapers.common import (
     printed_fingerprint,
     utc_now,
     withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
 )
 from scrapers.profile_providers import classify_entity_form, name_is_withheld
@@ -414,6 +415,7 @@ def parse_wa_html_table(html_content: str, source_snapshot: str, captured_at: st
             withhold_free_text(row, (INDIVIDUAL_NOTE,))
         rows.append(row)
 
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     assign_record_ids(rows)
     return rows
 

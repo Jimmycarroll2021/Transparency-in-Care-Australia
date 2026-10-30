@@ -69,6 +69,7 @@ from scrapers.common import (
     log,
     printed_fingerprint,
     withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
 )
 from scrapers.parse_qld_enforcement import clean
@@ -595,6 +596,7 @@ def parse_page(
         row["source_snapshot"] = source_snapshot
         rows.append(row)
     mark_duplicates(rows)
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     assign_record_ids(rows, source_id=page_url)
     return rows
 

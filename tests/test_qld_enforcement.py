@@ -412,3 +412,21 @@ def test_fine_amount_is_null_when_not_one_printed_amount():
     assert extract_fine_amount("Fined $8,000 and $2,000 in costs") is None
     assert extract_fine_amount("Compliance notice") is None
     assert extract_fine_amount(None) is None
+
+
+def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
+    # Codex round 2, finding 1: the shared prose rule runs on every row, not only withheld ones.
+    html = PRIVACY_FIXTURE.replace(
+        '<a href="/docs/v.pdf">Compliance notice</a></td><td>N/A</td>',
+        '<a href="/docs/v.pdf">Compliance notice</a></td><td>NL s.165 Offence by Jane Example</td>',
+    )
+    rows = {
+        x["date_issued_raw"]: x
+        for x in parse_register(
+            html, page_url=INDEX_URL, captured_at="2026-10-29T07:00:00+00:00", source_snapshot="x"
+        )
+    }
+    r = rows["06/02/2026"]
+    assert r["provider_name"] is not None
+    assert "free text withheld: may name an individual" in r["notes"]
+    assert "jane" not in _text_blob(r)

@@ -38,6 +38,7 @@ from scrapers.common import (
     normalise_se,
     printed_fingerprint,
     withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
     write_snapshot,
 )
@@ -775,6 +776,7 @@ def _parse_snapshot(path: Path, root: Path, summary: dict) -> list[dict] | None:
     rel = snapshot_rel_path(path, root=root)
     file_rows = [build_row(r, meta=meta, snapshot_rel=rel, period_label=label) for r in raws]
     summary["duplicates"] += mark_duplicates(file_rows)
+    withhold_prose_naming_people(file_rows)  # shared prose rule, every row
     assign_record_ids(file_rows)
     summary["by_file"][path.name] = {"rows": len(file_rows), **stats}
     log.info("parsed %s: %d rows %s", path.name, len(file_rows), stats)

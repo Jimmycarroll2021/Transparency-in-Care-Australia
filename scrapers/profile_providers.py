@@ -356,6 +356,106 @@ def name_is_withheld(
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Prose rule (Codex round 2, finding 1): one fail-closed person detector for free text.
+# ---------------------------------------------------------------------------
+
+# Capitalised words common in regulator prose, plus calendar, place-type and function words.
+# They break a run of capitalised words. Any other run of two or more capitalised words, or an
+# honorific in front of a word, is treated as a possible personal name: the rule over-withholds
+# rather than miss a name. A surname printed alone is not caught (see the PR's remaining risks).
+_PROSE_STOPWORDS = (
+    frozenset(
+        """
+        a an the and or of for to by at with from as on in into is was were be been this that
+        these those it its their there which who whom whose under over after before during per
+        via not no nor all any each other such same than then if but also has have had our we
+        you he she they his her him please note see refer
+        national law laws regulation regulations reg regs section sections s act acts rule rules
+        part division schedule clause item items
+        notice notices compliance direction directions emergency action actions enforcement
+        enforceable undertaking undertakings prosecution court courts magistrates magistrate
+        local district supreme federal tribunal state administrative department regulatory
+        authority authorities approved provider providers approval approvals service services
+        nominated supervisor supervisors responsible person persons educator educators family day
+        care child children childrens early childhood quality framework standard standards nqs
+        nqf board education secretary registrar delegate minister ministers officer officers
+        authorised authorized commonwealth government public benefit disciplinary proceedings
+        proceeding conditions condition imposed suspension suspended cancellation cancelled
+        cancel immediate meeting worker workers assistance tax system practice corporations
+        associations incorporations medical subsidy safe safety protection police inappropriate
+        risk assessment record records register registered what constitutes outside hours based
+        primary high secondary centre center offence offences fine fined penalty
+        new south north east west southern northern eastern western central upper lower greater
+        inner outer wa nsw vic qld sa tas nt australia australian victoria queensland tasmania
+        territory capital wales
+        street st road rd avenue ave drive dr close cl way terrace tce parade pde boulevard bvd
+        blvd crescent cres cr lane ln highway hwy place pl circuit cct court ct grove gr square
+        sq esplanade esp walk loop rise ridge vista mall arcade corner cnr shop unit level suite
+        po box lot entrance gardens park reserve
+        january february march april may june july august september october november december
+        jan feb mar apr jun jul aug sep sept oct nov dec monday tuesday wednesday thursday
+        friday saturday sunday
+        inc ltd pty limited incorporated
+        """.split()
+    )
+    | _BUSINESS_WORDS
+)
+_PROSE_EDGE = ".,;:()[]{}<>\"'\u2018\u2019\u201c\u201d!?*"
+
+
+def _prose_key(core: str) -> str:
+    key = core.lower().replace("\u2019", "'")
+    return key[:-2] if key.endswith("'s") else key
+
+
+def _prose_runs(text: str) -> list[list[str]]:
+    """Runs of capitalised, non-stopword words, broken by punctuation, digits or stopwords.
+    Lower-case name particles ('de', 'van') and initials ('Q.') continue a run."""
+    runs: list[list[str]] = []
+    cur: list[str] = []
+    for word in text.split():
+        core = word.strip(_PROSE_EDGE)
+        key = _prose_key(core)
+        is_name = (
+            bool(core)
+            and core[0].isalpha()
+            and core[0].isupper()
+            and not any(ch.isdigit() for ch in core)
+            and key not in _PROSE_STOPWORDS
+        )
+        if is_name:
+            cur.append(core)
+            if len(core) == 1 and word.endswith("."):
+                continue  # an initial
+        elif cur and key in _PERSON_PARTICLES:
+            continue
+        if not is_name or word[-1] in ",;:)!?" or (word.endswith(".") and len(core) > 1):
+            if len(cur) >= 2:
+                runs.append(cur)
+            cur = []
+    if len(cur) >= 2:
+        runs.append(cur)
+    return runs
+
+
+def prose_may_name_person(text: str | None, known: tuple[str | None, ...] = ()) -> bool:
+    """True when free text may name a person. Fail closed.
+
+    Text already published for the row in a structured column (its service name, an
+    organisation's provider name, its suburb) is removed first, so that it is not mistaken for
+    a person. Then an honorific in front of a word, or a run of two or more capitalised words
+    that are not common regulator, place or calendar words, counts as a possible name."""
+    if not text:
+        return False
+    for k in known:
+        if k and len(k.strip()) > 3:
+            text = re.sub(re.escape(k.strip()), " ", text, flags=re.IGNORECASE)
+    if _TITLE.search(text):
+        return True
+    return bool(_prose_runs(text))
+
+
 def _read(path: Path) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as fh:
         return list(csv.DictReader(fh))

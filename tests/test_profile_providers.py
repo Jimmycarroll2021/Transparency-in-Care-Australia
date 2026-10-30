@@ -420,3 +420,44 @@ def test_build_profile_uses_abr_entity_type_as_evidence(tmp_path, monkeypatch):
 def test_person_signal_beats_company_and_trust_evidence(name):
     assert pp.name_is_withheld(name) is True
     assert pp.name_is_withheld(name, abr_entity_type="PRV") is True
+
+
+# --- Codex round 2, finding 1: one fail-closed person detector for prose. Synthetic names. ---
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Ms Jane Example breached section 165.",
+        "The educator Jane Example left children unsupervised.",
+        "Notice issued to JANE EXAMPLE on site.",
+        "Signed by Jane Q. Example for the provider.",
+        "Educator Maria de Example was excluded.",
+        "Zo\u00eb Ex\u00e4mple failed to supervise.",
+        "Dr Example attended.",
+    ],
+)
+def test_prose_may_name_person_flags_possible_names(text):
+    assert pp.prose_may_name_person(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        None,
+        "",
+        "Section 165 of the National Law - Offence to inadequately supervise children",
+        "Compliance notice issued under section 177 of the Education and Care Services National Law",
+        "Regulation 103 - Premises, furniture and equipment to be safe, clean and in good repair",
+        "Emergency Action Notice issued on 19 May 2025",
+        "Direction to exclude inappropriate person from the education and care service premises",
+    ],
+)
+def test_prose_may_name_person_passes_regulatory_text(text):
+    assert not pp.prose_may_name_person(text)
+
+
+def test_prose_may_name_person_ignores_names_already_published_for_the_row():
+    text = "Sunny Meadow Early Learning failed to notify the Regulatory Authority."
+    assert pp.prose_may_name_person("Sunny Meadow failed to notify the Regulatory Authority.")
+    assert not pp.prose_may_name_person(text, known=("Sunny Meadow Early Learning",))

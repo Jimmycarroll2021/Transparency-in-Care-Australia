@@ -47,6 +47,7 @@ from scrapers.common import (
     printed_fingerprint,
     utc_stamp,
     withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
 )
 from scrapers.profile_providers import name_is_withheld
@@ -297,9 +298,6 @@ ENTITY_MARKER = re.compile(
     r"limited partnership|ymca|ywca|shire|city of|trustee)\b",
     re.IGNORECASE,
 )
-HONORIFIC_NAME = re.compile(
-    r"\b(?:Mr|Mrs|Ms|Miss|Mx|Dr|Prof)\.?\s+[A-Z][A-Za-z'’-]+(?:\s+[A-Z][A-Za-z'’-]+){0,2}"
-)
 PERSON_LABELS = re.compile(
     r"nominated supervisor|educator name|person|individual|staff member|volunteer|"
     r"responsible person|certified supervisor|name of",
@@ -391,14 +389,6 @@ def extract_legal_references(text: str | None) -> list[str]:
     return refs
 
 
-def strip_personal_names(text: str | None) -> tuple[str | None, int]:
-    """Replace titled personal names (for example 'Ms Jane Citizen') and count removals."""
-    if not text:
-        return text, 0
-    cleaned, n = HONORIFIC_NAME.subn("[name removed]", text)
-    return cleaned, n
-
-
 def reason_text(cell: Tag) -> str | None:
     """Reason cell as one line: intro sentence, then list items separated by '; '."""
     lines = cell_lines(cell)
@@ -485,13 +475,12 @@ def parse_actions(
         info = parse_details_cell(cells[0])
         action_raw = clean(cells[1].get_text(" "))
         reason = reason_text(cells[2])
-        reason, names_in_reason = strip_personal_names(reason)
         date_raw = clean(cells[3].get_text(" ")) or None
         date_iso = parse_date(date_raw)
         refs = extract_legal_references(reason)
 
         notes: list[str] = []
-        stripped = info.pop("dropped_person_fields") + names_in_reason
+        stripped = info.pop("dropped_person_fields")
         if stripped:
             notes.append(f"{stripped} personal name or person field(s) removed at ingest")
         if info["service_approval_number"] is None:
@@ -542,6 +531,7 @@ def parse_actions(
         if withheld_marker:
             withhold_free_text(row, (withheld_marker,))
         rows.append(row)
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     assign_record_ids(rows)
     return rows
 

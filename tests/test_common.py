@@ -157,3 +157,69 @@ def test_record_id_uses_the_given_source_id_over_the_row_document():
     common.assign_record_ids([a], source_id="https://example.gov.au/register")
     common.assign_record_ids([b], source_id="https://example.gov.au/register")
     assert a["record_id"] == b["record_id"]
+
+
+# --- Codex round 2, finding 1: the prose rule nulls any field that may name a person --------
+
+PROSE_NOTE = "free text withheld: may name an individual"
+
+
+def _org_row(**over):
+    row = {
+        "service_name": "Sunny Meadow Early Learning",
+        "provider_name": "Example Kids Pty Ltd",
+        "suburb": "Exampleton",
+        "action_type_raw": "Compliance notice issued under section 177",
+        "reason": "Section 165 - inadequate supervision",
+        "legal_references": ["Section 165"],
+        "notes": "location as printed: 1 Example St; duplicate row in source",
+        "address": "1 Example St",
+    }
+    row.update(over)
+    return row
+
+
+def test_prose_rule_leaves_clean_rows_untouched():
+    row = _org_row()
+    before = dict(row)
+    assert common.withhold_prose_naming_people([row]) == {}
+    assert row == before
+
+
+def test_prose_rule_nulls_flagged_fields_and_adds_the_fixed_note_once():
+    assert common.PROSE_WITHHELD_NOTE == PROSE_NOTE
+    row = _org_row(
+        action_type_raw="Notice issued to educator Jane Example",
+        reason="Jane Example left children unsupervised",
+        legal_references=["Section 165", "Offence by Jane Example"],
+        notes="charge: Ms Jane Example; duplicate row in source",
+    )
+    counts = common.withhold_prose_naming_people([row])
+    assert counts == {"action_type_raw": 1, "reason": 1, "legal_references": 1, "notes": 1}
+    assert row["action_type_raw"] == common.ACTION_TYPE_RAW_WITHHELD
+    assert row["reason"] is None
+    assert row["legal_references"] == ["Section 165"]
+    assert row["notes"] == f"duplicate row in source; {PROSE_NOTE}"
+    assert "Jane" not in str(row)
+    assert row["service_name"] == "Sunny Meadow Early Learning"
+    assert row["address"] == "1 Example St"
+
+
+def test_prose_rule_handles_string_legal_references_and_pipe_notes():
+    a = _org_row(
+        legal_references='["Section 165", "Offence by Jane Example"]',
+        notes="x | Jane Example said",
+    )
+    b = _org_row(
+        legal_references="Section 165; Offence by Jane Example", details="Jane Example agreed"
+    )
+    common.withhold_prose_naming_people([a, b])
+    assert a["legal_references"] == '["Section 165"]'
+    assert a["notes"] == f"x | {PROSE_NOTE}"
+    assert b["legal_references"] == "Section 165"
+    assert b["details"] is None and PROSE_NOTE in b["notes"]
+
+
+def test_prose_rule_skips_rows_already_withheld_whole():
+    row = _org_row(action_type_raw="(withheld)", reason=None, notes=common.FREE_TEXT_WITHHELD_NOTE)
+    assert common.withhold_prose_naming_people([row]) == {}

@@ -406,3 +406,18 @@ def test_date_range_end_is_kept_and_survives_withholding():
 def test_single_date_means_null_end_date():
     assert _range_rows("30/10/15")["end_date"] is None
     assert by_service(rows_for(OLD_FIXTURE), "Cobbler Creek")["end_date"] is None
+
+
+def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
+    # Codex round 2, finding 1: the shared rule replaces the honorific-only stripper, so a name
+    # without an honorific is caught too.
+    html = CURRENT_FIXTURE.replace("Repair the fence.", "Jane Example to repair the fence.")
+    html = html.replace(
+        "Regulation 103 - Premises to be safe",
+        "Regulation 103 - Premises to be safe, per Ms Jane Example",
+    )
+    row = by_service(rows_for(html), "Happy Haven")
+    assert row["provider_name"] is not None
+    assert "free text withheld: may name an individual" in row["notes"]
+    assert "Jane" not in json.dumps(row)
+    assert not hasattr(sa, "strip_personal_names")

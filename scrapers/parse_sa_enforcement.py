@@ -52,6 +52,7 @@ from scrapers.common import (
     printed_fingerprint,
     utc_stamp,
     withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
 )
 from scrapers.profile_providers import name_is_withheld
@@ -463,9 +464,6 @@ ENTITY_MARKER = re.compile(
     r"partnership|nominees|holdings|enterprises|atf|oshc)\b",
     re.IGNORECASE,
 )
-HONORIFIC_NAME = re.compile(
-    r"\b(?:Mr|Mrs|Ms|Miss|Mx|Dr|Prof)\.?\s+[A-Z][A-Za-z'’-]+(?:\s+[A-Z][A-Za-z'’-]+){0,2}"
-)
 LEGAL_REF = re.compile(
     r"\b(?:Sections?|Regulations?|Reg|ss?\.?)\s*\d+[A-Z]*(?:\s*\([A-Za-z0-9]+\))*",
     re.IGNORECASE,
@@ -568,13 +566,6 @@ def extract_legal_references(*texts: str | None) -> list[str]:
             if ref.casefold() not in {r.casefold() for r in refs}:
                 refs.append(ref)
     return refs
-
-
-def strip_personal_names(text: str | None) -> tuple[str | None, int]:
-    if not text:
-        return text, 0
-    cleaned, n = HONORIFIC_NAME.subn("[name removed]", text)
-    return cleaned, n
 
 
 def map_action_type(raw: str) -> str:
@@ -761,10 +752,8 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
     if kept:
         head, rest = kept[0], [x.lstrip("• ").strip() for x in kept[1:] if x.strip()]
         reason = f"{head} " + "; ".join(rest) if rest else head
-    reason, n_names = strip_personal_names(reason)
-    outcome, n_names_out = strip_personal_names(" ".join(outcome_lines) or None)
-    if n_names + n_names_out:
-        notes.append(f"{n_names + n_names_out} personal name(s) removed at ingest")
+    # Names in the reason or outcome are handled by the shared prose rule in parse_actions.
+    outcome = " ".join(outcome_lines) or None
     if outcome:
         short = outcome if len(outcome) <= 240 else outcome[:240].rsplit(" ", 1)[0] + " ..."
         notes.append(f"outcome printed: {short}")
@@ -920,6 +909,7 @@ def parse_actions(
         if withheld_markers:
             withhold_free_text(row, tuple(withheld_markers))
         rows.append(row)
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     assign_record_ids(rows)
     return rows
 

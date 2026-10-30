@@ -53,6 +53,7 @@ from scrapers.common import (
     normalise_se,
     printed_fingerprint,
     withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
     write_snapshot,
 )
@@ -442,6 +443,7 @@ def parse_register(
             if seen[row["_fingerprint"]] > 1:
                 row["notes"] += "; duplicate row: another row prints the same text"
             rows.append(row)
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     assign_record_ids(rows, source_id=page_url)
     return rows
 

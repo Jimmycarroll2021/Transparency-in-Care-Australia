@@ -345,3 +345,17 @@ def test_wa_record_ids_survive_reordering_and_are_unique():
     by_date = lambda rows: {r["date_issued_raw"]: r["record_id"] for r in rows}  # noqa: E731
     assert by_date(a) == by_date(b)
     assert len({r["record_id"] for r in a}) == len(a)
+
+
+def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
+    # Codex round 2, finding 1: the shared prose rule runs on every row, not only withheld ones.
+    html = SAMPLE_TABLE_HTML.replace(
+        "Compliance action type: Compliance Notice",
+        "Compliance action type: Compliance Notice to Jane Example",
+    )
+    row = parse_wa_html_table(html, "s.html", "2026-10-29T08:00:00Z")[0]
+    assert row["provider_name"] == "Lady Bug Holdings Pty Ltd"
+    assert row["action_type_raw"] == "(withheld)"
+    assert row["action_type"] == "compliance_notice"
+    assert "free text withheld: may name an individual" in row["notes"]
+    assert "Jane" not in str(row)

@@ -322,6 +322,76 @@ def withhold_free_text(row: dict, markers: tuple[str, ...] = ()) -> dict:
     return row
 
 
+PROSE_WITHHELD_NOTE = "free text withheld: may name an individual"
+# Prose columns the shared rule checks on every row. The address is a printed premises
+# locator, not prose: street and place names would trip the detector on most rows, and a
+# withheld subject's address is already withheld whole by withhold_free_text.
+PROSE_COLUMNS = ("action_type_raw", "reason", "details", "_details")
+
+
+def _filter_refs(refs, flagged):
+    """Drop legal reference items the detector flags; keep the column's type."""
+    if isinstance(refs, list):
+        kept = [r for r in refs if not flagged(r)]
+        return kept, len(kept) != len(refs)
+    text = str(refs or "")
+    if not text:
+        return refs, False
+    if text.startswith("["):
+        items = json.loads(text)
+        kept = [r for r in items if not flagged(r)]
+        return json.dumps(kept, ensure_ascii=False), len(kept) != len(items)
+    items = text.split("; ")
+    kept = [r for r in items if not flagged(r)]
+    return "; ".join(kept), len(kept) != len(items)
+
+
+def withhold_prose_naming_people(rows: list[dict]) -> dict[str, int]:
+    """The shared prose rule, on every row, in place (Codex round 2, finding 1).
+
+    For each prose field, if the shared person detector (profile_providers.
+    prose_may_name_person) finds a possible personal name, the field is nulled
+    (action_type_raw becomes the '(withheld)' placeholder, because the schema requires it), a
+    flagged legal reference or notes segment is dropped, and the fixed PROSE_WITHHELD_NOTE is
+    added once. Rows already withheld whole are skipped. Returns counts of fields nulled."""
+    from scrapers.profile_providers import prose_may_name_person
+
+    counts: dict[str, int] = {}
+    for row in rows:
+        notes = row.get("notes") or ""
+        if FREE_TEXT_WITHHELD_NOTE in notes:
+            continue
+        known = tuple(row.get(k) for k in ("service_name", "provider_name", "suburb"))
+
+        def flagged(text, known=known):
+            return isinstance(text, str) and prose_may_name_person(text, known)
+
+        hit = False
+        for col in PROSE_COLUMNS:
+            value = row.get(col)
+            if value == ACTION_TYPE_RAW_WITHHELD or not flagged(value):
+                continue
+            row[col] = ACTION_TYPE_RAW_WITHHELD if col == "action_type_raw" else None
+            name = col.lstrip("_")
+            counts[name] = counts.get(name, 0) + 1
+            hit = True
+        if "legal_references" in row:
+            refs, dropped = _filter_refs(row["legal_references"], flagged)
+            if dropped:
+                row["legal_references"] = refs
+                counts["legal_references"] = counts.get("legal_references", 0) + 1
+                hit = True
+        sep = " | " if " | " in notes else "; "
+        segments = [seg for seg in notes.split(sep) if seg] if notes else []
+        kept = [seg for seg in segments if not flagged(seg)]
+        if len(kept) != len(segments):
+            counts["notes"] = counts.get("notes", 0) + 1
+            hit = True
+        if hit:
+            row["notes"] = sep.join(dict.fromkeys([*kept, PROSE_WITHHELD_NOTE]))
+    return counts
+
+
 _INVISIBLE_CHARS = re.compile("[​‌‍⁠﻿]")
 
 
