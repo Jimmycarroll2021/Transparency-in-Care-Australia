@@ -338,3 +338,15 @@ def test_licence_note_uses_page_wording_when_present():
     assert "All rights reserved" in note
     assert "consent" in note
     assert "All rights reserved" in sa.licence_note_from(None)
+
+
+def test_counts_provenance_records_posix_paths_on_every_platform(tmp_path, monkeypatch):
+    # A run on Windows must not write backslashes into the provenance sidecar.
+    monkeypatch.setattr(sa, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(sa, "PROCESSED_DIR", tmp_path / "data" / "processed")
+    raw = tmp_path / "data" / "raw" / "sa-enforcement" / "2026-10-29T0800Z-current.html"
+    sa.write_counts([], [raw])
+    sidecar = tmp_path / "data" / "processed" / f"{sa.COUNTS_NAME}.provenance.json"
+    provenance = json.loads(sidecar.read_text(encoding="utf-8"))
+    assert provenance["output"] == f"data/processed/{sa.COUNTS_NAME}.csv"
+    assert provenance["raw_inputs"] == ["data/raw/sa-enforcement/2026-10-29T0800Z-current.html"]

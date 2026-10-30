@@ -364,8 +364,8 @@ def build_profile() -> dict:
     summary = {
         "generated_at": utc_now().isoformat(),
         "inputs": {
-            "providers_file": str(PROVIDERS_CSV.relative_to(PROJECT_ROOT)),
-            "services_file": str(SERVICES_CSV.relative_to(PROJECT_ROOT)),
+            "providers_file": PROVIDERS_CSV.relative_to(PROJECT_ROOT).as_posix(),
+            "services_file": SERVICES_CSV.relative_to(PROJECT_ROOT).as_posix(),
             "provider_rows": len(providers),
             "service_rows": len(services),
             "snapshot_last_modified_providers": (
@@ -374,7 +374,7 @@ def build_profile() -> dict:
             "snapshot_last_modified_services": (
                 services[0].get("snapshot_last_modified") if services else None
             ),
-            "raw_inputs": [str(p.relative_to(PROJECT_ROOT)) for p in raw_inputs],
+            "raw_inputs": [p.relative_to(PROJECT_ROOT).as_posix() for p in raw_inputs],
         },
         "window_note": (
             "Point-in-time counts from the ACECQA register snapshot named above, not a time series. "

@@ -997,11 +997,11 @@ def write_counts(rows: list[dict], raw_inputs: list[Path]) -> Path:
                 {k: ("" if row.get(k) is None else row.get(k)) for k in COUNT_FIELDNAMES}
             )
     provenance = {
-        "output": str(out.relative_to(PROJECT_ROOT)),
+        "output": out.relative_to(PROJECT_ROOT).as_posix(),
         "written_at": common.utc_now().isoformat(),
         "rows": len(rows),
         "schema": None,
-        "raw_inputs": [str(p.relative_to(PROJECT_ROOT)) for p in raw_inputs],
+        "raw_inputs": [p.relative_to(PROJECT_ROOT).as_posix() for p in raw_inputs],
         "notes": (
             "Summary table of statutory compliance actions issued by type and financial year, as "
             "printed on the ESB current compliance action page. count_raw keeps the printed cell. "
@@ -1035,7 +1035,7 @@ def parse_all() -> tuple[list[dict], list[dict], list[Path]]:
         kwargs = {
             "source_document": meta.get("final_url") or meta["url"],
             "captured_at": meta["fetched_at"],
-            "source_snapshot": str(path.relative_to(PROJECT_ROOT)),
+            "source_snapshot": path.relative_to(PROJECT_ROOT).as_posix(),
         }
         rows = parse_actions(html, period_label=period_label_for(slug), **kwargs)
         counts = parse_counts(html, **kwargs)

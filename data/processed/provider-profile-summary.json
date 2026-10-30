@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T07:25:17.099737+00:00",
+  "generated_at": "2026-10-30T11:51:37.790986+00:00",
   "inputs": {
     "providers_file": "data/processed/acecqa-providers-latest.csv",
     "services_file": "data/processed/acecqa-services-latest.csv",
@@ -9,11 +9,11 @@
     "snapshot_last_modified_services": "Wed, 28 Oct 2026 19:28:15 GMT",
     "raw_inputs": [
       "data/processed/acecqa-providers-latest.csv",
-      "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz",
-      "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz.meta.json",
+      "data/raw/acecqa-providers/2026-10-29T2316Z.csv.gz",
+      "data/raw/acecqa-providers/2026-10-29T2316Z.csv.gz.meta.json",
       "data/processed/acecqa-services-latest.csv",
-      "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
-      "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json"
+      "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz",
+      "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz.meta.json"
     ]
   },
   "window_note": "Point-in-time counts from the ACECQA register snapshot named above, not a time series. Denominator for every share: providers in the providers file, or services in the services file.",

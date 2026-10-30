@@ -982,3 +982,18 @@ def test_load_abn_details(tmp_path):
     loaded = je.load_abn_details(path)
     assert list(loaded) == [ABN]
     assert loaded[ABN]["entity_name"] == "Bright Start Pty Ltd"
+
+
+def test_report_records_posix_paths_on_every_platform(spine, tmp_path, monkeypatch):
+    # The committed report uses forward slashes. A run on Windows must not rewrite the
+    # inputs and raw_inputs lists with backslashes.
+    monkeypatch.setattr(je, "PROJECT_ROOT", tmp_path)
+    action_file = tmp_path / "data" / "processed" / "nsw-enforcement-actions.csv"
+    raw = tmp_path / "data" / "raw" / "nsw-enforcement" / "2026-10-29T0718Z-x.pdf"
+    joined = je.join_actions([act(rid="a", se="SE-00000001")], spine)
+    service_rows, provider_rows = je.aggregate(joined, spine, TYPES, WINDOW, cth_present=False)
+    report = je.build_report(
+        joined, service_rows, provider_rows, TYPES, WINDOW, [raw], [action_file]
+    )
+    assert report["inputs"] == ["data/processed/nsw-enforcement-actions.csv"]
+    assert report["raw_inputs"] == ["data/raw/nsw-enforcement/2026-10-29T0718Z-x.pdf"]

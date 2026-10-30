@@ -228,3 +228,17 @@ def test_split_address_unparsable_gives_nulls():
 def test_cell_lines_handles_br_and_paragraphs():
     cell = BeautifulSoup("<td>a<br/>b<p>c</p>d</td>", "lxml").td
     assert vecra.cell_lines(cell) == ["a", "b", "c", "d"]
+
+
+def test_counts_provenance_records_posix_paths_on_every_platform(tmp_path, monkeypatch):
+    # A run on Windows must not write backslashes into the provenance sidecar.
+    monkeypatch.setattr(vecra, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(vecra, "PROCESSED_DIR", tmp_path / "data" / "processed")
+    raw = tmp_path / "data" / "raw" / "vecra-enforcement" / "2026-10-29T0800Z-august-2026.html"
+    vecra.write_counts([], [raw])
+    sidecar = tmp_path / "data" / "processed" / f"{vecra.COUNTS_NAME}.provenance.json"
+    provenance = json.loads(sidecar.read_text(encoding="utf-8"))
+    assert provenance["output"] == f"data/processed/{vecra.COUNTS_NAME}.csv"
+    assert provenance["raw_inputs"] == [
+        "data/raw/vecra-enforcement/2026-10-29T0800Z-august-2026.html"
+    ]

@@ -1453,8 +1453,8 @@ def build_report(
             "end": window[1].isoformat(),
             "end_basis": "snapshot_last_modified of the ACECQA services snapshot",
         },
-        "inputs": [str(p.relative_to(PROJECT_ROOT)) for p in action_files],
-        "raw_inputs": [str(p.relative_to(PROJECT_ROOT)) for p in raw_inputs],
+        "inputs": [p.relative_to(PROJECT_ROOT).as_posix() for p in action_files],
+        "raw_inputs": [p.relative_to(PROJECT_ROOT).as_posix() for p in raw_inputs],
         "coverage": {**COVERAGE, "others": "SA, WA, TAS, NT, ACT not yet collected"},
         "overall": {
             "rows_in": total,

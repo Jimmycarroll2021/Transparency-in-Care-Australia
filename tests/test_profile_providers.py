@@ -151,3 +151,38 @@ def test_build_profile_withholds_individual_names(tmp_path, monkeypatch):
         t["provider_approval_number"] for t in summary["top_30_providers_by_service_count"]
     ] == ["PR-00000002"]
     assert summary["management_type"]["available"] is False
+
+
+def test_summary_records_posix_paths_on_every_platform(tmp_path, monkeypatch):
+    # A run on Windows must not write backslashes into the summary inputs.
+    processed = tmp_path / "data" / "processed"
+    processed.mkdir(parents=True)
+    providers = processed / "acecqa-providers-latest.csv"
+    services = processed / "acecqa-services-latest.csv"
+    providers.write_text(
+        "Legal Name,Trading Name,State,Date Approval Granted,provider_approval_number\n"
+        "Sunny Days Pty Ltd,Sunny Days,VIC,01/01/2021,PR-00000002\n",
+        encoding="utf-8",
+    )
+    services.write_text(
+        "provider_approval_number,State,ServiceType,NumberOfApprovedPlaces\n"
+        "PR-00000002,VIC,Centre-Based Care,40\n",
+        encoding="utf-8",
+    )
+    providers.with_suffix(".provenance.json").write_text(
+        '{"raw_inputs": ["data/raw/acecqa/2026-10-29T0700Z-providers.csv.gz"]}', encoding="utf-8"
+    )
+    monkeypatch.setattr(pp, "PROVIDERS_CSV", providers)
+    monkeypatch.setattr(pp, "SERVICES_CSV", services)
+    monkeypatch.setattr(pp, "SUMMARY_JSON", processed / "provider-profile-summary.json")
+    monkeypatch.setattr(pp, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(pp, "PROCESSED_DIR", processed)
+    monkeypatch.setattr(pp, "write_processed", lambda *a, **k: None)
+    inputs = pp.build_profile()["inputs"]
+    assert inputs["providers_file"] == "data/processed/acecqa-providers-latest.csv"
+    assert inputs["services_file"] == "data/processed/acecqa-services-latest.csv"
+    assert inputs["raw_inputs"] == [
+        "data/processed/acecqa-providers-latest.csv",
+        "data/raw/acecqa/2026-10-29T0700Z-providers.csv.gz",
+        "data/processed/acecqa-services-latest.csv",
+    ]
