@@ -676,7 +676,7 @@ def main(argv: list[str] | None = None) -> int:
             role=role,
             page_url=PAGES[role],
             captured_at=meta.get("fetched_at", ""),
-            source_snapshot=str(path.relative_to(PROJECT_ROOT)),
+            source_snapshot=path.relative_to(PROJECT_ROOT).as_posix(),
         )
         per_page[role] = len(page_rows)
         rows.extend(page_rows)
