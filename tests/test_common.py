@@ -98,15 +98,62 @@ def test_withhold_free_text_keeps_a_joined_string_legal_references_column_a_stri
     assert row["legal_references"] == ""
 
 
-def test_assign_record_ids_ignores_names_and_text_and_is_unique():
-    a = _withheld_row(provider_name="Alpha Pty Ltd", reason="one")
-    b = _withheld_row(provider_name="Beta Pty Ltd", reason="two")
-    c = _withheld_row(provider_name=None, reason=None)
-    rows = [a, b, c]
+def _printed(text, **extra):
+    row = {
+        "jurisdiction": "QLD",
+        "source_document": "https://example.gov.au/register",
+        "_fingerprint": common.printed_fingerprint(text),
+    }
+    row.update(extra)
+    return row
+
+
+def _ids(rows):
     common.assign_record_ids(rows)
-    ids = [r["record_id"] for r in rows]
-    assert len(set(ids)) == 3
-    # Same position and facts, different names and text: the same id.
-    d = _withheld_row(provider_name="Gamma Pty Ltd", reason="other text")
-    common.assign_record_ids([d])
-    assert d["record_id"] == ids[0]
+    return {r["_fingerprint"]: r["record_id"] for r in rows}
+
+
+def test_record_ids_survive_reordering_of_non_identical_rows():
+    # Codex round 2, finding 3: no source-order ordinal, so moving rows moves no id.
+    texts = ["Alpha Pty Ltd | 1/2/2026 | Compliance notice", "Beta Inc | 2/2/2026 | Cancellation"]
+    forward = _ids([_printed(t) for t in texts])
+    backward = _ids([_printed(t) for t in reversed(texts)])
+    assert forward == backward and len(set(forward.values())) == 2
+
+
+def test_record_id_is_unaffected_by_an_inserted_row():
+    before = _ids([_printed("Alpha Pty Ltd | 1/2/2026"), _printed("Beta Inc | 2/2/2026")])
+    after = _ids(
+        [
+            _printed("New Row Ltd | 3/2/2026"),
+            _printed("Alpha Pty Ltd | 1/2/2026"),
+            _printed("Beta Inc | 2/2/2026"),
+        ]
+    )
+    for fp, rid in before.items():
+        assert after[fp] == rid
+
+
+def test_identical_printed_rows_get_distinct_ids_and_whitespace_does_not_matter():
+    rows = [_printed("Same  row\ttext"), _printed("same row text")]
+    common.assign_record_ids(rows)
+    assert rows[0]["_fingerprint"] == rows[1]["_fingerprint"]
+    assert rows[0]["record_id"] != rows[1]["record_id"]
+
+
+def test_record_id_ignores_the_published_fields_and_the_withholding_decision():
+    shown = _printed("Alpha Pty Ltd | 1/2/2026", provider_name="Alpha Pty Ltd", reason="x")
+    withheld = common.withhold_free_text(
+        _printed("Alpha Pty Ltd | 1/2/2026", provider_name=None, reason="x", notes=None)
+    )
+    common.assign_record_ids([shown])
+    common.assign_record_ids([withheld])
+    assert shown["record_id"] == withheld["record_id"]
+
+
+def test_record_id_uses_the_given_source_id_over_the_row_document():
+    a = _printed("Alpha", source_document="https://example.gov.au/a.pdf")
+    b = _printed("Alpha", source_document="https://example.gov.au/register")
+    common.assign_record_ids([a], source_id="https://example.gov.au/register")
+    common.assign_record_ids([b], source_id="https://example.gov.au/register")
+    assert a["record_id"] == b["record_id"]

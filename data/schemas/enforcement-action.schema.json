@@ -13,7 +13,7 @@
     "action_type_raw"
   ],
   "properties": {
-    "record_id": { "type": "string", "description": "Stable hash of jurisdiction, service or provider key, action_type_raw, date_issued_raw and reason." },
+    "record_id": { "type": "string", "description": "Stable hash of jurisdiction, the source document parsed and a hash of the row's full printed source text (every printed field, whitespace and case normalised), then an occurrence counter shared only by rows whose printed text is fully identical. No source-order ordinal and no published or withheld value is used; the printed text itself is never stored." },
     "jurisdiction": { "enum": ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT", "CTH"] },
     "source_register": { "type": "string", "pattern": "^https://", "description": "Index page of the register." },
     "source_document": { "type": "string", "pattern": "^https://", "description": "The page or file the row was parsed from." },

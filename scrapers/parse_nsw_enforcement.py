@@ -36,7 +36,7 @@ from scrapers.common import (
     log,
     normalise_pr,
     normalise_se,
-    record_hash,
+    printed_fingerprint,
     withhold_free_text,
     write_processed,
     write_snapshot,
@@ -625,9 +625,7 @@ def build_row(
         "_details": details,
         # In-memory only, never written: the printed row, names included, so a repeated row is
         # spotted without the record_id ever depending on a name.
-        "_fingerprint": record_hash(
-            JURISDICTION, id_raw, f.get("name"), f.get("address"), nature, details, date_raw, reason
-        ),
+        "_fingerprint": printed_fingerprint(*(f"{k}: {v}" for k, v in sorted(f.items()))),
     }
     if withheld_note:
         # Rule 2: the reason and details can repeat the name in forms no redaction catches, so

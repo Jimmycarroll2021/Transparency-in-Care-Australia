@@ -51,7 +51,7 @@ from scrapers.common import (
     log,
     normalise_pr,
     normalise_se,
-    record_hash,
+    printed_fingerprint,
     withhold_free_text,
     write_processed,
     write_snapshot,
@@ -387,13 +387,7 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         "linked_documents": " ".join(u for u in hrefs if u != primary) or None,
         # In-memory only (not written): the printed content, names included, to spot a row the
         # register prints twice. Never published and never used as the record_id.
-        "_fingerprint": record_hash(
-            JURISDICTION,
-            " | ".join(name_parts),
-            action_type_raw,
-            date_raw,
-            " | ".join(breach_parts),
-        ),
+        "_fingerprint": printed_fingerprint(*(clean(c.get_text(" ")) for c in cells)),
     }
     if kind in ("individual", "role"):
         # Rule 2: free text can repeat the name in forms no redaction catches, so it is withheld
@@ -427,7 +421,7 @@ def parse_register(
             if seen[row["_fingerprint"]] > 1:
                 row["notes"] += "; duplicate row: another row prints the same text"
             rows.append(row)
-    assign_record_ids(rows)
+    assign_record_ids(rows, source_id=page_url)
     return rows
 
 

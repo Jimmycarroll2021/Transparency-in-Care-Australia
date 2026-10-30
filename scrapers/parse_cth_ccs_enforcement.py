@@ -67,7 +67,7 @@ from scrapers.common import (
     fetch,
     list_snapshots,
     log,
-    record_hash,
+    printed_fingerprint,
     withhold_free_text,
     write_processed,
 )
@@ -521,8 +521,8 @@ def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
         "notes": "; ".join(notes) or None,
         # In-memory only, never written: the printed entry, names included, so a repeated row
         # is spotted without ever using a name or a placeholder in the record_id.
-        "_fingerprint": record_hash(
-            JURISDICTION, entry["service"], *(v for _, v in entry["pairs"])
+        "_fingerprint": printed_fingerprint(
+            entry["service"], *(f"{k}: {v}" for k, v in entry["pairs"])
         ),
     }
     if withheld:
@@ -563,7 +563,7 @@ def parse_page(
         row["source_snapshot"] = source_snapshot
         rows.append(row)
     mark_duplicates(rows)
-    assign_record_ids(rows)
+    assign_record_ids(rows, source_id=page_url)
     return rows
 
 

@@ -49,7 +49,7 @@ from scrapers.common import (
     log,
     normalise_pr,
     normalise_se,
-    record_hash,
+    printed_fingerprint,
     utc_stamp,
     withhold_free_text,
     write_processed,
@@ -882,8 +882,9 @@ def parse_actions(
             continue
         info = parse_section(heading, section_html)
         notes = info.pop("notes")
-        fallback = info.pop("_hash_fallback")
-        fallback_service = info.pop("_hash_service")
+        # Old id inputs; the id now hashes the printed section (assign_record_ids).
+        info.pop("_hash_fallback")
+        info.pop("_hash_service")
         withheld_markers = info.pop("_withheld_markers")
         page_year = re.search(r"\b(20\d{2})$", period_label)
         if (
@@ -894,18 +895,12 @@ def parse_actions(
             notes.append(
                 f"date year differs from the {page_year.group(1)} page it is printed on: check source"
             )
-        key = info["service_approval_number"] or info["provider_approval_number"] or fallback
         row = {
             "record_id": None,  # set below from non-name facts (assign_record_ids)
             # In-memory only, never written: the printed action, names included, to find
             # the same action printed twice (on one page or on two pages).
-            "_fingerprint": record_hash(
-                "SA",
-                key,
-                info["action_type_raw"],
-                info["date_issued_raw"],
-                info["reason"],
-                None if info["service_approval_number"] else fallback_service,
+            "_fingerprint": printed_fingerprint(
+                heading, BeautifulSoup(section_html, "lxml").get_text(" ")
             ),
             "jurisdiction": JURISDICTION,
             "source_register": INDEX_URL,

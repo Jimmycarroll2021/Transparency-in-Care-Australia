@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from scrapers.common import record_hash
 from scrapers.parse_wa_enforcement import (
     INDIVIDUAL_NOTE,
@@ -272,15 +274,21 @@ def test_record_id_is_stable_when_the_service_name_is_cleaned():
     after = parse_wa_html_table(contaminated, "s.html", "2026-10-29T08:00:00Z")[0]
     assert after["service_name"] == "Melville Day Care Centre"
     assert after["address"] == "39 Rome Road Melville"
-    # Codex round 1, finding 3: record_id uses non-name facts only, so cleaning the service
-    # name (or any name) never changes it.
-    before = parse_wa_html_table(SAMPLE_TABLE_HTML, "s.html", "2026-10-29T08:00:00Z")[0]
-    assert after["record_id"] == before["record_id"]
+    # Codex round 2, finding 3: record_id hashes the row as printed (source document plus the
+    # full printed text), so cleaning the service name for output never changes it.
+    from scrapers.common import printed_fingerprint
     from scrapers.parse_wa_enforcement import INDEX_URL
 
-    assert after["record_id"] == record_hash(
-        "WA", INDEX_URL, "16/09/2013", None, "PR-00007392", "compliance_notice", "1"
-    )
+    printed = [
+        "Year of action: 2013",
+        "Date of action: 16/09/2013",
+        "Provider (provider number): Lady Bug Holdings Pty Ltd (PR-00007392)",
+        "Service name: Melville Day Care Centre 39 Rome Road Melville",
+        "Compliance action type: Compliance Notice",
+        "Post code: 6158",
+    ]
+    base = record_hash("WA", INDEX_URL, printed_fingerprint(*printed))
+    assert after["record_id"] == record_hash(base, "1")
 
 
 def test_service_number_printed_in_the_provider_cell_is_removed_from_the_name():
@@ -328,10 +336,12 @@ def test_withheld_wa_row_keeps_no_free_text_and_keeps_keys():
     assert "Sample" not in json.dumps(row)
 
 
-def test_wa_record_ids_do_not_depend_on_names_and_are_unique():
+def test_wa_record_ids_survive_reordering_and_are_unique():
     a = parse_wa_html_table(SAMPLE_TABLE_HTML, "s.html", "2026-10-29T08:00:00Z")
-    b = parse_wa_html_table(
-        SAMPLE_TABLE_HTML.replace("Mara Sample", "Ann Other"), "s.html", "2026-10-29T08:00:00Z"
-    )
-    assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
+    trs = re.findall(r"  <tr>\n    <td>Year of action.*?</tr>\n", SAMPLE_TABLE_HTML, flags=re.S)
+    swapped = SAMPLE_TABLE_HTML.replace(trs[0], "@@0@@").replace(trs[1], trs[0])
+    swapped = swapped.replace("@@0@@", trs[1])
+    b = parse_wa_html_table(swapped, "s.html", "2026-10-29T08:00:00Z")
+    by_date = lambda rows: {r["date_issued_raw"]: r["record_id"] for r in rows}  # noqa: E731
+    assert by_date(a) == by_date(b)
     assert len({r["record_id"] for r in a}) == len(a)

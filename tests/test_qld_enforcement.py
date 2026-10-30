@@ -377,12 +377,13 @@ def test_withheld_qld_row_keeps_structured_fields_and_keys_as_printed():
     assert r["period_label"] == "2026" and r["source_register"] == INDEX_URL
 
 
-def test_qld_record_ids_do_not_depend_on_names():
-    other = PRIVACY_FIXTURE.replace("Jane Example", "Mary Sample").replace(
-        "Zo\u00eb Ex\u00e4mple", "Ann Sample"
-    )
+def test_qld_record_ids_survive_reordering_and_are_unique():
     kw = {"page_url": INDEX_URL, "captured_at": "2026-10-29T07:00:00+00:00", "source_snapshot": "x"}
-    a = parse_register(PRIVACY_FIXTURE, **kw)
-    b = parse_register(other, **kw)
-    assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
+    a = parse_register(FIXTURE, **kw)
+    body = FIXTURE.split("<h2>2026</h2>")[1].split("</table>")[0]
+    trs = re.findall(r"<tr><td>.*?</tr>", body, flags=re.S)
+    swapped = FIXTURE.replace(trs[0], "@@0@@").replace(trs[1], trs[0]).replace("@@0@@", trs[1])
+    b = parse_register(swapped, **kw)
+    by_date = lambda rows: {r["date_issued_raw"]: r["record_id"] for r in rows}  # noqa: E731
+    assert by_date(a) == by_date(b)
     assert len({r["record_id"] for r in a}) == len(a)

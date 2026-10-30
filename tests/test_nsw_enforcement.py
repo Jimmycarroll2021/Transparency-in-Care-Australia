@@ -814,8 +814,14 @@ def test_withheld_row_keeps_its_approval_number():
     assert row["provider_approval_number_raw"] == "PR-40006858"
 
 
-def test_record_id_does_not_depend_on_the_withheld_name():
-    a, b = [_withheld_nsw("Jane Q Citizen")], [_withheld_nsw("Mary Sample")]
+def test_record_id_ignores_the_withholding_decision():
+    # Codex round 2, finding 3: the id hashes the printed row, not what is published.
+    a = [_withheld_nsw("Jane Q Citizen")]
+    b = [_withheld_nsw("Jane Q Citizen")]
+    b[0]["provider_name"] = "Shown Anyway Pty Ltd"
     assign_record_ids(a)
     assign_record_ids(b)
     assert a[0]["record_id"] == b[0]["record_id"]
+    c = [_withheld_nsw("Mary Sample")]
+    assign_record_ids(c)
+    assert c[0]["record_id"] != a[0]["record_id"]  # a different printed row

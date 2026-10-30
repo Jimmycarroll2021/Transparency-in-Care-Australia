@@ -44,7 +44,7 @@ from scrapers.common import (
     log,
     normalise_pr,
     normalise_se,
-    record_hash,
+    printed_fingerprint,
     withhold_free_text,
     write_processed,
     write_snapshot,
@@ -256,13 +256,13 @@ def parse_page(
             "period_label": "Published Enforcement Actions under the National Law",
             "notes": "; ".join(notes) if notes else None,
             # In-memory only, never written: printed content, to spot a repeated row.
-            "_fingerprint": record_hash(JURISDICTION, srv_part, prov_blob, blob),
+            "_fingerprint": printed_fingerprint(txt, blob),
         }
         if withheld_markers:
             withhold_free_text(row, tuple(withheld_markers))
         rows.append(row)
 
-    assign_record_ids(rows)
+    assign_record_ids(rows, source_id=page_url)
     return rows
 
 

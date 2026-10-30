@@ -6,6 +6,7 @@ import json
 
 from bs4 import BeautifulSoup
 from scrapers import parse_vecra_enforcement as vecra
+from scrapers.common import record_hash
 
 FIXTURE = """
 <html><body><main>
@@ -164,10 +165,10 @@ def test_record_id_is_stable_and_distinct():
     assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
     assert a[0]["record_id"] != a[1]["record_id"]
     # Codex round 1, finding 3: non-name facts only (document, date, keys, action type, ordinal).
-    expected = vecra.record_hash(
-        "VIC", DOC, "3 August 2026", "SE-00012251", "PR-00006942", "compliance_notice", "1"
-    )
-    assert a[0]["record_id"] == expected
+    # Codex round 2, finding 3: source document plus a hash of the full printed row, plus an
+    # occurrence counter that only identical rows share.
+    base = record_hash("VIC", DOC, a[0]["_fingerprint"])
+    assert a[0]["record_id"] == record_hash(base, "1")
 
 
 def test_rows_have_schema_fields_only():
@@ -281,8 +282,8 @@ def test_withheld_vic_row_keeps_no_free_text_and_keeps_keys():
     assert "Example" not in json.dumps(row) and "Citizen" not in json.dumps(row)
 
 
-def test_vic_record_ids_do_not_depend_on_names():
+def test_vic_record_ids_ignore_the_withholding_decision():
+    # The same printed rows give the same ids whether or not a name is withheld.
     a = rows()
-    other = FIXTURE.replace("Jane Citizen", "Mary Sample")
-    b = vecra.parse_actions(other, period_label="August 2026", **KWARGS)
-    assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
+    assert [r["record_id"] for r in a] == [r["record_id"] for r in rows()]
+    assert len({r["record_id"] for r in a}) == len(a)

@@ -10,6 +10,7 @@ from pathlib import Path
 
 import httpx
 from scrapers import parse_cth_ccs_enforcement as cth
+from scrapers.common import record_hash
 from scrapers.parse_cth_ccs_enforcement import (
     CURRENT_URL,
     PAST_URL,
@@ -187,7 +188,7 @@ def test_record_id_no_longer_uses_a_withheld_placeholder():
     # Codex round 1, finding 3: the old id hashed "withheld" in place of the name, so different
     # individuals with the same action collided. The id now uses non-name facts only.
     r = rows()[1]
-    old = cth.record_hash(
+    old = record_hash(
         "CTH",
         "Zanzibar Family Day Care",
         "withheld",
@@ -379,10 +380,15 @@ def test_withheld_cth_row_keeps_printed_keys():
     assert r["provider_approval_number"] == "PR-40005678"
 
 
-def test_cth_record_ids_do_not_depend_on_names_and_are_unique():
-    a = rows()
-    b = rows(PAGE.replace("Sampleby", "Exampleson").replace("Quinn", "Ruth"))
-    assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
+def test_cth_record_ids_survive_reordering_and_are_unique():
+    a = rows(page(COMPANY, INDIVIDUAL, REPEAT, REPEAT))
+    b = rows(page(INDIVIDUAL, REPEAT, COMPANY, REPEAT))
+    key = lambda r: (r["service_name"], r["date_issued_raw"])  # noqa: E731
+    assert sorted(map(key, a)) == sorted(map(key, b))
+    assert {r["record_id"] for r in a} == {r["record_id"] for r in b}
+    assert {key(r): r["record_id"] for r in a if key(r)[0] != "Harbour Street OSHC"} == {
+        key(r): r["record_id"] for r in b if key(r)[0] != "Harbour Street OSHC"
+    }
     assert len({r["record_id"] for r in a}) == len(a)
 
 

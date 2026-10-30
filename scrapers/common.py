@@ -322,26 +322,35 @@ def withhold_free_text(row: dict, markers: tuple[str, ...] = ()) -> dict:
     return row
 
 
-def assign_record_ids(rows: list[dict]) -> None:
-    """Give each row a record_id from non-name source facts only, in place.
+_INVISIBLE_CHARS = re.compile("[​‌‍⁠﻿]")
 
-    The id hashes the jurisdiction, source document, printed date, printed SE-/PR- numbers and
-    normalised action type, plus the ordinal of that combination within the rows given (source
-    order). It never uses a name, a placeholder or free text, so withholding a name cannot make
-    two actions collide, and two actions printed in one document always get different ids.
+
+def printed_fingerprint(*texts: str | None) -> str:
+    """Hash of a row's full printed source text: every printed field, whitespace collapsed,
+    zero-width characters removed, case folded. The text is already public in data/raw; only
+    the hash is kept, in memory, and it is never written as text."""
+    parts = [re.sub(r"\s+", " ", _INVISIBLE_CHARS.sub("", t or "")).strip() for t in texts]
+    return record_hash(*parts)
+
+
+def assign_record_ids(rows: list[dict], source_id: str | None = None) -> None:
+    """Give each row a record_id, in place: hash(jurisdiction, source document, printed-text
+    hash), then hash(that, occurrence).
+
+    The printed-text hash is each row's _fingerprint (printed_fingerprint of every printed
+    field). There is no source-order ordinal: reordering rows, or inserting a row, never moves
+    an id. Only rows whose printed text is fully identical share a base; they get an occurrence
+    counter 1, 2, ... and, being identical, are interchangeable. The id never depends on what is
+    published (a name shown or withheld). source_id is the document parsed (defaults to each
+    row's source_document).
     """
-    seen: dict[tuple, int] = {}
+    seen: dict[str, int] = {}
     for row in rows:
-        base = (
-            row.get("jurisdiction"),
-            row.get("source_document"),
-            row.get("date_issued_raw"),
-            row.get("service_approval_number_raw"),
-            row.get("provider_approval_number_raw"),
-            row.get("action_type"),
+        base = record_hash(
+            row.get("jurisdiction"), source_id or row.get("source_document"), row["_fingerprint"]
         )
         seen[base] = seen.get(base, 0) + 1
-        row["record_id"] = record_hash(*base, str(seen[base]))
+        row["record_id"] = record_hash(base, str(seen[base]))
 
 
 def write_processed(

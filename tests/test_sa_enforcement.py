@@ -379,8 +379,7 @@ def test_withheld_sa_row_keeps_no_free_text_and_keeps_keys():
     assert row["action_type"] == "emergency_action_notice"
 
 
-def test_sa_record_ids_do_not_depend_on_names():
-    a = rows_for(CURRENT_FIXTURE)
-    other = CURRENT_FIXTURE.replace("Jane Citizen (PR-00009999)", "Mary Sample (PR-00009999)")
-    b = rows_for(other)
+def test_sa_record_ids_are_stable_and_unique():
+    a, b = rows_for(CURRENT_FIXTURE), rows_for(CURRENT_FIXTURE)
     assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
+    assert len({r["record_id"] for r in a}) == len(a)

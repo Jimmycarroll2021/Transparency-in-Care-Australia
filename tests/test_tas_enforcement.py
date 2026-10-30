@@ -90,5 +90,6 @@ def test_withheld_tas_row_keeps_no_free_text_and_keeps_keys():
     assert "Jane" not in json.dumps(r0)
 
 
-def test_tas_record_ids_do_not_depend_on_names():
-    assert _tas_withheld("Jane Example")["record_id"] == _tas_withheld("Mary Sample")["record_id"]
+def test_tas_record_ids_are_stable():
+    assert _tas_withheld("Jane Example")["record_id"] == _tas_withheld("Jane Example")["record_id"]
+    assert _tas_withheld("Jane Example")["record_id"] != _tas_withheld("Mary Sample")["record_id"]

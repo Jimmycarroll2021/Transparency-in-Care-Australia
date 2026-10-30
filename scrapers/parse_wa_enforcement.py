@@ -49,7 +49,7 @@ from scrapers.common import (
     log,
     normalise_pr,
     normalise_se,
-    record_hash,
+    printed_fingerprint,
     utc_now,
     withhold_free_text,
     write_processed,
@@ -383,9 +383,7 @@ def parse_wa_html_table(html_content: str, source_snapshot: str, captured_at: st
         row = {
             "record_id": None,  # set below from non-name facts (assign_record_ids)
             # In-memory only, never written: the printed row, to spot a repeated row.
-            "_fingerprint": record_hash(
-                JURISDICTION, year_raw, date_raw, prov_raw, srv_raw, action_raw, postcode_raw
-            ),
+            "_fingerprint": printed_fingerprint(*raw_texts),
             "jurisdiction": JURISDICTION,
             "source_register": INDEX_URL,
             "source_document": INDEX_URL,

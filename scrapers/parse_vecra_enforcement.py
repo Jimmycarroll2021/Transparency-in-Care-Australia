@@ -44,7 +44,7 @@ from scrapers.common import (
     log,
     normalise_pr,
     normalise_se,
-    record_hash,
+    printed_fingerprint,
     utc_stamp,
     withhold_free_text,
     write_processed,
@@ -520,13 +520,10 @@ def parse_actions(
         if not refs:
             notes.append("no legal reference found in reason")
 
-        key = info["service_approval_number"] or info["provider_approval_number"]
         row = {
             "record_id": None,  # set below from non-name facts (assign_record_ids)
             # In-memory only, never written: the printed row, to find a row printed twice.
-            "_fingerprint": record_hash(
-                "VIC", key, clean(cells[0].get_text(" ")), action_raw, date_raw, reason
-            ),
+            "_fingerprint": printed_fingerprint(*(clean(c.get_text(" ")) for c in cells)),
             "jurisdiction": JURISDICTION,
             "source_register": INDEX_URL,
             "source_document": source_document,
