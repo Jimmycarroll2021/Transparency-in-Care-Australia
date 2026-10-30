@@ -345,7 +345,15 @@ def split_address(address: str | None) -> tuple[str | None, str | None, str | No
 # PDF table parsing
 # ---------------------------------------------------------------------------
 
-_ID_CELL = re.compile(r"^\s*(SE|PR)-\d+\w*\s*$")
+_KEY_SEP = r"\s*[-\u2013\u2014:]?\s*"  # hyphen, the two long dash characters or colon; any spacing
+_ID_CELL = re.compile(rf"^\s*(SE|PR){_KEY_SEP}\d+\w*\s*$", re.IGNORECASE)
+
+
+def is_id_cell(text: str | None) -> bool:
+    """True if a cell holds a printed SE-/PR- key (well formed or not), which starts a record."""
+    return bool(text) and _ID_CELL.match(text) is not None
+
+
 _HEADER_WORDS = re.compile(
     r"^(service|provider|date|issued|details|of|action|taken|enforcement|nature|reason|grounds|"
     r"for|decision|to|cancel|involuntary|suspension|address|name|id|\(provision|under|which|"
@@ -434,7 +442,7 @@ def read_pdf_records(path: Path) -> tuple[list[RawRecord], dict]:
                 continue
             roles = roles_by_width.get(width)
             idx = [i for i, c in enumerate(row) if clean_text(c)]
-            if roles and len(idx) == len(roles) and any(_ID_CELL.match(row[i] or "") for i in idx):
+            if roles and len(idx) == len(roles) and any(is_id_cell(row[i]) for i in idx):
                 maps.setdefault((width, tuple(map(str, roles))), dict(zip(idx, roles, strict=True)))
 
     # Pass 2: assign.
@@ -470,7 +478,7 @@ def read_pdf_records(path: Path) -> tuple[list[RawRecord], dict]:
                         current.warnings.append(f"row of width {width} could not be mapped")
                     continue
             raw_map = maps.get((width, tuple(map(str, roles))))
-            has_id = any(_ID_CELL.match(row[i] or "") for i in populated)
+            has_id = any(is_id_cell(row[i]) for i in populated)
             if raw_map is None:  # no complete row to learn from: fall back to reading order
                 raw_map = dict(zip(populated, roles, strict=False))
             if has_id:
@@ -499,6 +507,38 @@ def read_pdf_records(path: Path) -> tuple[list[RawRecord], dict]:
 # ---------------------------------------------------------------------------
 
 
+_KEY_PARTS = re.compile(rf"^(SE|PR){_KEY_SEP}(\d+)(.*)$", re.IGNORECASE)
+
+
+def printed_key(id_raw: str | None) -> tuple[str | None, str | None]:
+    """(key, note) for a printed approval number. key is 'SE-' or 'PR-' plus 8 digits, or None.
+
+    Only differences that carry no meaning are corrected: letter case, spacing and the dash
+    character between prefix and digits. A number with too few or too many digits, or with
+    characters after the digits, is never padded, trimmed or guessed; the key is null and the
+    note says why, so the join's fallbacks decide what happens to the row.
+    """
+    text = clean_text(id_raw)
+    if not text:
+        return None, None
+    m = _KEY_PARTS.match(text)
+    if m and len(m.group(2)) == 8 and not m.group(3).strip():
+        return f"{m.group(1).upper()}-{m.group(2)}", None
+    if m is None:
+        reason = "it does not start with SE- or PR- and digits"
+    elif m.group(3).strip():
+        reason = (
+            f"it has {len(m.group(2))} digits then trailing '{m.group(3).strip()}', "
+            "whose meaning is not printed"
+        )
+    else:
+        reason = f"it has {len(m.group(2))} digits and the digit at fault cannot be located"
+    return None, (
+        f"approval number '{text}' is not SE-/PR- plus 8 digits ({reason}); "
+        "normalised value left null"
+    )
+
+
 def build_row(
     raw: RawRecord,
     *,
@@ -511,15 +551,11 @@ def build_row(
     notes: list[str] = list(dict.fromkeys(raw.warnings))
     id_raw = f.get("id")
     is_provider_row = bool(id_raw) and id_raw.upper().startswith("PR")
-    # Only a number printed as SE-/PR- plus exactly 8 digits is normalised. A short or suffixed
-    # number is not padded or trimmed, because that would guess which digits are missing.
-    well_formed = bool(id_raw) and re.fullmatch(r"(SE|PR)-\d{8}", id_raw.strip()) is not None
-    se = normalise_se(id_raw) if well_formed and id_raw.upper().startswith("SE") else None
-    pr = normalise_pr(id_raw) if well_formed and id_raw.upper().startswith("PR") else None
-    if id_raw and not well_formed:
-        notes.append(
-            f"approval number '{id_raw}' is not SE-/PR- plus 8 digits; normalised value left null"
-        )
+    key, key_note = printed_key(id_raw)
+    se = normalise_se(key) if key and key.startswith("SE") else None
+    pr = normalise_pr(key) if key and key.startswith("PR") else None
+    if key_note:
+        notes.append(key_note)
     if not id_raw:
         notes.append("approval number missing in source")
 

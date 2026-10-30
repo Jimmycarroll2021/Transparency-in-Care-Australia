@@ -12,6 +12,7 @@ from scrapers.parse_nsw_enforcement import (
     date_in_period,
     discover_pdf_urls,
     extract_legal_references,
+    is_id_cell,
     map_action_type,
     mark_duplicates,
     parse_date,
@@ -203,6 +204,51 @@ def test_malformed_ids_are_not_padded_or_trimmed():
     )
     assert suffixed["provider_approval_number"] is None
     assert suffixed["provider_approval_number_raw"] == "PR-00007724R"
+
+
+def test_cosmetic_variants_of_a_valid_key_are_normalised_deterministically():
+    # Case, spacing and the dash character carry no meaning; the eight digits are all printed.
+    for printed in (
+        "se-00008497",
+        "SE - 00008497",
+        "SE\u201300008497",
+        "SE 00008497",
+        " SE-00008497 ",
+    ):
+        row = make_row(make_raw(id=printed, name="Munchkin Manor", date="01/04/2025"))
+        assert row["service_approval_number"] == "SE-00008497", printed
+        assert row["service_approval_number_raw"] == printed  # kept as printed
+        assert not row["notes"] or "plus 8 digits" not in row["notes"]
+    provider = make_row(
+        make_raw(id="pr-00004108", name="Angel's Paradise Pty Ltd", date="8/09/2025")
+    )
+    assert provider["provider_approval_number"] == "PR-00004108"
+    assert provider["service_approval_number"] is None
+
+
+def test_the_two_malformed_register_keys_say_why_they_were_not_corrected():
+    # Q1 2025-26 service enforcement file, row 268 of the output: seven digits. The missing digit
+    # could be anywhere, so the key is not padded.
+    short = make_row(make_raw(id="SE-4006774", date="20/03/2025"))
+    assert short["service_approval_number"] is None
+    assert "has 7 digits" in short["notes"]
+    assert "normalised value left null" in short["notes"]
+    # Q4 2025-26 provider cancellations file, row 1213: eight digits then a stray 'R'. What the
+    # suffix means is not printed, so the key is not trimmed.
+    suffixed = make_row(make_raw(id="PR-00007724R", name="X Association", date="4/05/2026"))
+    assert suffixed["provider_approval_number"] is None
+    assert "trailing 'R'" in suffixed["notes"]
+    assert "normalised value left null" in suffixed["notes"]
+
+
+def test_id_cells_are_recognised_in_cosmetic_variants_only():
+    assert is_id_cell("SE-00008497")
+    assert is_id_cell("se - 00008497")
+    assert is_id_cell("PR-00007724R")  # a malformed key still starts a new record
+    assert is_id_cell("SE-4006774")
+    assert not is_id_cell("Service ID")
+    assert not is_id_cell("Seven Hills 2147")
+    assert not is_id_cell(None)
 
 
 def test_missing_id_is_null_and_logged():
