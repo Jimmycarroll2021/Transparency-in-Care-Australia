@@ -1,0 +1,30 @@
+{
+  "output": "data/processed/abn-details.csv",
+  "written_at": "2026-10-30T04:49:35.629763+00:00",
+  "rows": 44,
+  "schema": null,
+  "raw_inputs": [
+    "data/processed/enforcement-actions-all.csv"
+  ],
+  "notes": "One row per distinct ABN printed on Commonwealth CCS enforcement rows (enforcement-actions-all.csv abn column), resolved with ABN Lookup AbnDetails. lookup_status ok, not_found, excluded_individual or error. Rows for individuals or sole traders keep no name of any kind (CLAUDE.md rule 2); business names that read as a person's name are withheld unless already an ACECQA organisation name. ABR data is as reported by the ABR and is not verified here; verify any ABN on ABN Lookup before it is shown publicly.",
+  "abr_source": {
+    "service": "ABN Lookup web services (JSON)",
+    "endpoints": [
+      "https://abr.business.gov.au/json/AbnDetails.aspx",
+      "https://abr.business.gov.au/json/MatchingNames.aspx"
+    ],
+    "licence": "ABN Lookup Web Services Agreement v9.9.7, https://abr.business.gov.au/Tools/WebServicesAgreement (see research/2026-10-30-register-abn-lookup.md)",
+    "cache": "data/raw/abr-lookup/ is a local, gitignored cache; each row records the query endpoint, looked_up_at and the sha256 of the cached response instead",
+    "credential": "the GUID is never stored; every recorded URL has the guid parameter removed"
+  },
+  "run": {
+    "distinct_abns": 44,
+    "budget_stopped": false,
+    "resolved": 44,
+    "excluded_individual": 0,
+    "not_found": 0,
+    "errors": 0,
+    "api_calls": 43,
+    "cache_hits": 1
+  }
+}

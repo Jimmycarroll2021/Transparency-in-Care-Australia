@@ -1,0 +1,11 @@
+{
+  "output": "data/processed/provider-groups.csv",
+  "written_at": "2026-10-30T04:51:52.664492+00:00",
+  "rows": 2,
+  "schema": null,
+  "raw_inputs": [
+    "data/processed/provider-abn.csv",
+    "data/processed/provider-profile.csv"
+  ],
+  "notes": "group_id G-<lowest ABN> is an entity group: providers sharing an ABN or ACN (link_reason shared_abn, shared_acn, shared_abn_and_acn). group_id BN-<PR> is a business-name overlap flag: the holder's ABR business name equals the named provider's ACECQA Legal or Trading Name after normalisation; a shared brand is not evidence of common ownership. Parent and subsidiary relationships are NOT derivable from free ABR data: they need paid ASIC extracts and are out of scope. A group here is one legal entity (one ABN or ACN) holding several provider approvals, nothing more."
+}

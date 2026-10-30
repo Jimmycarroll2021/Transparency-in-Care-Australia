@@ -852,3 +852,133 @@ def test_top_lists_flag_stub_providers_and_skip_nameless_ones(spine):
     assert rate[0]["actions_last_24_months_per_service"] == 1.0
     assert "PR-09999991" not in {t["provider_approval_number"] for t in top}
     assert any("100 per cent" in c for c in report["caveats"])
+
+
+# ---------------------------------------------------------------------------
+# ABN entity stage
+# ---------------------------------------------------------------------------
+
+ABN = "12345678901"
+
+
+def abr(entity, business="", status="ok", abn=ABN):
+    return {
+        "abn": abn,
+        "lookup_status": status,
+        "entity_name": entity,
+        "business_names": business,
+        "abn_status": "Active",
+    }
+
+
+def abn_act(name="Unrelated Printed Name Pty Ltd", *, abn=ABN, **kw):
+    return pact(name, notes=f"ccs_identifier: ABN {abn}", **kw)
+
+
+def test_abn_entity_unique_match_on_entity_name(pspine):
+    details = {ABN: abr("The Bright Start Pty Limited")}
+    (row,) = je.join_actions([abn_act(state="NSW")], pspine, details)
+    assert row["join_key_kind"] == "abn_entity_match"
+    assert row["match_confidence"] == "abn_unique_entity"
+    assert row["acecqa_provider_approval_number"] == "PR-00000101"
+    assert "entity name" in row["join_note"]
+    assert row["provider_approval_number"] is None  # never set on the source columns
+
+
+def test_abn_entity_match_on_business_name_across_states(pspine):
+    details = {ABN: abr("Holdco Pty Ltd", business="Some Brand; Southern Cross Kids Inc")}
+    (row,) = je.join_actions([abn_act(state="NSW")], pspine, details)
+    assert row["acecqa_provider_approval_number"] == "PR-00000401"
+    assert "business name" in row["join_note"]
+
+
+def test_abn_entity_ambiguous_falls_through_to_provider_name(pspine):
+    details = {ABN: abr("Twin Holdings Pty Ltd")}
+    (row,) = je.join_actions([abn_act("Cross Border Pty Ltd")], pspine, details)
+    assert row["join_key_kind"] == "provider_name_match"
+    assert row["acecqa_provider_approval_number"] == "PR-00000601"
+    (row,) = je.join_actions([abn_act("Nobody Pty Ltd")], pspine, details)
+    assert row["match_confidence"] == "unmatched"
+    assert "ambiguous ABN entity match: 2 candidate providers" in row["join_note"]
+    assert je.residual_reason(row) == "ambiguous_name"
+
+
+def test_abn_entity_union_of_names_must_be_unique(pspine):
+    # entity name points at one provider, a business name at another: not accepted
+    details = {ABN: abr("Bright Start Pty Ltd", business="Cross Border Pty Ltd")}
+    (row,) = je.join_actions([abn_act("Nobody Pty Ltd")], pspine, details)
+    assert row["match_confidence"] == "unmatched"
+    assert "ambiguous ABN entity match" in row["join_note"]
+
+
+def test_abn_entity_never_matches_individuals(pspine):
+    excluded = {ABN: abr(None, status="excluded_individual")}
+    (row,) = je.join_actions([abn_act("Nobody Pty Ltd")], pspine, excluded)
+    assert row["match_confidence"] == "unmatched"
+    assert "ABR lookup status excluded_individual" in row["join_note"]
+    # an entity name equal to a withheld provider's legal name is never matched
+    withheld = {ABN: abr("Placeholder Person Name")}
+    (row,) = je.join_actions([abn_act("Nobody Pty Ltd")], pspine, withheld)
+    assert row["acecqa_provider_approval_number"] is None
+
+
+def test_abn_entity_stage_runs_before_provider_name_stage(pspine):
+    details = {ABN: abr("Southern Cross Kids Incorporated")}
+    (row,) = je.join_actions([abn_act("Bright Start Pty Ltd", state="NSW")], pspine, details)
+    assert row["join_key_kind"] == "abn_entity_match"
+    assert row["acecqa_provider_approval_number"] == "PR-00000401"
+
+
+def test_abn_entity_stage_skipped_without_table_abn_or_with_key(pspine):
+    details = {ABN: abr("Bright Start Pty Ltd")}
+    # no table: provider-name stage only
+    (row,) = je.join_actions([abn_act("Cross Border Pty Ltd")], pspine)
+    assert row["join_key_kind"] == "provider_name_match"
+    # no ABN on the row
+    (row,) = je.join_actions([pact("Cross Border Pty Ltd")], pspine, details)
+    assert row["join_key_kind"] == "provider_name_match"
+    # ABN not in the table
+    (row,) = je.join_actions([abn_act("Nobody Pty Ltd", abn="99999999999")], pspine, details)
+    assert "ABN not in the ABR lookup table" in row["join_note"]
+    # a printed key absent from the spine is never matched by ABN either
+    keyed = abn_act("Nobody Pty Ltd", se="SE-09999999")
+    (row,) = je.join_actions([keyed], pspine, details)
+    assert row["match_confidence"] == "unmatched"
+    assert row["join_note"] == "service key SE-09999999 not in the spine"
+
+
+def test_abn_entity_pin_counts_and_report(pspine):
+    details = {ABN: abr("Bright Start Pty Ltd")}
+    actions = [
+        abn_act(rid="a", state="NSW", when="2026-05-05"),
+        abn_act(rid="b", state="NSW", service="Bright Start Kindy", when="2026-05-06"),
+    ]
+    joined = je.join_actions(actions, pspine, details)
+    assert [r["match_confidence"] for r in joined] == ["abn_unique_entity", "abn_unique_entity"]
+    assert joined[1]["acecqa_service_approval_number"] == "SE-00000101"
+    assert "service pinned" in joined[1]["join_note"]
+    service_rows, provider_rows = je.aggregate(joined, pspine, TYPES, WINDOW, cth_present=True)
+    p = next(r for r in provider_rows if r["provider_approval_number"] == "PR-00000101")
+    assert p["provider_level_actions"] == 1
+    assert p["service_level_actions"] == 1
+    assert p["actions_matched_by_name"] == 2
+    report = je.build_report(joined, service_rows, provider_rows, TYPES, WINDOW, [], [])
+    cth = report["per_jurisdiction"]["CTH"]
+    assert cth["joined_by_abn_entity"] == 2
+    assert cth["joined_by_abn_entity_pinned"] == 1
+    assert cth["joined_by_provider_name"] == 0
+    assert cth["match_rate"] == 1.0
+
+
+def test_load_abn_details(tmp_path):
+    assert je.load_abn_details(tmp_path / "missing.csv") is None
+    path = tmp_path / "abn-details.csv"
+    path.write_text(
+        "abn,lookup_status,entity_name,business_names\n"
+        "12 345 678 901,ok,Bright Start Pty Ltd,\n"
+        ",ok,No Abn Pty Ltd,\n",
+        encoding="utf-8",
+    )
+    loaded = je.load_abn_details(path)
+    assert list(loaded) == [ABN]
+    assert loaded[ABN]["entity_name"] == "Bright Start Pty Ltd"
