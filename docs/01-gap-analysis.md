@@ -37,7 +37,7 @@ worth writing.
 
 ## 1. What Four Corners actually found
 
-Three episodes, reported by an ABC investigative journalist, plus a series of 7.30 reports and online articles.
+Three episodes, reported by a Four Corners reporter, plus a series of 7.30 reports and online articles.
 
 ### 1.1 "Betrayal of Trust" — March 2025
 
@@ -71,12 +71,12 @@ Three episodes, reported by an ABC investigative journalist, plus a series of 7.
   infringement notices issued.**
 - Across hundreds of serious supervision breaches, the investigation found **one fine — $200**,
   after a child escaped a fence.
-- An educator charged in July 2025 with 70+ child sex offences, worked for G8 and Affinity and
+- A former G8 and Affinity childcare worker, charged in July 2025 with 70+ child sex offences,
   held a **valid Victorian Working With Children Check**.
 
 ### 1.3 "Monstrous" — 26 October 2026 (most recent)
 
-- Centres on Injinoo Childcare Centre, Cape York, Queensland. An educator assaulted three boys aged
+- Centres on Injinoo Childcare Centre, Cape York, Queensland. A childcare worker assaulted three boys aged
   13–30 months; CCTV captured **82 assaults** over three days (55 of them on the 13-month-old).
   Sentenced to four years, one-year non-parole. Pleaded guilty to 80 counts of common assault and
   two of assault occasioning bodily harm.
@@ -96,7 +96,7 @@ Three episodes, reported by an ABC investigative journalist, plus a series of 7.
   daily. The family says it has **never received the Queensland regulator's internal report**,
   despite repeated requests.
 - Structural criticism unchanged: a researcher says the system's architecture is
-  untouched; an advocacy group spokesperson (The Parenthood) says the subsidy model drives for-profit expansion
+  untouched; a representative of The Parenthood (a parents' advocacy group) says the subsidy model drives for-profit expansion
   without guaranteeing quality.
 
 ### 1.4 The transparency failure that made the reporting possible
