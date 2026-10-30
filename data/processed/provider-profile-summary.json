@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T22:19:47.124264+00:00",
+  "generated_at": "2026-10-30T22:46:16.459262+00:00",
   "inputs": {
     "providers_file": "data/processed/acecqa-providers-latest.csv",
     "services_file": "data/processed/acecqa-services-latest.csv",
@@ -62,7 +62,7 @@
     "unknown": 0.0335
   },
   "likely_individual_providers_names_withheld": 756,
-  "providers_names_withheld_total": 2209,
+  "providers_names_withheld_total": 2212,
   "providers_with_no_services_in_services_table": 2871,
   "providers_by_service_count_band": {
     "0": 2871,

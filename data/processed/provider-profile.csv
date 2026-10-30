@@ -1780,7 +1780,7 @@ PR-40027296,A B PATERSON COLLEGE LIMITED,A.B. Paterson College,false,company,QLD
 PR-40027298,Creative Minds Early Years Pty Ltd,CREATIVE MINDS KINDERGARTEN AND EARLY LEARNING CENTRE PTY LTD,false,company,VIC,19/10/2021,1,VIC,1,0,33,0
 PR-40027318,Kozy Kids GLENSIDE PTY LTD,Kozy Kids Glenside,false,company,QLD,06/10/2021,1,SA,1,0,130,0
 PR-40027345,Matese Pty Ltd,Turtle Cove Early Learning Centre Central,false,company,WA,14/02/2022,1,WA,1,0,59,0
-PR-40027352,SR Early Learning Consultancy Pty Ltd,NA,false,company,QLD,25/01/2022,0,,0,0,,0
+PR-40027352,,,true,company,QLD,25/01/2022,0,,0,0,,0
 PR-40027356,AVI & M ENTERPRISES PTY LTD,MY LITTLE KINGDOM CHILDCARE,false,company,VIC,15/07/2022,1,VIC,1,0,88,0
 PR-40027357,,,true,trust_or_trustee,VIC,28/10/2021,1,VIC,1,0,82,0
 PR-40027362,WANDIN YALLOCK PRIMARY SCHOOL COUNCIL,Wandin Yallock Primary School,false,government,VIC,09/01/2022,1,VIC,1,0,30,0
@@ -3537,7 +3537,7 @@ PR-40006343,Palafico Pty Ltd ATF AACJ Trust,,false,trust_or_trustee,WA,08/12/201
 PR-40006345,,,true,trust_or_trustee,WA,06/01/2016,0,,0,0,,0
 PR-40006347,Kids Family Day Care Pty Ltd,KIDS FAMILY DAY CARE,false,company,VIC,27/05/2016,0,,0,0,,0
 PR-40006348,PLAY LEARN & GROW EARLY EDUCATION CENTRE PTY LTD,Play Learn and Grow,false,company,NSW,25/01/2016,1,NSW,1,0,92,0
-PR-40006351,IL & SR Donald Pty Ltd,Wollongbar Little Angels,false,company,QLD,15/12/2015,0,,0,0,,0
+PR-40006351,,,true,company,QLD,15/12/2015,0,,0,0,,0
 PR-40006377,,,true,trust_or_trustee,VIC,09/02/2016,2,SA|VIC,2,2,,2
 PR-40006389,SMARTKIDS LEARNING PTY. LTD.,,false,company,NSW,17/02/2016,1,NSW,1,0,50,0
 PR-40006391,Whiz Kidz Early Learning Centre Pty Ltd,Whiz Kidz Early Learning Centre,false,company,NSW,07/01/2016,5,NSW,1,0,365,0
@@ -7575,7 +7575,7 @@ PR-00000247,,,true,incorporated_association,QLD,01/01/2012,1,QLD,1,0,180,0
 PR-00001442,Corangamite Shire Council,,false,government,VIC,29/12/2011,9,VIC,1,1,311,1
 PR-00001445,Cranbourne Day Care and Kindergarten Centre Pty Ltd,,false,company,VIC,29/12/2011,8,VIC,1,0,788,0
 PR-00001447,Clayton Campus Community Childcare Incorporated,Clayton Campus Community Childcare,false,incorporated_association,VIC,29/12/2011,1,VIC,1,0,69,0
-PR-00001450,Dame Nellie Melba Kindergarten Inc,,false,incorporated_association,VIC,29/12/2011,1,VIC,1,0,55,0
+PR-00001450,,,true,incorporated_association,VIC,29/12/2011,1,VIC,1,0,55,0
 PR-00001452,Dandenong North Preschool Inc,,false,incorporated_association,VIC,29/12/2011,1,VIC,1,0,57,0
 PR-00001453,Dandenong Ranges Steiner School Inc,,false,incorporated_association,VIC,29/12/2011,2,VIC,1,0,68,0
 PR-00001454,Dandenong South Preschool Centre Inc,,false,incorporated_association,VIC,29/12/2011,1,VIC,1,0,62,0
