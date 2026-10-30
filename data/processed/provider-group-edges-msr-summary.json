@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T20:50:44.363190+00:00",
+  "generated_at": "2026-10-30T21:05:48.128952+00:00",
   "definitions": [
     "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched by the included entity's ABN, or by exact normalised name agreeing with both the ACECQA legal name and the ABR entity name. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
     "group_parent_self: the provider is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",
@@ -40,11 +40,11 @@
     },
     "group_names": {
       "edge_groups_by_status": {
-        "shown_abr_non_individual": 2,
+        "shown_abr_organisation_type": 2,
         "withheld_abr_type_unknown": 6
       },
       "head_rows_by_status": {
-        "shown_abr_non_individual": 2
+        "shown_abr_organisation_type": 2
       }
     },
     "priority_providers_total": 1210,
@@ -59,6 +59,13 @@
       "reporting_entity_name_only": 3
     },
     "matches_to_excluded_providers": 4,
+    "provider_exclusions": {
+      "profile_individual_unknown_or_withheld": 1100,
+      "abr_individual": 0,
+      "abr_type_conflicts": 0,
+      "individual_status_conflicts": 0,
+      "rule": "A provider is excluded when any local source (ACECQA profile classification or withheld flag, provider-abn.csv, abn-details.csv) marks it as an individual or sole trader, or when the ABR sources disagree on its type."
+    },
     "candidate_pages_missing": 0
   },
   "window": {
@@ -71,7 +78,7 @@
       "group_abn": "95123828553",
       "group_abr_entity_type": "PUB",
       "group_name": "G8 EDUCATION LIMITED",
-      "group_name_status": "shown_abr_non_individual",
+      "group_name_status": "shown_abr_organisation_type",
       "controlled_providers": 9,
       "services_of_controlled_providers": 54,
       "head_provider": "PR-00000898"
@@ -91,7 +98,7 @@
       "group_abn": "69139967794",
       "group_abr_entity_type": "PUB",
       "group_name": "GOODSTART EARLY LEARNING LTD",
-      "group_name_status": "shown_abr_non_individual",
+      "group_name_status": "shown_abr_organisation_type",
       "controlled_providers": 2,
       "services_of_controlled_providers": 50,
       "head_provider": null
@@ -204,7 +211,7 @@
       ]
     }
   ],
-  "name_policy": "Names in MSR outputs: provider_legal_name is the ACECQA legal name, keyed by provider_approval_number, for providers not classed as individuals by ACECQA or the ABR. group_name is the ABR entity name of the reporting entity's ABN, shown only when the ABR entity type for that ABN is known locally and is not an individual or sole trader; otherwise it is blank and group_name_status says why. No name is taken from the register itself.",
+  "name_policy": "Names in MSR outputs: provider_legal_name is the ACECQA legal name, keyed by provider_approval_number, for providers not classed as individuals by ACECQA or the ABR. group_name is the ABR entity name of the reporting entity's ABN, shown only when the ABR entity type for that ABN is known locally, is a company, government entity, co-operative or other incorporated entity (never a trust, partnership or individual), the sources agree, and the name has no trust wording (family trust, trustee for, ATF); otherwise it is blank and group_name_status says why. No name is taken from the register itself.",
   "caveats": [
     "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched by the included entity's ABN, or by exact normalised name agreeing with both the ACECQA legal name and the ABR entity name. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
     "group_parent_self: the provider is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",

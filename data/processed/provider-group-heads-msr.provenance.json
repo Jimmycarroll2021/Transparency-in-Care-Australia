@@ -1,6 +1,6 @@
 {
   "output": "data/processed/provider-group-heads-msr.csv",
-  "written_at": "2026-10-30T20:50:43.957847+00:00",
+  "written_at": "2026-10-30T21:05:47.685614+00:00",
   "rows": 2,
   "schema": null,
   "raw_inputs": [
@@ -142,7 +142,9 @@
     "data/raw/msr/statements/29818/2026-10-30T1937Z.html",
     "data/raw/msr/statements/29931/2026-10-30T1937Z.html",
     "data/processed/provider-abn.csv",
-    "data/processed/provider-profile.csv"
+    "data/processed/provider-profile.csv",
+    "data/processed/abn-details.csv",
+    "data/processed/acecqa-services-latest.csv"
   ],
-  "notes": "group_parent_self: the provider is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider. Names in MSR outputs: provider_legal_name is the ACECQA legal name, keyed by provider_approval_number, for providers not classed as individuals by ACECQA or the ABR. group_name is the ABR entity name of the reporting entity's ABN, shown only when the ABR entity type for that ABN is known locally and is not an individual or sole trader; otherwise it is blank and group_name_status says why. No name is taken from the register itself. Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: licence unclear)."
+  "notes": "group_parent_self: the provider is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider. Names in MSR outputs: provider_legal_name is the ACECQA legal name, keyed by provider_approval_number, for providers not classed as individuals by ACECQA or the ABR. group_name is the ABR entity name of the reporting entity's ABN, shown only when the ABR entity type for that ABN is known locally, is a company, government entity, co-operative or other incorporated entity (never a trust, partnership or individual), the sources agree, and the name has no trust wording (family trust, trustee for, ATF); otherwise it is blank and group_name_status says why. No name is taken from the register itself. Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: licence unclear)."
 }
