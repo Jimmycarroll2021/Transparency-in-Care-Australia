@@ -1,8 +1,11 @@
 """Unit tests for the NSW enforcement register parser. Inline fixtures only, no network."""
 
+import json
+
 from scrapers.parse_nsw_enforcement import (
     DUPLICATE_NOTE,
     INDEX_URL,
+    SOURCE,
     RawRecord,
     build_row,
     clean_text,
@@ -12,6 +15,7 @@ from scrapers.parse_nsw_enforcement import (
     map_action_type,
     mark_duplicates,
     parse_date,
+    pdf_snapshots,
     period_label_from_slug,
     provider_name_if_entity,
     slug_from_url,
@@ -321,3 +325,54 @@ def test_duplicate_note_is_appended_to_existing_notes():
     mark_duplicates(rows)
     assert rows[1]["notes"].endswith(DUPLICATE_NOTE)
     assert "not SE-/PR- plus 8 digits" in rows[1]["notes"]
+
+
+# --- latest snapshot per URL --------------------------------------------------
+
+
+def _write_pdf_snapshot(directory, name: str, url: str | None) -> None:
+    (directory / name).write_bytes(b"%PDF-1.4 test")
+    if url is not None:
+        meta = {"url": url, "final_url": url}
+        (directory / f"{name}.meta.json").write_text(json.dumps(meta))
+
+
+def test_only_the_newest_snapshot_of_each_url_is_parsed(tmp_path):
+    # A re-issued quarterly PDF is fetched again from the same URL; both copies sit in data/raw.
+    # Parsing both would double count every action in that quarter.
+    src = tmp_path / SOURCE
+    src.mkdir()
+    q4 = "https://education.nsw.gov.au/x/Q4_Cancellations_Services_2025_2026.pdf"
+    q3 = "https://education.nsw.gov.au/x/Q3_Cancellations_Services_2025_2026.pdf"
+    _write_pdf_snapshot(src, "2026-10-29T0718Z-q4-cancellations-services-2025-2026.pdf", q4)
+    _write_pdf_snapshot(src, "2026-10-29T0718Z-q3-cancellations-services-2025-2026.pdf", q3)
+    _write_pdf_snapshot(src, "2026-12-01T0700Z-q4-cancellations-services-2025-2026.pdf", q4)
+    (src / "2026-10-29T0717Z.html").write_text("<html></html>")  # index page, not a PDF
+
+    kept, superseded = pdf_snapshots(base_dir=tmp_path)
+
+    assert [p.name for p in kept] == [
+        "2026-10-29T0718Z-q3-cancellations-services-2025-2026.pdf",
+        "2026-12-01T0700Z-q4-cancellations-services-2025-2026.pdf",
+    ]
+    assert [p.name for p in superseded] == [
+        "2026-10-29T0718Z-q4-cancellations-services-2025-2026.pdf"
+    ]
+
+
+def test_snapshot_without_meta_falls_back_to_its_file_slug(tmp_path):
+    src = tmp_path / SOURCE
+    src.mkdir()
+    _write_pdf_snapshot(src, "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf", None)
+    _write_pdf_snapshot(src, "2026-11-02T0718Z-q1-cancellations-providers-2025-2026.pdf", None)
+    _write_pdf_snapshot(src, "2026-11-02T0718Z-q2-cancellations-providers-2025-2026.pdf", None)
+
+    kept, superseded = pdf_snapshots(base_dir=tmp_path)
+
+    assert [p.name for p in kept] == [
+        "2026-11-02T0718Z-q1-cancellations-providers-2025-2026.pdf",
+        "2026-11-02T0718Z-q2-cancellations-providers-2025-2026.pdf",
+    ]
+    assert [p.name for p in superseded] == [
+        "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf"
+    ]

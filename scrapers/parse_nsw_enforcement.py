@@ -615,8 +615,22 @@ def mark_duplicates(rows: list[dict]) -> int:
     return count
 
 
-def pdf_snapshots() -> list[Path]:
-    return [p for p in list_snapshots(SOURCE) if p.suffix.lower() == ".pdf"]
+def pdf_snapshots(base_dir: Path = RAW_DIR) -> tuple[list[Path], list[Path]]:
+    """(kept, superseded) PDF snapshots. Only the newest snapshot of each source URL is kept.
+
+    A re-issued quarterly PDF is fetched again from the same URL and archived next to the old
+    copy; parsing both would count every action in that quarter twice. The URL comes from the
+    snapshot's meta sidecar ('url', then 'final_url'); a snapshot with no sidecar is identified by
+    its file slug. Snapshots are listed oldest first, so the last one seen for a URL is the newest.
+    """
+    pdfs = [p for p in list_snapshots(SOURCE, base_dir=base_dir) if p.suffix.lower() == ".pdf"]
+    newest: dict[str, Path] = {}
+    for path in pdfs:
+        meta = read_meta(path)
+        key = meta.get("url") or meta.get("final_url") or f"slug:{slug_of_snapshot(path)}"
+        newest[key] = path
+    keep = set(newest.values())
+    return [p for p in pdfs if p in keep], [p for p in pdfs if p not in keep]
 
 
 def read_meta(path: Path) -> dict:
@@ -644,9 +658,14 @@ def parse_all() -> tuple[list[dict], list[Path], dict]:
         "null_provider_approval_number_on_provider_rows": 0,
         "duplicates": 0,
         "withheld_provider_names": 0,
+        "superseded_snapshots": [],
         "by_file": {},
     }
-    for path in pdf_snapshots():
+    snapshots, superseded = pdf_snapshots()
+    for path in superseded:
+        log.info("superseded by a newer snapshot of the same URL, not parsed: %s", path.name)
+        summary["superseded_snapshots"].append(path.name)
+    for path in snapshots:
         meta = read_meta(path)
         rel = str(path.relative_to(PROJECT_ROOT))
         slug = slug_of_snapshot(path)
