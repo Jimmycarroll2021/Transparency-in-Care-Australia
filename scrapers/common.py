@@ -17,6 +17,7 @@ import json
 import logging
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -132,13 +133,19 @@ def fetch(
     retries: int = 2,
     allow_disallowed: bool = False,
     user_agent: str | None = None,
+    redact: Callable[[str], str] | None = None,
 ) -> Fetched:
-    """GET a URL politely. Raises RobotsDisallowed or httpx.HTTPStatusError."""
+    """GET a URL politely. Raises RobotsDisallowed or httpx.HTTPStatusError.
+
+    `redact` rewrites any text this function logs or raises itself (for example to strip an API
+    key from a query string). The caller must still redact exceptions raised by httpx.
+    """
     ua = user_agent or USER_AGENT
+    shown = redact or (lambda text: text)
     rp = _load_robots(url, user_agent=ua)
     if rp is not None and not allow_disallowed:
         if not (rp.can_fetch(AGENT_TOKEN, url) and rp.can_fetch("*", url)):
-            raise RobotsDisallowed(f"robots.txt disallows {url} for {AGENT_TOKEN}")
+            raise RobotsDisallowed(shown(f"robots.txt disallows {url} for {AGENT_TOKEN}"))
 
     attempt = 0
     while True:
@@ -168,7 +175,13 @@ def fetch(
             if attempt > retries:
                 raise
             backoff = 2.0**attempt
-            log.warning("fetch failed (%s), retry %d in %.0fs: %s", exc, attempt, backoff, url)
+            log.warning(
+                "fetch failed (%s), retry %d in %.0fs: %s",
+                shown(str(exc)),
+                attempt,
+                backoff,
+                shown(url),
+            )
             time.sleep(backoff)
 
 

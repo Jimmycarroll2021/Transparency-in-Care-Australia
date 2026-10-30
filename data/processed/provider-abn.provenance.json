@@ -1,0 +1,47 @@
+{
+  "output": "data/processed/provider-abn.csv",
+  "written_at": "2026-10-30T05:51:50.717128+00:00",
+  "rows": 1210,
+  "schema": null,
+  "raw_inputs": [
+    "data/processed/provider-profile.csv",
+    "data/processed/enforcement-actions-all.csv"
+  ],
+  "notes": "One row per provider in the priority subset processed this run (joined to an enforcement action, or 5+ services, or several states). match_kind: accepted_unique, accepted_unique_in_state, ambiguous, no_match, excluded_individual_or_unknown (never queried; no name kept), excluded_individual_abr (ABR says individual; no ABN or name kept), accepted_unconfirmed, lookup_error. score is the MatchingNames score of the accepted candidate; candidates is the number of distinct current non-individual ABNs returned (maxResults 10). looked_up_at and response_sha256 are for the name search; details_* for the AbnDetails confirmation. ABR business names that read as a person's name are withheld unless already an ACECQA organisation name. Parent and subsidiary relationships are NOT derivable from free ABR data: they need paid ASIC extracts and are out of scope. A group here is one legal entity (one ABN or ACN) holding several provider approvals, nothing more.",
+  "abr_source": {
+    "service": "ABN Lookup web services (JSON)",
+    "endpoints": [
+      "https://abr.business.gov.au/json/AbnDetails.aspx",
+      "https://abr.business.gov.au/json/MatchingNames.aspx"
+    ],
+    "licence": "ABN Lookup Web Services Agreement v9.9.7, https://abr.business.gov.au/Tools/WebServicesAgreement (see research/2026-10-30-register-abn-lookup.md)",
+    "cache": "data/raw/abr-lookup/ is a local, gitignored cache; each row records the query endpoint, looked_up_at and the sha256 of the cached response instead",
+    "credential": "the GUID is never stored; every recorded URL has the guid parameter removed"
+  },
+  "run": {
+    "subset_size": 1210,
+    "subset_rule": "joined to an enforcement action, or service_count >= 5, or state_count > 1",
+    "providers_processed": 1210,
+    "providers_queried": 1121,
+    "match_kinds": {
+      "accepted_unique": 884,
+      "accepted_unique_in_state": 17,
+      "ambiguous": 29,
+      "excluded_individual_or_unknown": 89,
+      "no_match": 191
+    },
+    "accepted": 901,
+    "excluded_before_query_by_entity_form": {
+      "likely_individual": 63,
+      "unknown": 26
+    },
+    "excluded_as_individual_by_abr": 0,
+    "excluded_individual_candidates_discarded": 1350,
+    "api_calls": 1487,
+    "cache_hits": 535,
+    "max_calls": 1500,
+    "stopped_by_call_cap": false,
+    "providers_remaining": 0,
+    "providers_remaining_excluding_individuals": 0
+  }
+}

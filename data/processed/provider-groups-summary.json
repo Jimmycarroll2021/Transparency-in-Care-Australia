@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-10-30T05:51:51.023523+00:00",
+  "denominators": {
+    "providers_in_provider_abn": 1210,
+    "providers_with_accepted_abn": 901,
+    "note": "Groups are formed only among providers with an accepted ABN in this run's priority subset; providers not yet looked up cannot appear in a group."
+  },
+  "entity_groups": 0,
+  "providers_in_entity_groups": 0,
+  "entity_group_size_distribution": {},
+  "business_name_overlap_flags": 29,
+  "providers_named_by_overlap_flags": 36,
+  "window": {
+    "start": "2024-10-29",
+    "end": "2026-10-28",
+    "basis": "enforcement-by-provider.csv"
+  },
+  "largest_10_entity_groups": [],
+  "stage_b_run": {
+    "subset_size": 1210,
+    "subset_rule": "joined to an enforcement action, or service_count >= 5, or state_count > 1",
+    "providers_processed": 1210,
+    "providers_queried": 1121,
+    "match_kinds": {
+      "accepted_unique": 884,
+      "accepted_unique_in_state": 17,
+      "ambiguous": 29,
+      "excluded_individual_or_unknown": 89,
+      "no_match": 191
+    },
+    "accepted": 901,
+    "excluded_before_query_by_entity_form": {
+      "likely_individual": 63,
+      "unknown": 26
+    },
+    "excluded_as_individual_by_abr": 0,
+    "excluded_individual_candidates_discarded": 1350,
+    "api_calls": 1487,
+    "cache_hits": 535,
+    "max_calls": 1500,
+    "stopped_by_call_cap": false,
+    "providers_remaining": 0,
+    "providers_remaining_excluding_individuals": 0
+  },
+  "caveats": [
+    "Parent and subsidiary relationships are NOT derivable from free ABR data: they need paid ASIC extracts and are out of scope. A group here is one legal entity (one ABN or ACN) holding several provider approvals, nothing more.",
+    "A business-name overlap flag is a lead, not a finding: a shared brand or trading name is not evidence of common ownership.",
+    "total_services is the sum of current ACECQA service counts of the group's provider approvals. actions_last_24_months counts published enforcement actions of every type in the window (not breaches), only from registers collected so far. Absence of an action is not evidence of safety.",
+    "ABNs come from a name match on ABN Lookup and are not verified by hand. Verify any ABN on ABN Lookup before it is shown publicly. ACECQA content is not openly licensed: internal use only."
+  ],
+  "inputs": [
+    "data/processed/provider-abn.csv",
+    "data/processed/provider-groups.csv",
+    "data/processed/enforcement-by-provider.csv"
+  ]
+}

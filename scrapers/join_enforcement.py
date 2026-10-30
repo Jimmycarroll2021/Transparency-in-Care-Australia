@@ -21,7 +21,16 @@ Join rules
   unique name-only match is accepted (name_only). Several candidates: left unmatched, with the
   candidate count in join_note. Rows whose subject was withheld as an individual are never name
   matched; they join by key only.
-- Provider-name stage (third, last): a row still unmatched, with no printed SE-/PR- key and a
+- ABN entity stage (third): a row still unmatched, with no printed SE-/PR- key and an abn, is
+  looked up in data/processed/abn-details.csv (written by scrapers/abn_lookup.py; the join never
+  calls the API). The ABR EntityName and stored business names are normalised with
+  normalise_provider_name and matched to ACECQA Legal Name and Trading Name across all states.
+  Accepted only when the union of matches is exactly one provider (join_key_kind abn_entity_match,
+  match_confidence abn_unique_entity); the row is then pinned to a service exactly as in the
+  provider-name stage, keeping the same confidence. An ABR record excluded as an individual, not
+  found, or matching several providers leaves the row for the provider-name stage, with the reason
+  in join_note.
+- Provider-name stage (fourth): a row still unmatched, with no printed SE-/PR- key and a
   non-null provider_name, is matched to ACECQA providers by normalised Legal Name or Trading Name,
   restricted to the row's state when it has one (a provider is "in" a state if its registered
   State or any of its services is there). Accepted only when exactly one provider matches
@@ -31,11 +40,12 @@ Join rules
   withheld as likely individuals are never matched. A row that also has a service_name is then
   pinned to one of that provider's services when the normalised ServiceName is unique
   (provider_and_service_name); the key is set on the joined output only, never on the source row.
-- abn: the 11 digits of a printed "ccs_identifier: ABN ..." note, carried for the Phase 4 ABR
-  stage. ACECQA has no ABN, so it cannot be matched here. Null where the subject is withheld.
+- abn: the 11 digits of a printed "ccs_identifier: ABN ..." note. ACECQA has no ABN, so it is
+  matched only through the ABR entity and business names (ABN entity stage). Null where the
+  subject is withheld.
 - join_key_kind is the kind of join that succeeded (service, provider, name_match,
-  provider_name_match, service_key_unlisted, provider_key_unlisted) or none.
-- Unlisted-spine stage (fourth, last, run over the whole stack by add_unlisted_stage): a row still
+  abn_entity_match, provider_name_match, service_key_unlisted, provider_key_unlisted) or none.
+- Unlisted-spine stage (fifth, last, run over the whole stack by add_unlisted_stage): a row still
   unmatched that prints an SE- or PR- key absent from the live ACECQA export is joined to a stub
   spine entry keyed on that approval number (match_confidence exact_key_unlisted,
   spine_status not_in_current_register). The ACECQA export lists current approvals only, so these
@@ -108,6 +118,7 @@ except ImportError:  # run as a plain script: python3 scrapers/join_enforcement.
 SERVICES_CSV = PROCESSED_DIR / "acecqa-services-latest.csv"
 PROVIDERS_CSV = PROCESSED_DIR / "acecqa-providers-latest.csv"
 PROFILE_CSV = PROCESSED_DIR / "provider-profile.csv"
+ABN_DETAILS_CSV = PROCESSED_DIR / "abn-details.csv"
 REPORT_JSON = PROCESSED_DIR / "enforcement-join-report.json"
 SPINE_UNLISTED_NAME = "spine-unlisted"
 SCHEMA_PATH = PROJECT_ROOT / "data" / "schemas" / "enforcement-action.schema.json"
@@ -128,6 +139,8 @@ CONFIDENCE_NAME_ONLY = "name_only"
 CONFIDENCE_PROVIDER_NAME = "provider_name_unique"
 CONFIDENCE_PROVIDER_AND_SERVICE = "provider_and_service_name"
 CONFIDENCE_UNLISTED = "exact_key_unlisted"
+CONFIDENCE_ABN_ENTITY = "abn_unique_entity"
+KIND_ABN_ENTITY = "abn_entity_match"
 CONFIDENCE_NONE = "unmatched"
 
 KIND_SERVICE_UNLISTED = "service_key_unlisted"
@@ -514,6 +527,50 @@ def match_by_provider_name(row: dict, spine: Spine, state: str | None) -> tuple[
     return next(iter(candidates)), f"unique provider name match{where}"
 
 
+def load_abn_details(path: Path = ABN_DETAILS_CSV) -> dict[str, dict] | None:
+    """ABR lookup rows keyed by ABN, or None when the table has not been built."""
+    if not path.exists():
+        return None
+    out: dict[str, dict] = {}
+    for row in load_csv(path):
+        abn = re.sub(r"\D", "", row.get("abn") or "")
+        if abn:
+            out[abn] = row
+    return out
+
+
+def match_by_abn_entity(
+    abn: str, abn_details: dict[str, dict], spine: Spine
+) -> tuple[str | None, str]:
+    """Return (provider PR or None, join_note) for an ABN via its ABR entity and business names.
+
+    Accepted only when the ABR names, normalised, point at exactly one ACECQA provider. Providers
+    withheld as likely individuals are not in spine.provider_names, so they are never matched.
+    """
+    record = abn_details.get(abn)
+    if record is None:
+        return None, "ABN not in the ABR lookup table"
+    status = (record.get("lookup_status") or "").strip()
+    if status != "ok":
+        return None, f"ABR lookup status {status or 'unknown'}; not matched"
+    entity_key = normalise_provider_name(record.get("entity_name"))
+    business = [
+        normalise_provider_name(n) for n in (record.get("business_names") or "").split("; ") if n
+    ]
+    by_entity = set(spine.provider_names.get(entity_key, set())) if entity_key else set()
+    by_business: set = set()
+    for key in business:
+        if key:
+            by_business |= spine.provider_names.get(key, set())
+    candidates = by_entity | by_business
+    if not candidates:
+        return None, "no ACECQA provider has the ABR entity or business name"
+    if len(candidates) > 1:
+        return None, f"ambiguous ABN entity match: {len(candidates)} candidate providers"
+    via = "entity name" if by_entity else "business name"
+    return next(iter(candidates)), f"unique ACECQA provider for the ABN's ABR {via}"
+
+
 def pin_service(row: dict, spine: Spine, pr: str, state: str | None) -> tuple[dict | None, str]:
     """Pin a provider-matched row to one of the provider's services by unique normalised name."""
     key = normalise_service_name(row.get("service_name"))
@@ -557,7 +614,16 @@ def attach_provider(out: dict, pr: str, profile: dict) -> None:
     )
 
 
-def join_actions(actions: list[dict], spine: Spine) -> list[dict]:
+def _row_state(out: dict, jurisdiction: str) -> str | None:
+    state = (out["state"] or "").upper() or None
+    if state is None and jurisdiction in STATES:
+        state = jurisdiction
+    return state if state in STATES else None
+
+
+def join_actions(
+    actions: list[dict], spine: Spine, abn_details: dict[str, dict] | None = None
+) -> list[dict]:
     """Stack-order join. Adds occurrence, join columns and spine columns to a copy of each row."""
     seen: Counter = Counter()
     joined: list[dict] = []
@@ -623,7 +689,28 @@ def join_actions(actions: list[dict], spine: Spine) -> list[dict]:
         else:
             out["join_note"] = "no service or provider key printed"
 
-        # Third stage: provider name, for rows with no printed key that are still unmatched.
+        # Third stage: ABN entity, for unkeyed rows that carry an ABN (Commonwealth CCS rows).
+        if (
+            abn_details is not None
+            and out["match_confidence"] == CONFIDENCE_NONE
+            and not se
+            and not pr
+            and out["abn"]
+        ):
+            matched_pr, note = match_by_abn_entity(out["abn"], abn_details, spine)
+            if matched_pr is None:
+                out["join_note"] = f"{out['join_note']}; ABN entity: {note}"
+            else:
+                out.update(join_key_kind=KIND_ABN_ENTITY, match_confidence=CONFIDENCE_ABN_ENTITY)
+                out["join_note"] = note
+                attach_provider(out, matched_pr, spine.profiles[matched_pr])
+                state = _row_state(out, jurisdiction)
+                service, pin_note = pin_service(out, spine, matched_pr, state)
+                if service is not None:
+                    attach_service(out, service, spine)
+                out["join_note"] += pin_note
+
+        # Fourth stage: provider name, for rows with no printed key that are still unmatched.
         if (
             out["match_confidence"] == CONFIDENCE_NONE
             and not se
@@ -631,11 +718,7 @@ def join_actions(actions: list[dict], spine: Spine) -> list[dict]:
             and out["provider_name"]
             and not name_withheld_row(out)
         ):
-            state = (out["state"] or "").upper() or None
-            if state is None and jurisdiction in STATES:
-                state = jurisdiction
-            if state not in STATES:
-                state = None
+            state = _row_state(out, jurisdiction)
             matched_pr, note = match_by_provider_name(out, spine, state)
             if matched_pr is None:
                 out["join_note"] = f"{out['join_note']}; provider name: {note}"
@@ -1024,7 +1107,7 @@ def aggregate(
         by_name = row["match_confidence"] != CONFIDENCE_EXACT
         se = row["acecqa_service_approval_number"]
         if row["join_key_kind"] in ("service", "name_match") or (
-            row["join_key_kind"] == "provider_name_match" and se
+            row["join_key_kind"] in ("provider_name_match", KIND_ABN_ENTITY) and se
         ):
             service_tally.setdefault(se, Tally(types)).add(action_type, when, window)
             if by_name:
@@ -1282,6 +1365,8 @@ def build_report(
                 "joined_by_provider_name": 0,
                 "joined_by_provider_name_unpinned": 0,
                 "joined_by_provider_and_service_name": 0,
+                "joined_by_abn_entity": 0,
+                "joined_by_abn_entity_pinned": 0,
                 "joined_by_unlisted_key": 0,
                 "joined_by_unlisted_key_service": 0,
                 "joined_by_unlisted_key_provider": 0,
@@ -1311,6 +1396,10 @@ def build_report(
                 s["joined_by_provider_name_unpinned"] += 1
             else:
                 s["joined_by_provider_and_service_name"] += 1
+        elif confidence == CONFIDENCE_ABN_ENTITY:
+            s["joined_by_abn_entity"] += 1
+            if row["acecqa_service_approval_number"]:
+                s["joined_by_abn_entity_pinned"] += 1
         elif confidence == CONFIDENCE_UNLISTED:
             s["joined_by_unlisted_key"] += 1
             kind = "service" if row["join_key_kind"] == KIND_SERVICE_UNLISTED else "provider"
@@ -1333,7 +1422,12 @@ def build_report(
                     {"record_id": row["record_id"], "action_type": row["action_type"]}
                 )
     for s in per.values():
-        live_n = s["joined_exact_key"] + s["joined_by_name"] + s["joined_by_provider_name"]
+        live_n = (
+            s["joined_exact_key"]
+            + s["joined_by_name"]
+            + s["joined_by_abn_entity"]
+            + s["joined_by_provider_name"]
+        )
         joined_n = live_n + s["joined_by_unlisted_key"]
         s["match_rate"] = round(joined_n / s["rows_in"], 4) if s["rows_in"] else None
         s["match_rate_live_spine_only"] = round(live_n / s["rows_in"], 4) if s["rows_in"] else None
@@ -1428,7 +1522,8 @@ def build_report(
             "Rows joined by an unlisted key (match_confidence exact_key_unlisted) carry an identity taken from the enforcement register, not from ACECQA: the approval is absent from the current ACECQA export, usually because it has ceased. They hold no current rating. They are reported separately from the live denominators (services and providers in the ACECQA export).",
             "Every unmatched row has exactly one stated reason in unmatched_residual (no_key_and_name_withheld, no_key_no_name_match, ambiguous_name, other). The aim is that each row is joined by key, joined by unique name, or explained; a 100 per cent match rate is not the goal and would require guessing.",
             "Rows joined by provider name (provider_name_unique, provider_and_service_name) carry no printed key: they are accepted only when exactly one ACECQA provider has the normalised name, but a name match is weaker evidence than a key. actions_matched_by_name on each table shows how many of a row's counts rest on a name.",
-            "Commonwealth CCS sanctions attach to the CCS approved provider, so a provider-name match is provider-level unless the service is pinned. ABNs are carried in enforcement-actions-all.csv for the Phase 4 ABR stage and are not matched here.",
+            "Commonwealth CCS sanctions attach to the CCS approved provider, so a provider-name match is provider-level unless the service is pinned. ABNs are carried in enforcement-actions-all.csv.",
+            "Rows joined by ABN entity (match_confidence abn_unique_entity) printed an ABN that the ABN Lookup web services resolved to an organisation whose ABR entity or business name, normalised, matches exactly one ACECQA provider. ACECQA holds no ABN, so this is still a name match (ABR name to ACECQA name), anchored by the printed ABN. Individuals and sole traders are never matched.",
         ],
     }
 
@@ -1458,6 +1553,9 @@ def main() -> None:
     profiles = load_csv(PROFILE_CSV)
     providers = load_csv(PROVIDERS_CSV)
     spine = Spine(services, profiles, providers)
+    abn_details = load_abn_details()
+    if abn_details is None:
+        log.info("no %s: ABN entity stage skipped", ABN_DETAILS_CSV.name)
     end = snapshot_date(services)
     if end is None:
         raise SystemExit("no usable snapshot_last_modified in the services spine")
@@ -1469,7 +1567,7 @@ def main() -> None:
         rows = load_csv(path)
         log.info("%s: %d rows", path.name, len(rows))
         actions.extend(rows)
-    joined = join_actions(actions, spine)
+    joined = join_actions(actions, spine, abn_details)
     matched_before = sum(1 for r in joined if r["match_confidence"] != CONFIDENCE_NONE)
     stubs = add_unlisted_stage(joined, spine, end)
     # Only claim CTH coverage in notes if CTH rows actually joined to a service or provider.
@@ -1487,6 +1585,8 @@ def main() -> None:
     )
 
     inputs = [SERVICES_CSV, PROVIDERS_CSV, PROFILE_CSV, *action_files]
+    if abn_details is not None:
+        inputs.append(ABN_DETAILS_CSV)
     raw_inputs = transitive_inputs(inputs)
     unlisted_note_text = (
         f" Rows whose SE-/PR- key is absent from the ACECQA export of {end.isoformat()} are joined "
@@ -1527,7 +1627,8 @@ def main() -> None:
         notes=base_note
         + " join_key_kind is the join that succeeded (none when unjoined); match_confidence "
         "unmatched means no join. occurrence numbers rows sharing a record_id. abn is carried from "
-        "'ccs_identifier: ABN' notes for the Phase 4 ABR stage (null where the subject is withheld).",
+        "'ccs_identifier: ABN' notes (null where the subject is withheld) and drives the "
+        "abn_entity_match stage through abn-details.csv when that table exists.",
     )
     write_processed(
         "enforcement-by-service",
@@ -1581,12 +1682,13 @@ def main() -> None:
     log.info("wrote %s", REPORT_JSON.relative_to(PROJECT_ROOT))
     for j, s in report["per_jurisdiction"].items():
         log.info(
-            "%s: %d rows, %d exact key, %d by service name, %d by provider name "
+            "%s: %d rows, %d exact key, %d by service name, %d by ABN entity, %d by provider name "
             "(%d pinned to a service), %d by unlisted key, %d unmatched (match rate %s)",
             j,
             s["rows_in"],
             s["joined_exact_key"],
             s["joined_by_name"],
+            s["joined_by_abn_entity"],
             s["joined_by_provider_name"],
             s["joined_by_provider_and_service_name"],
             s["joined_by_unlisted_key"],

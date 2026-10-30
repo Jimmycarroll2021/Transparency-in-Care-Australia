@@ -23,3 +23,7 @@ Thumbs.db
 # Large derived tables: reproducible from the raw snapshots with --no-fetch; provenance files are kept
 data/processed/acecqa-services-latest.csv
 data/processed/acecqa-providers-latest.csv
+
+# ABN Lookup responses: local cache only. Candidate lists can contain individuals' names
+# (CLAUDE.md rule 2), so they never reach the public repo. Processed outputs carry the sha256.
+data/raw/abr-lookup/

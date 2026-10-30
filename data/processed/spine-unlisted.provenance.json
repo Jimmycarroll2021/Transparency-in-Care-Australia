@@ -1,6 +1,6 @@
 {
   "output": "data/processed/spine-unlisted.csv",
-  "written_at": "2026-10-29T09:40:36.400329+00:00",
+  "written_at": "2026-10-30T04:49:53.630158+00:00",
   "rows": 508,
   "schema": null,
   "raw_inputs": [
@@ -14,6 +14,7 @@
     "data/processed/tas-enforcement-actions.csv",
     "data/processed/vecra-enforcement-actions.csv",
     "data/processed/wa-enforcement-actions.csv",
+    "data/processed/abn-details.csv",
     "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
     "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json",
     "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz",
@@ -64,7 +65,8 @@
     "data/raw/vecra-enforcement/2026-10-29T0720Z-august-2026.html",
     "data/raw/vecra-enforcement/2026-10-29T0721Z-summary-table.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-index.html",
-    "data/raw/wa-enforcement/2026-10-29T0842Z.html"
+    "data/raw/wa-enforcement/2026-10-29T0842Z.html",
+    "data/processed/enforcement-actions-all.csv"
   ],
-  "notes": "Built from acecqa-services-latest.csv, acecqa-providers-latest.csv, provider-profile.csv, cth-ccs-enforcement-actions.csv, nsw-enforcement-actions.csv, qld-enforcement-actions.csv, sa-enforcement-actions.csv, tas-enforcement-actions.csv, vecra-enforcement-actions.csv, wa-enforcement-actions.csv, plus spine-unlisted.csv derived from the same inputs in the same run. Window: 24 calendar months ending 2026-10-28 (the ACECQA snapshot date), inclusive of 2024-10-29. Counts are of published enforcement actions of every type; action_type columns stay separate and prosecutions are not breaches. Rows flagged 'duplicate row in source' are kept but not counted. Coverage: NSW from Jan 2025, VIC from Jan 2026, QLD from 2017 (no keys), CTH rolling 12 months; SA, WA, TAS, NT, ACT not yet collected. Absence of an action is not evidence of safety. Names of providers withheld as likely individuals stay null. ACECQA content is not openly licensed: internal use only. Rows whose SE-/PR- key is absent from the ACECQA export of 2026-10-28 are joined to stub entries listed in spine-unlisted.csv (spine_status not_in_current_register); their identity comes from the enforcement register, they hold no current rating, and they are kept out of the live denominators. One row per unlisted approval key: name, address, suburb, state and postcode are values printed on the enforcement rows that carry the key (most recent date_issued wins; other names in stub_name_variants). Withheld names stay null and the street address of a withheld row is never used. first_seen and last_seen are date_issued dates."
+  "notes": "Built from acecqa-services-latest.csv, acecqa-providers-latest.csv, provider-profile.csv, cth-ccs-enforcement-actions.csv, nsw-enforcement-actions.csv, qld-enforcement-actions.csv, sa-enforcement-actions.csv, tas-enforcement-actions.csv, vecra-enforcement-actions.csv, wa-enforcement-actions.csv, abn-details.csv, plus spine-unlisted.csv derived from the same inputs in the same run. Window: 24 calendar months ending 2026-10-28 (the ACECQA snapshot date), inclusive of 2024-10-29. Counts are of published enforcement actions of every type; action_type columns stay separate and prosecutions are not breaches. Rows flagged 'duplicate row in source' are kept but not counted. Coverage: NSW from Jan 2025, VIC from Jan 2026, QLD from 2017 (no keys), CTH rolling 12 months; SA, WA, TAS, NT, ACT not yet collected. Absence of an action is not evidence of safety. Names of providers withheld as likely individuals stay null. ACECQA content is not openly licensed: internal use only. Rows whose SE-/PR- key is absent from the ACECQA export of 2026-10-28 are joined to stub entries listed in spine-unlisted.csv (spine_status not_in_current_register); their identity comes from the enforcement register, they hold no current rating, and they are kept out of the live denominators. One row per unlisted approval key: name, address, suburb, state and postcode are values printed on the enforcement rows that carry the key (most recent date_issued wins; other names in stub_name_variants). Withheld names stay null and the street address of a withheld row is never used. first_seen and last_seen are date_issued dates."
 }

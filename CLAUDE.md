@@ -6,15 +6,25 @@ regulatory facts.
 
 ## Current phase
 
-**Phase 2: Archive and parsers.** Gate passed 2026-10-29. Condition 1: GAP-001, 002, 003, 005
-and 007 validated (`research/2026-10-29-phase-1-learnings.md`). Condition 2: the project owner
-has stated that consent has been obtained from ACECQA and the other data owners for the uses in
-`docs/02-acecqa-consent-request.md`. Save each written reply to `data/evidence/` by script.
-Execution plan: `docs/02-execution-plan.md`.
+**Phase 4: Ownership graph.** Phases 2 and 3 are on `main` (merged 2026-10-29): daily ACECQA
+snapshots, enforcement parsers for NSW, VIC, QLD, SA, WA, TAS and the Commonwealth, and the national
+join (`scrapers/join_enforcement.py`). Phase 2 gate: GAP-001, 002, 003, 005 and 007 validated.
 
-Phase 2 scope: daily ACECQA register snapshots, enforcement parsers for NSW, Victoria, Queensland
-and the Commonwealth, shared helpers in `scrapers/common.py`, and the enforcement action schema in
-`data/schemas/enforcement-action.schema.json`. No public site yet (Phase 5, after legal review).
+**Licence position (corrected 2026-10-30): ACECQA consent is NOT yet held.** The consent request
+was sent on 2026-10-30 (`docs/02-acecqa-consent-request.md`); no reply yet. Until a written yes is
+saved to `data/evidence/` by script: do not display ACECQA ratings on any public site; ACECQA
+data is used for non-commercial research only; if ACECQA asks, remove stored copies from public
+view the same day. NSW and VECRA data are CC BY 4.0; SA ESB is all rights reserved; WA is
+non-commercial only. An earlier note that consent was held was wrong.
+
+Decision 2026-10-30: the owner keeps the repository public while the ACECQA request is pending,
+including the committed ACECQA snapshots. The letter disclosed this and offered same-day removal
+from public view if ACECQA asks. Do not re-raise unless ACECQA replies or the facts change.
+
+Phase 4 scope: ABN Lookup web services (GUID in `.env`, never committed or logged), provider to ABN
+resolution, and provider groups by shared ABN or ACN. Parent and subsidiary links are not in free ABR
+data. Raw ABR responses are a local cache only (`data/raw/abr-lookup/` is gitignored) because
+candidate lists can contain individuals' names. No public site yet (Phase 5, after legal review).
 
 Phase plan:
 1. Gap validation (now): `/validate-gap`
@@ -92,6 +102,8 @@ scrapers/             Collection scripts (Phase 2 onward)
 - Join enforcement onto the ACECQA spine: `python3 scrapers/join_enforcement.py`
 - Parse SA enforcement register: `python3 scrapers/parse_sa_enforcement.py`
 - Parse WA enforcement register: `python3 scrapers/parse_wa_enforcement.py` (needs `pip install playwright && playwright install chromium`; the ECRU register is a Caspio search form with no static page)
+- Resolve ABNs (needs ABN_LOOKUP_GUID in .env): `python3 scrapers/abn_lookup.py` (stage A: Commonwealth ABNs to `abn-details.csv`; `abn <ABN>` or `name "<name>" --state NSW` for single lookups; `--offline` uses the local cache)
+- Build provider groups: `python3 scrapers/build_provider_groups.py` (stage B providers to ABN, capped by `--max-calls`, default 1500; `--skip-lookup` rebuilds groups from `provider-abn.csv`)
 
 Add commands here only once the script exists.
 
