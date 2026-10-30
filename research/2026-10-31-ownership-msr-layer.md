@@ -133,8 +133,14 @@ ABN-backed matches. Confidence: Medium.
 - Name-matched edges (11 of 18) are not verified by ABN or ACN.
 - Statements are self-reported. A provider in an older statement may since have changed hands;
   every edge lists all its statements and reporting periods.
-- Names that read as a person are withheld as `[withheld: may name an individual]`. Most are
-  organisations.
+- Names fail closed. An MSR name is shown only when the project classifier positively classes it
+  as an organisation (company, association, trust, cooperative, government or church form), or
+  it carries organisation wording or an ACN. Every other name is withheld as
+  `[withheld: may name an individual]`, and no group key is derived from a name: with no ABN the
+  key is `MSR-<statement page id>`. Provider identity (approval number and ACECQA legal name)
+  comes from ACECQA and is never masked, because providers classed as individuals or unknown are
+  excluded before matching. The fail-closed rule (Codex round 1) withheld 4 more distinct names,
+  all in the summary's candidate list. No edge, head, co-reported or review row changed.
 - Licence unclear: the MSR shows "Copyright Attorney-General's Department" and no open licence.
   Raw MSR files and their sidecars stay in `data/raw/msr/` (gitignored). Only derived facts are
   committed. This note does not clear the licence under `.claude/rules/data-pipeline.md`; ask the
@@ -148,7 +154,10 @@ ABN-backed matches. Confidence: Medium.
 - `data/processed/provider-group-review-msr.csv` (103 rows)
 - Each with a `.provenance.json`, plus `data/processed/provider-group-edges-msr-summary.json`
 
-Rebuild offline: `python3 scrapers/build_msr_group_edges.py --no-fetch`.
+Rebuild offline: `python3 scrapers/build_msr_group_edges.py --no-fetch`. The run exits 2 and
+leaves every output unchanged if any candidate page is missing or unparseable, and exits 1 if
+nothing is usable. If `acecqa-services-latest.csv` is missing, service counts are null (unknown),
+not zero. `--refresh` takes a new snapshot of every candidate page beside the old ones.
 
 ## Open questions
 
