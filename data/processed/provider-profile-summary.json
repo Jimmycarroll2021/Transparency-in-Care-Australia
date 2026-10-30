@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T21:48:55.166244+00:00",
+  "generated_at": "2026-10-30T22:19:47.124264+00:00",
   "inputs": {
     "providers_file": "data/processed/acecqa-providers-latest.csv",
     "services_file": "data/processed/acecqa-services-latest.csv",
@@ -62,7 +62,7 @@
     "unknown": 0.0335
   },
   "likely_individual_providers_names_withheld": 756,
-  "providers_names_withheld_total": 1572,
+  "providers_names_withheld_total": 2209,
   "providers_with_no_services_in_services_table": 2871,
   "providers_by_service_count_band": {
     "0": 2871,
@@ -169,14 +169,6 @@
       "entity_form": "church_or_religious",
       "service_count": 148,
       "states_operated_in": "VIC"
-    },
-    {
-      "provider_approval_number": "PR-00000702",
-      "legal_name": "Corporation of the Trustees of the Roman Catholic Archdiocese of Brisbane - Centacare Administration Services",
-      "trading_name": null,
-      "entity_form": "church_or_religious",
-      "service_count": 136,
-      "states_operated_in": "QLD"
     },
     {
       "provider_approval_number": "PR-00005345",
@@ -321,6 +313,14 @@
       "entity_form": "trust_or_trustee",
       "service_count": 55,
       "states_operated_in": "NSW|VIC|WA"
+    },
+    {
+      "provider_approval_number": "PR-00006463",
+      "legal_name": "YMCA of South Australia Inc",
+      "trading_name": null,
+      "entity_form": "incorporated_association",
+      "service_count": 53,
+      "states_operated_in": "SA"
     }
   ],
   "top_30_note": "Providers whose names are withheld are excluded from this list by design. Service count is approved services on the register on the snapshot date, out of the services_total above. A large count does not by itself indicate any compliance concern.",

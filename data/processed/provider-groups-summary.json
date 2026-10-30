@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T21:48:57.660770+00:00",
+  "generated_at": "2026-10-30T22:19:49.610748+00:00",
   "denominators": {
     "providers_in_provider_abn": 1210,
     "providers_with_accepted_abn": 901,
@@ -8,8 +8,8 @@
   "entity_groups": 0,
   "providers_in_entity_groups": 0,
   "entity_group_size_distribution": {},
-  "business_name_overlap_flags": 25,
-  "providers_named_by_overlap_flags": 32,
+  "business_name_overlap_flags": 21,
+  "providers_named_by_overlap_flags": 26,
   "window": {
     "start": "2024-10-29",
     "end": "2026-10-28",

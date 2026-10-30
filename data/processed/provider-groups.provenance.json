@@ -1,7 +1,7 @@
 {
   "output": "data/processed/provider-groups.csv",
-  "written_at": "2026-10-30T21:48:57.498195+00:00",
-  "rows": 57,
+  "written_at": "2026-10-30T22:19:49.430967+00:00",
+  "rows": 47,
   "schema": null,
   "raw_inputs": [
     "data/processed/provider-abn.csv",

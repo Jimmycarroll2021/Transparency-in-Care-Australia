@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T21:51:46.105275+00:00",
+  "generated_at": "2026-10-30T22:27:15.057740+00:00",
   "window": {
     "months": 24,
     "start": "2024-10-29",
@@ -96,20 +96,20 @@
   },
   "overall": {
     "rows_in": 3543,
-    "joined": 3236,
-    "joined_live_spine": 2682,
+    "joined": 3229,
+    "joined_live_spine": 2675,
     "joined_by_unlisted_key": 554,
     "unlisted_service_keys": 106,
     "unlisted_provider_keys": 402,
-    "unmatched": 307,
+    "unmatched": 314,
     "unmatched_residual": {
-      "no_key_and_name_withheld": 143,
-      "no_key_no_name_match": 163,
-      "ambiguous_name": 0,
+      "no_key_and_name_withheld": 150,
+      "no_key_no_name_match": 162,
+      "ambiguous_name": 1,
       "other": 1
     },
-    "match_rate": 0.9134,
-    "match_rate_live_spine_only": 0.757,
+    "match_rate": 0.9114,
+    "match_rate_live_spine_only": 0.755,
     "match_rate_note": "match_rate counts a row as joined when it joins to the live ACECQA spine or to an unlisted stub by printed key; match_rate_live_spine_only counts the live spine alone. The aim is that every row is joined by key, joined by unique name, or explicitly explained in unmatched_residual, not a 100 per cent match rate."
   },
   "unlisted_spine": {
@@ -122,7 +122,7 @@
     "services_with_action_last_24_months": 76,
     "providers_with_action_last_24_months": 371,
     "stubs_with_name_variants": 5,
-    "stubs_with_name_withheld": 144,
+    "stubs_with_name_withheld": 152,
     "note": "Stub entities are reported separately and are never added to the live denominators below."
   },
   "per_jurisdiction": {
@@ -134,18 +134,18 @@
       "joined_by_name": 0,
       "joined_by_name_and_suburb": 0,
       "joined_by_name_only": 0,
-      "joined_by_provider_name": 60,
+      "joined_by_provider_name": 59,
       "joined_by_provider_name_unpinned": 26,
-      "joined_by_provider_and_service_name": 34,
+      "joined_by_provider_and_service_name": 33,
       "joined_by_abn_entity": 7,
       "joined_by_abn_entity_pinned": 1,
       "joined_by_unlisted_key": 0,
       "joined_by_unlisted_key_service": 0,
       "joined_by_unlisted_key_provider": 0,
-      "unmatched": 169,
+      "unmatched": 170,
       "unmatched_residual": {
-        "no_key_and_name_withheld": 73,
-        "no_key_no_name_match": 96,
+        "no_key_and_name_withheld": 75,
+        "no_key_no_name_match": 95,
         "ambiguous_name": 0,
         "other": 0
       },
@@ -153,10 +153,10 @@
       "unmatched_ambiguous_provider_name": 0,
       "duplicate_rows_not_counted": 0,
       "unmatched_reasons": {
-        "no service or provider key printed": 73,
+        "no service or provider key printed": 75,
         "no service or provider key printed; provider name: no provider in QLD with this normalised name": 6,
         "no service or provider key printed; provider name: no provider in VIC with this normalised name": 18,
-        "no service or provider key printed; provider name: no provider in NSW with this normalised name": 14,
+        "no service or provider key printed; provider name: no provider in NSW with this normalised name": 13,
         "no service or provider key printed; provider name: no provider in ACT with this normalised name": 2,
         "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in VIC with this normalised name": 12,
         "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in NSW with this normalised name": 35,
@@ -167,48 +167,48 @@
       },
       "unmatched_examples": [
         {
-          "record_id": "3aa3fdc279efa233",
+          "record_id": "8e11954f3ae45b0a",
           "action_type": "ccs_sanction"
         },
         {
-          "record_id": "8caf3d7084ccb032",
+          "record_id": "de8c4c215034f951",
           "action_type": "ccs_sanction"
         },
         {
-          "record_id": "a17e008459eb5103",
+          "record_id": "645146859721499f",
           "action_type": "ccs_sanction"
         },
         {
-          "record_id": "db4075696468301e",
+          "record_id": "9b30fe6a84bb0ad7",
           "action_type": "ccs_sanction"
         },
         {
-          "record_id": "13737cdadeb6a4fd",
+          "record_id": "69dce8666b68b0ff",
           "action_type": "ccs_sanction"
         },
         {
-          "record_id": "30961f8e08f442d2",
+          "record_id": "e386da3b90f5ffb9",
           "action_type": "ccs_sanction"
         },
         {
-          "record_id": "6e5f04bf6fd76ffc",
+          "record_id": "43d247a499cd77e0",
           "action_type": "ccs_sanction"
         },
         {
-          "record_id": "41c4a56eb5cba9bb",
+          "record_id": "c3ed1156b9237856",
           "action_type": "ccs_sanction"
         },
         {
-          "record_id": "da41fe1f6b52eb31",
+          "record_id": "bc7fe41f81d289c9",
           "action_type": "ccs_sanction"
         },
         {
-          "record_id": "44f1ecbac1b161cb",
+          "record_id": "a0e1dd97af811d32",
           "action_type": "ccs_sanction"
         }
       ],
-      "match_rate": 0.2839,
-      "match_rate_live_spine_only": 0.2839
+      "match_rate": 0.2797,
+      "match_rate_live_spine_only": 0.2797
     },
     "NSW": {
       "rows_in": 1738,
@@ -241,11 +241,11 @@
       },
       "unmatched_examples": [
         {
-          "record_id": "3d8f057e8ae10c6c",
+          "record_id": "754b5f01fc986651",
           "action_type": "compliance_notice"
         },
         {
-          "record_id": "74eeb82ab6b25ce9",
+          "record_id": "9c258def7aed08ef",
           "action_type": "approval_cancelled"
         }
       ],
@@ -257,77 +257,78 @@
       "joined_exact_key": 0,
       "joined_exact_key_service": 0,
       "joined_exact_key_provider": 0,
-      "joined_by_name": 14,
+      "joined_by_name": 13,
       "joined_by_name_and_suburb": 0,
-      "joined_by_name_only": 14,
-      "joined_by_provider_name": 17,
-      "joined_by_provider_name_unpinned": 17,
+      "joined_by_name_only": 13,
+      "joined_by_provider_name": 13,
+      "joined_by_provider_name_unpinned": 13,
       "joined_by_provider_and_service_name": 0,
       "joined_by_abn_entity": 0,
       "joined_by_abn_entity_pinned": 0,
       "joined_by_unlisted_key": 0,
       "joined_by_unlisted_key_service": 0,
       "joined_by_unlisted_key_provider": 0,
-      "unmatched": 38,
+      "unmatched": 43,
       "unmatched_residual": {
-        "no_key_and_name_withheld": 23,
+        "no_key_and_name_withheld": 27,
         "no_key_no_name_match": 15,
-        "ambiguous_name": 0,
+        "ambiguous_name": 1,
         "other": 0
       },
-      "unmatched_ambiguous_name": 0,
+      "unmatched_ambiguous_name": 1,
       "unmatched_ambiguous_provider_name": 0,
       "duplicate_rows_not_counted": 0,
       "unmatched_reasons": {
         "no service name printed; no key; name match not possible; provider name: no provider in QLD with this normalised name": 1,
-        "no key; subject withheld as an individual; name match not attempted": 23,
+        "no key; subject withheld as an individual; name match not attempted": 27,
         "no QLD service with this normalised name": 1,
+        "ambiguous: N candidates share the name; provider name: no provider in QLD with this normalised name": 1,
         "no QLD service with this normalised name; provider name: no provider in QLD with this normalised name": 13
       },
       "unmatched_examples": [
         {
-          "record_id": "b524eac4ee09b5cd",
+          "record_id": "307e5939442bd345",
           "action_type": "approval_cancelled"
         },
         {
-          "record_id": "1653ccb1427be773",
+          "record_id": "f42ab6d0c267470a",
           "action_type": "prosecution"
         },
         {
-          "record_id": "66e2c41536483638",
+          "record_id": "b94fe522500774ea",
           "action_type": "approval_cancelled"
         },
         {
-          "record_id": "8328ffc102691ab5",
+          "record_id": "808268bb956e9cb8",
           "action_type": "approval_cancelled"
         },
         {
-          "record_id": "037ff7ba539e1671",
+          "record_id": "cf542314979a03b2",
           "action_type": "prosecution"
         },
         {
-          "record_id": "d3227ac7848711ee",
+          "record_id": "fd7009743b9eb45a",
           "action_type": "prosecution"
         },
         {
-          "record_id": "ac3a939140cc25de",
+          "record_id": "c84c4224c5f4d192",
           "action_type": "prosecution"
         },
         {
-          "record_id": "23765c030b2083ec",
+          "record_id": "fe593abe22afec24",
+          "action_type": "prosecution"
+        },
+        {
+          "record_id": "19bd342bb9cfd85c",
           "action_type": "other"
         },
         {
-          "record_id": "fcff38ff10f7c001",
+          "record_id": "78459a8a0f945ee0",
           "action_type": "approval_cancelled"
-        },
-        {
-          "record_id": "64229d5d00b40034",
-          "action_type": "other"
         }
       ],
-      "match_rate": 0.4493,
-      "match_rate_live_spine_only": 0.4493
+      "match_rate": 0.3768,
+      "match_rate_live_spine_only": 0.3768
     },
     "SA": {
       "rows_in": 436,
@@ -337,17 +338,17 @@
       "joined_by_name": 0,
       "joined_by_name_and_suburb": 0,
       "joined_by_name_only": 0,
-      "joined_by_provider_name": 40,
-      "joined_by_provider_name_unpinned": 16,
+      "joined_by_provider_name": 39,
+      "joined_by_provider_name_unpinned": 15,
       "joined_by_provider_and_service_name": 24,
       "joined_by_abn_entity": 0,
       "joined_by_abn_entity_pinned": 0,
       "joined_by_unlisted_key": 9,
       "joined_by_unlisted_key_service": 2,
       "joined_by_unlisted_key_provider": 7,
-      "unmatched": 68,
+      "unmatched": 69,
       "unmatched_residual": {
-        "no_key_and_name_withheld": 20,
+        "no_key_and_name_withheld": 21,
         "no_key_no_name_match": 48,
         "ambiguous_name": 0,
         "other": 0
@@ -357,52 +358,52 @@
       "duplicate_rows_not_counted": 0,
       "unmatched_reasons": {
         "no service or provider key printed; provider name: no provider in SA with this normalised name": 47,
-        "no service or provider key printed": 21
+        "no service or provider key printed": 22
       },
       "unmatched_examples": [
         {
-          "record_id": "46d856bbdc7789f3",
+          "record_id": "0818ceca5ce05eed",
           "action_type": "condition_imposed"
         },
         {
-          "record_id": "35b27a6d7bbbe9bd",
+          "record_id": "3e5bde0f5711e5bf",
           "action_type": "condition_imposed"
         },
         {
-          "record_id": "88d5fb5c0bfeec8c",
+          "record_id": "16962e824d819ff6",
           "action_type": "compliance_notice"
         },
         {
-          "record_id": "51ef49420e66e463",
+          "record_id": "bdaf1cdee01d90df",
           "action_type": "approval_cancelled"
         },
         {
-          "record_id": "767263e345e0b90c",
+          "record_id": "e7af498376ba50cf",
           "action_type": "approval_suspended"
         },
         {
-          "record_id": "5c0603e654cd9a26",
+          "record_id": "bde9a301a2ebf20d",
           "action_type": "compliance_notice"
         },
         {
-          "record_id": "ad827604c9c32a40",
+          "record_id": "9de84a7349caef2c",
           "action_type": "approval_cancelled"
         },
         {
-          "record_id": "f98b2fc7c7089b03",
+          "record_id": "7066c09c67b0cc06",
           "action_type": "approval_suspended"
         },
         {
-          "record_id": "79e0a8e08ea8d8fc",
+          "record_id": "4a1c59368c209fc7",
           "action_type": "approval_suspended"
         },
         {
-          "record_id": "7735c68b8edf37d5",
+          "record_id": "0eb60c217912050e",
           "action_type": "condition_imposed"
         }
       ],
-      "match_rate": 0.844,
-      "match_rate_live_spine_only": 0.8234
+      "match_rate": 0.8417,
+      "match_rate_live_spine_only": 0.8211
     },
     "TAS": {
       "rows_in": 1,
@@ -498,43 +499,43 @@
       },
       "unmatched_examples": [
         {
-          "record_id": "4a7065581943c986",
+          "record_id": "22231ebee9e50624",
           "action_type": "other"
         },
         {
-          "record_id": "4287d30b4e3e4b32",
+          "record_id": "ab49438ae9c2cf0f",
           "action_type": "prosecution"
         },
         {
-          "record_id": "6a9b8d5a33f6c218",
+          "record_id": "79584ef7ebbcbabd",
           "action_type": "approval_cancelled"
         },
         {
-          "record_id": "77911012693faee7",
+          "record_id": "5bde42a9139f99cf",
           "action_type": "approval_cancelled"
         },
         {
-          "record_id": "60dbce2f303407a5",
+          "record_id": "7373fcf0576164b1",
           "action_type": "prosecution"
         },
         {
-          "record_id": "2f4f1a395e944c54",
+          "record_id": "15a6a0130676c756",
           "action_type": "prosecution"
         },
         {
-          "record_id": "a73000ce859d55e7",
+          "record_id": "8d332d58c86fa28b",
           "action_type": "compliance_notice"
         },
         {
-          "record_id": "37a876a9c517671c",
+          "record_id": "43315ec0e284e024",
           "action_type": "compliance_notice"
         },
         {
-          "record_id": "29bf6cf290e119c2",
+          "record_id": "50ea1428a5c02592",
           "action_type": "other"
         },
         {
-          "record_id": "8325d173300bd83d",
+          "record_id": "1049d4a99978aca6",
           "action_type": "other"
         }
       ],
@@ -543,13 +544,13 @@
     }
   },
   "services_with_action_last_24_months": {
-    "count": 1292,
+    "count": 1291,
     "denominator_services": 18186,
     "note": "counts actions of any type that were joined to the service; only states whose registers are collected can contribute"
   },
   "providers_with_action_last_24_months": {
-    "count": 832,
-    "of_which_name_not_withheld": 744,
+    "count": 830,
+    "of_which_name_not_withheld": 698,
     "denominator_providers": 10073
   },
   "top_20_providers_by_actions_last_24_months": [
@@ -832,22 +833,6 @@
       "window": "2024-10-29 to 2026-10-28"
     },
     {
-      "provider_approval_number": "PR-40021872",
-      "spine_status": "current",
-      "legal_name": "YCC (WA) Pty Ltd ATF YCC (WA) Unit Trust",
-      "entity_form": "trust_or_trustee",
-      "actions_last_24_months": 15,
-      "by_action_type_last_24_months": {
-        "condition_imposed": 7,
-        "compliance_notice": 8
-      },
-      "service_count": 7,
-      "actions_last_24_months_per_service": 2.1429,
-      "services_with_any_action_last_24_months": 4,
-      "states_operated_in": "WA",
-      "window": "2024-10-29 to 2026-10-28"
-    },
-    {
       "provider_approval_number": "PR-40016908",
       "spine_status": "current",
       "legal_name": "LA ANCHOR PTY LTD",
@@ -915,6 +900,23 @@
       "services_with_any_action_last_24_months": 10,
       "states_operated_in": "ACT|NSW|QLD|SA|VIC",
       "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-40005790",
+      "spine_status": "current",
+      "legal_name": "BUTTERCUPS CHILDCARE PTY LTD",
+      "entity_form": "company",
+      "actions_last_24_months": 13,
+      "by_action_type_last_24_months": {
+        "condition_imposed": 4,
+        "compliance_notice": 8,
+        "emergency_action_notice": 1
+      },
+      "service_count": 21,
+      "actions_last_24_months_per_service": 0.619,
+      "services_with_any_action_last_24_months": 5,
+      "states_operated_in": "WA",
+      "window": "2024-10-29 to 2026-10-28"
     }
   ],
   "top_20_providers_by_rate_per_service_min_5_services": [
@@ -970,22 +972,6 @@
       "service_count": 11,
       "actions_last_24_months_per_service": 2.1818,
       "services_with_any_action_last_24_months": 7,
-      "states_operated_in": "WA",
-      "window": "2024-10-29 to 2026-10-28"
-    },
-    {
-      "provider_approval_number": "PR-40021872",
-      "spine_status": "current",
-      "legal_name": "YCC (WA) Pty Ltd ATF YCC (WA) Unit Trust",
-      "entity_form": "trust_or_trustee",
-      "actions_last_24_months": 15,
-      "by_action_type_last_24_months": {
-        "condition_imposed": 7,
-        "compliance_notice": 8
-      },
-      "service_count": 7,
-      "actions_last_24_months_per_service": 2.1429,
-      "services_with_any_action_last_24_months": 4,
       "states_operated_in": "WA",
       "window": "2024-10-29 to 2026-10-28"
     },
@@ -1248,6 +1234,22 @@
       "services_with_any_action_last_24_months": 2,
       "states_operated_in": "NSW",
       "window": "2024-10-29 to 2026-10-28"
+    },
+    {
+      "provider_approval_number": "PR-00005784",
+      "spine_status": "current",
+      "legal_name": "Kindy Castle Child Care Centre Pty Ltd",
+      "entity_form": "company",
+      "actions_last_24_months": 3,
+      "by_action_type_last_24_months": {
+        "compliance_notice": 1,
+        "emergency_action_notice": 2
+      },
+      "service_count": 5,
+      "actions_last_24_months_per_service": 0.6,
+      "services_with_any_action_last_24_months": 3,
+      "states_operated_in": "NSW",
+      "window": "2024-10-29 to 2026-10-28"
     }
   ],
   "caveats": [
@@ -1267,5 +1269,5 @@
     "data/processed/enforcement-by-service.csv",
     "data/processed/enforcement-by-provider.csv"
   ],
-  "joined_before_unlisted_stage": 2682
+  "joined_before_unlisted_stage": 2675
 }

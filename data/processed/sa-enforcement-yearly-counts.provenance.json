@@ -1,6 +1,6 @@
 {
   "output": "data/processed/sa-enforcement-yearly-counts.csv",
-  "written_at": "2026-10-30T21:49:22.235491+00:00",
+  "written_at": "2026-10-30T22:27:10.643316+00:00",
   "rows": 36,
   "schema": null,
   "raw_inputs": [

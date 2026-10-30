@@ -1,6 +1,6 @@
 {
   "output": "data/processed/abn-details.csv",
-  "written_at": "2026-10-30T21:48:55.951618+00:00",
+  "written_at": "2026-10-30T22:19:48.000342+00:00",
   "rows": 44,
   "schema": null,
   "raw_inputs": [
