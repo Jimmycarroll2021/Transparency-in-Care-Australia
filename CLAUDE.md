@@ -17,6 +17,10 @@ data is used for non-commercial research only; if ACECQA asks, remove stored cop
 view the same day. NSW and VECRA data are CC BY 4.0; SA ESB is all rights reserved; WA is
 non-commercial only. An earlier note that consent was held was wrong.
 
+Decision 2026-10-30: the owner keeps the repository public while the ACECQA request is pending,
+including the committed ACECQA snapshots. The letter disclosed this and offered same-day removal
+from public view if ACECQA asks. Do not re-raise unless ACECQA replies or the facts change.
+
 Phase 4 scope: ABN Lookup web services (GUID in `.env`, never committed or logged), provider to ABN
 resolution, and provider groups by shared ABN or ACN. Parent and subsidiary links are not in free ABR
 data. Raw ABR responses are a local cache only (`data/raw/abr-lookup/` is gitignored) because
