@@ -17,8 +17,9 @@ Evidence compiled by the hub from official pages; ROGS figures re-checked agains
 
 ## GAP-004: services outside the NQF
 
-Recommendation: **revise**. Restate the gap as "no official count or national list of non-NQF
-services; quality coverage and publication vary by jurisdiction".
+Recommendation: **revise**. Restate the gap as "none of the official sources examined publishes
+a count or national list of non-NQF services; quality coverage and publication vary by
+jurisdiction".
 
 | Finding | Source and section | Confidence |
 |---|---|---|
