@@ -193,3 +193,111 @@ def test_write_processed_is_atomic(tmp_path, monkeypatch):
     with pytest.raises(OSError):
         common.write_processed("x", [{"a": "2"}], ["a"], raw_inputs=[])
     assert {p.name: p.read_bytes() for p in tmp_path.iterdir()} == before
+
+
+# --- Codex round 6, finding 2: a verified backup before the marker; restore verifies first ------
+
+
+def test_a_backup_copy_failing_part_way_leaves_no_marker_and_no_partial_backup(
+    processed, monkeypatch
+):
+    monkeypatch.setattr(ro, "PARSERS", [make_parser(processed, "a"), make_parser(processed, "b")])
+    real_copy = ro.shutil.copy2
+    calls = {"n": 0}
+
+    def copy_then_fail(src, dst, *args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise OSError("disk full")
+        return real_copy(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(ro.shutil, "copy2", copy_then_fail)
+    before = contents(processed)
+    assert ro.main([]) != 0
+    assert contents(processed) == before
+    assert not common.REPARSE_MARKER.exists()
+    assert not ro.BACKUP_ROOT.exists() or not any(ro.BACKUP_ROOT.iterdir())
+
+
+def test_a_backup_that_fails_verification_writes_no_marker(processed, monkeypatch):
+    monkeypatch.setattr(ro, "PARSERS", [make_parser(processed, "a"), make_parser(processed, "b")])
+    monkeypatch.setattr(common, "verify_backup", lambda d: ["a.csv: sha256 differs"])
+    before = contents(processed)
+    assert ro.main([]) != 0
+    assert contents(processed) == before
+    assert not common.REPARSE_MARKER.exists()
+    assert not ro.BACKUP_ROOT.exists() or not any(ro.BACKUP_ROOT.iterdir())
+
+
+def test_the_marker_names_a_verified_backup_and_its_manifest(processed, monkeypatch):
+    seen = {}
+
+    def join_reads_marker():
+        seen["marker"] = common.REPARSE_MARKER.read_text(encoding="utf-8")
+        raise SystemExit(2)
+
+    monkeypatch.setattr(ro, "PARSERS", [make_parser(processed, "a"), make_parser(processed, "b")])
+    monkeypatch.setattr(ro, "run_join", join_reads_marker)
+    assert ro.main([]) != 0
+    (backup,) = list(ro.BACKUP_ROOT.iterdir())
+    assert f"backup: {backup}" in seen["marker"]
+    assert f"manifest: {backup / common.BACKUP_MANIFEST}" in seen["marker"]
+    assert common.verify_backup(backup) == []
+
+
+def test_restore_refuses_a_truncated_backup_and_overwrites_nothing(processed):
+    backup = ro._build_backup(processed)
+    (backup / "a.csv").write_text("ol", encoding="utf-8")  # truncated
+    (processed / "a.csv").write_text("partly applied\n", encoding="utf-8")
+    after_crash = contents(processed)
+    with pytest.raises(common.BackupInvalid):
+        ro._restore(processed, backup)
+    assert contents(processed) == after_crash
+
+
+def test_restore_refuses_a_backup_with_a_missing_file_or_manifest(processed):
+    backup = ro._build_backup(processed)
+    (backup / "b.csv").unlink()
+    with pytest.raises(common.BackupInvalid):
+        ro._restore(processed, backup)
+    (backup / common.BACKUP_MANIFEST).unlink()
+    assert common.verify_backup(backup)
+    with pytest.raises(common.BackupInvalid):
+        ro._restore(processed, backup)
+
+
+def test_a_crash_with_a_corrupted_backup_restores_nothing_and_says_use_git(
+    processed, monkeypatch, capsys
+):
+    good = make_parser(processed, "a")
+    bad = make_parser(processed, "b")
+
+    def corrupt_then_crash(*args, **kwargs):
+        (backup,) = list(ro.BACKUP_ROOT.iterdir())
+        (backup / "b.csv").write_text("corrupt\n", encoding="utf-8")
+        (processed / "b.csv").write_text("partly applied\n", encoding="utf-8")
+        raise RuntimeError("disk full")
+
+    monkeypatch.setattr(bad, "write_processed", staticmethod(corrupt_then_crash))
+    monkeypatch.setattr(ro, "PARSERS", [good, bad])
+    assert ro.main([]) != 0
+    assert (processed / "b.csv").read_text(encoding="utf-8") == "partly applied\n"
+    assert common.REPARSE_MARKER.exists()
+    out = capsys.readouterr()
+    text = out.out + out.err
+    assert "git checkout -- data/processed" in text and "failed verification" in text
+    message = common.reparse_recovery_message()
+    assert "failed verification" in message and "git checkout -- data/processed" in message
+    assert "copy the files back" not in message
+
+
+def test_recovery_message_offers_the_backup_only_when_it_verifies(processed, monkeypatch):
+    backup = ro._build_backup(processed)
+    common.REPARSE_MARKER.write_text(
+        f"backup: {backup}\nmanifest: {backup / common.BACKUP_MANIFEST}\n", encoding="utf-8"
+    )
+    message = common.reparse_recovery_message()
+    assert "verified against its manifest" in message and str(backup) in message
+    (backup / "a.csv").write_text("x", encoding="utf-8")
+    message = common.reparse_recovery_message()
+    assert "failed verification" in message and "git checkout -- data/processed" in message

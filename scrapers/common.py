@@ -692,19 +692,75 @@ def atomic_write_bytes(path: Path, data: bytes) -> None:
         raise
 
 
+BACKUP_MANIFEST = "MANIFEST.json"
+
+
+class BackupInvalid(RuntimeError):
+    """A reparse backup that does not match its manifest. Nothing may be restored from it."""
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def verify_backup(backup: Path) -> list[str]:
+    """Problems found when checking a reparse backup against its manifest (relative path, size
+    and sha256 of every file). An empty list means the backup is complete and intact."""
+    backup = Path(backup)
+    manifest_path = backup / BACKUP_MANIFEST
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        entries = manifest["files"]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return [f"manifest missing or unreadable ({type(exc).__name__})"]
+    problems: list[str] = []
+    for entry in entries:
+        path = backup / entry["path"]
+        if not path.is_file():
+            problems.append(f"{entry['path']}: missing")
+        elif path.stat().st_size != entry["size"]:
+            problems.append(f"{entry['path']}: size differs")
+        elif file_sha256(path) != entry["sha256"]:
+            problems.append(f"{entry['path']}: sha256 differs")
+    return problems
+
+
+def _marker_backup() -> Path | None:
+    try:
+        for line in REPARSE_MARKER.read_text(encoding="utf-8").splitlines():
+            if line.startswith("backup: "):
+                return Path(line[len("backup: ") :].strip())
+    except OSError:
+        return None
+    return None
+
+
 def reparse_recovery_message() -> str | None:
-    """Recovery instructions when an interrupted reparse_offline run left its marker, else None."""
+    """Recovery instructions when an interrupted reparse_offline run left its marker, else None.
+    The backup is offered only after it verifies against its manifest (Codex round 6)."""
     if not REPARSE_MARKER.exists():
         return None
-    try:
-        detail = REPARSE_MARKER.read_text(encoding="utf-8").strip()
-    except OSError:
-        detail = "(marker unreadable)"
-    return (
-        f"An earlier scrapers/reparse_offline.py run did not finish ({REPARSE_MARKER}: {detail}). "
-        "data/processed may be partly replaced. Recover first: either copy the files back from "
-        "the backup directory named above into data/processed, or run "
-        "`git checkout -- data/processed`. Then delete the marker file and run again."
+    backup = _marker_backup()
+    problems = verify_backup(backup) if backup is not None else ["no backup named in the marker"]
+    head = (
+        f"An earlier scrapers/reparse_offline.py run did not finish (marker {REPARSE_MARKER}). "
+        "data/processed may be partly replaced. "
+    )
+    if problems:
+        return head + (
+            f"The backup {backup} failed verification against its manifest "
+            f"({'; '.join(problems[:3])}). Do not copy anything from it. Run "
+            "`git checkout -- data/processed`, then delete the marker and run again."
+        )
+    return head + (
+        f"The backup {backup} is verified against its manifest {backup / BACKUP_MANIFEST}. "
+        "Recover first: either copy the files listed in the manifest from that backup into "
+        "data/processed, or run `git checkout -- data/processed`. Then delete the marker and "
+        "run again."
     )
 
 

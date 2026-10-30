@@ -25,8 +25,11 @@ Usage: python scrapers/reparse_offline.py   (no network; the same as each parser
 
 from __future__ import annotations
 
+import json
+import os
 import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 if __package__ in (None, ""):
@@ -117,20 +120,52 @@ def run_join() -> None:
     join_enforcement.main()
 
 
-def _backup(directory: Path, to: Path) -> list[str]:
-    names = []
-    for path in directory.iterdir():
-        if path.is_file():
-            shutil.copy2(path, to / path.name)
-            names.append(path.name)
-    return names
+def _fsync_file(path: Path) -> None:
+    with path.open("rb+") as fh:
+        os.fsync(fh.fileno())
 
 
-def _restore(directory: Path, backup: Path, names: list[str]) -> None:
+def _build_backup(directory: Path) -> Path:
+    """Copy every file in `directory` into a temporary directory under BACKUP_ROOT, fsync each,
+    write and fsync a manifest (relative path, size, sha256), verify every file against it, and
+    only then rename the directory to BACKUP_ROOT/<timestamp>. On any failure the temporary
+    directory is removed and the error is raised (Codex round 6)."""
+    BACKUP_ROOT.mkdir(parents=True, exist_ok=True)
+    building = Path(tempfile.mkdtemp(prefix=".building-", dir=BACKUP_ROOT))
+    try:
+        entries = []
+        for path in sorted(p for p in directory.iterdir() if p.is_file()):
+            sha256 = common.file_sha256(path)
+            size = path.stat().st_size
+            shutil.copy2(path, building / path.name)
+            _fsync_file(building / path.name)
+            entries.append({"path": path.name, "size": size, "sha256": sha256})
+        common.atomic_write_text(
+            building / common.BACKUP_MANIFEST, json.dumps({"files": entries}, indent=2) + "\n"
+        )
+        problems = common.verify_backup(building)
+        if problems:
+            raise common.BackupInvalid("; ".join(problems))
+        final = BACKUP_ROOT / common.utc_now().strftime("%Y-%m-%dT%H%M%S%fZ")
+        os.replace(building, final)
+        return final
+    except BaseException:
+        shutil.rmtree(building, ignore_errors=True)
+        raise
+
+
+def _restore(directory: Path, backup: Path) -> None:
+    """Restore `directory` from a backup, but only after the backup verifies against its
+    manifest; otherwise raise BackupInvalid and touch nothing."""
+    problems = common.verify_backup(backup)
+    if problems:
+        raise common.BackupInvalid("; ".join(problems))
+    manifest = json.loads((backup / common.BACKUP_MANIFEST).read_text(encoding="utf-8"))
+    names = {entry["path"] for entry in manifest["files"]}
     for path in directory.iterdir():
         if path.is_file() and path.name not in names:
             path.unlink()
-    for name in names:
+    for name in sorted(names):
         common.atomic_write_bytes(directory / name, (backup / name).read_bytes())
 
 
@@ -170,12 +205,17 @@ def main(argv: list[str] | None = None) -> int:
     except ParserFailed as exc:
         log.error("real pass failed (%s); nothing written", exc)
         return 1
-    # Codex round 5: a persistent backup and a marker. The marker is removed and the backup
-    # deleted only after a fully successful run; otherwise both stay for recovery.
-    backup = BACKUP_ROOT / common.utc_now().strftime("%Y-%m-%dT%H%M%S%fZ")
-    backup.mkdir(parents=True)
-    common.atomic_write_text(common.REPARSE_MARKER, f"backup: {backup}\n")
-    names_before = _backup(PROCESSED_DIR, backup)
+    # Codex rounds 5 and 6: a verified, persistent backup first; only then the marker. The marker
+    # is removed and the backup deleted only after a fully successful run.
+    try:
+        backup = _build_backup(PROCESSED_DIR)
+    except BaseException as exc:
+        log.error("backup failed (%r); no marker written, data/processed untouched", exc)
+        return 1
+    common.atomic_write_text(
+        common.REPARSE_MARKER,
+        f"backup: {backup}\nmanifest: {backup / common.BACKUP_MANIFEST}\n",
+    )
     try:
         for fn, args, kwargs in held:
             fn(*args, **kwargs)
@@ -183,7 +223,16 @@ def main(argv: list[str] | None = None) -> int:
     except BaseException as exc:  # includes SystemExit from the join
         log.error("writing or join failed (%r)", exc)
         try:
-            _restore(PROCESSED_DIR, backup, names_before)
+            _restore(PROCESSED_DIR, backup)
+        except common.BackupInvalid as invalid:
+            message = (
+                f"Nothing was restored: the backup {backup} failed verification against its "
+                f"manifest ({invalid}). Do not copy anything from it. Run "
+                f"`git checkout -- data/processed`, then delete {common.REPARSE_MARKER}."
+            )
+            log.error(message)
+            print(message)
+            return 1
         except BaseException as restore_exc:
             message = (
                 f"Restore FAILED ({restore_exc!r}). The backup is kept at {backup}. Copy its files "
