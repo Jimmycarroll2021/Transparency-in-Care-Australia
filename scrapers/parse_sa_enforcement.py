@@ -50,6 +50,7 @@ from scrapers.common import (
     normalise_pr,
     normalise_se,
     printed_fingerprint,
+    record_hash,
     utc_stamp,
     withhold_free_text,
     withhold_prose_naming_people,
@@ -877,9 +878,11 @@ def parse_actions(
             continue
         info = parse_section(heading, section_html)
         notes = info.pop("notes")
-        # Old id inputs; the id now hashes the printed section (assign_record_ids).
-        info.pop("_hash_fallback")
-        info.pop("_hash_service")
+        # The record_id hashes the whole printed section (assign_record_ids). Duplicates are found
+        # on the printed action facts instead, because the same action reprinted on another page
+        # can carry an extra outcome sentence.
+        fallback = info.pop("_hash_fallback")
+        fallback_service = info.pop("_hash_service")
         withheld_markers = info.pop("_withheld_markers")
         page_year = re.search(r"\b(20\d{2})$", period_label)
         if (
@@ -896,6 +899,16 @@ def parse_actions(
             # the same action printed twice (on one page or on two pages).
             "_fingerprint": printed_fingerprint(
                 heading, BeautifulSoup(section_html, "lxml").get_text(" ")
+            ),
+            # In-memory only, never written: the printed action facts (key, action text, date
+            # as printed, reason), names included, so the same action on two pages is found.
+            "_action_key": record_hash(
+                "SA",
+                info["service_approval_number"] or info["provider_approval_number"] or fallback,
+                info["action_type_raw"],
+                info["date_issued_raw"],
+                info["reason"],
+                None if info["service_approval_number"] else fallback_service,
             ),
             "jurisdiction": JURISDICTION,
             "source_register": INDEX_URL,
@@ -976,11 +989,12 @@ def parse_counts(
 
 def mark_duplicates(rows: list[dict]) -> int:
     """Flag rows that print the same action again (twice on a page, or on two pages). Rows are
-    compared by printed content, never by record_id, which is unique per printed row."""
+    compared by their printed action facts (_action_key), never by record_id, which is unique per
+    printed row."""
     seen: dict[str, str] = {}
     dupes = 0
     for row in rows:
-        rid = row["_fingerprint"]
+        rid = row["_action_key"]
         if rid in seen:
             dupes += 1
             extra = (

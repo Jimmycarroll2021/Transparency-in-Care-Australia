@@ -421,3 +421,20 @@ def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
     assert "free text withheld: may name an individual" in row["notes"]
     assert "Jane" not in json.dumps(row)
     assert not hasattr(sa, "strip_personal_names")
+
+
+def test_same_action_on_two_pages_with_an_added_outcome_line_is_a_duplicate():
+    # Regression found in the Codex round 2 regeneration: the record_id hashes the whole printed
+    # section, but the same action reprinted on a second page with an extra outcome sentence is
+    # still the same action. Duplicates are found on the printed action facts.
+    later = OLD_FIXTURE.replace(
+        "<p><strong>The approved provider has provided evidence that they have complied.</strong></p>",
+        "",
+    )
+    a = rows_for(OLD_FIXTURE, period="Historical compliance action 2022")
+    b = rows_for(later, period="Historical compliance action 2022-23")
+    cobbler_a, cobbler_b = by_service(a, "Cobbler Creek"), by_service(b, "Cobbler Creek")
+    assert cobbler_a["record_id"] != cobbler_b["record_id"]
+    both = a + b
+    assert sa.mark_duplicates(both) == len(b)
+    assert "duplicate row" in by_service(b, "Cobbler Creek")["notes"]
