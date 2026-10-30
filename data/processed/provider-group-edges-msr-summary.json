@@ -1,0 +1,5245 @@
+{
+  "generated_at": "2026-10-30T19:41:02.521159+00:00",
+  "definition": "An edge means the provider's legal entity is named in a modern slavery statement on the Modern Slavery Statements Register: as a reporting entity (edge_type reporting_entity, matched by ABN) or as an entity included in the statement as owned or controlled by the reporting entity (edge_type included_entity, matched by exact normalised name agreeing with both the ACECQA legal name and the ABR entity name). It is not a verified ownership chain.",
+  "counts": {
+    "candidate_statements": 136,
+    "included_entities_parsed": 530,
+    "included_entities_with_abn": 350,
+    "edges_by_match_method": {
+      "included_entity_abn_equals_provider_abn": 20,
+      "included_name_equals_acecqa_and_abr_name": 22,
+      "reporting_entity_abn_equals_provider_abn": 65
+    },
+    "edges_reporting_entity": 65,
+    "edges_included_entity": 42,
+    "distinct_providers_with_edge": 44,
+    "distinct_providers_by_edge_type": {
+      "reporting_entity": 21,
+      "included_entity": 31
+    },
+    "priority_providers_total": 1210,
+    "priority_providers_with_abn": 901,
+    "priority_providers_gained_edge": 44,
+    "services_covered": 2379,
+    "services_covered_by_included_entity_providers": 665,
+    "services_total": 18186,
+    "review_queue": 103,
+    "review_by_reason": {
+      "fuzzy_corporate_suffix_differs": 9,
+      "name_match_provider_abn_not_resolved": 63,
+      "name_unique_provider_without_abn": 28,
+      "reporting_entity_name_only": 3
+    },
+    "matches_to_excluded_providers": 4,
+    "candidate_pages_missing": 0
+  },
+  "window": {
+    "reporting_periods_earliest": "2019-07-01 to 2020-06-30",
+    "reporting_periods_latest": "2025-01-01 to 2025-12-31"
+  },
+  "groups": [
+    {
+      "group_key": "95123828553",
+      "group_name": "G8 EDUCATION LIMITED",
+      "providers": 10
+    },
+    {
+      "group_key": "MSR-29210",
+      "group_name": "BUSY BEES AUSTRALIA BIDCO PTY LTD; BUSY BEES AUSTRALIA HOLDING PTY LTD; BUSY BEES EARLY LEARNING AUSTRALIA PTY LTD; THINK CHILDCARE LIMITED",
+      "providers": 9
+    },
+    {
+      "group_key": "MSR-23594",
+      "group_name": "Armidale Catholic Schools; AUSTRALIAN CATHOLIC UNIVERSITY LIMITED; CABRINI AUSTRALIA LIMITED; CATHOLIC ARCHDIOCESE OF MELBOURNE; CATHOLIC ARCHDIOCESE OF SYDNEY; Catholic Church Diocese of Darwin Education Property Trust; CATHOLIC CHURCH ENDOWMENT SOCIETY INC; CATHOLIC EDUCATION DIOCESE OF BATHURST LIMITED; CATHOLIC EDUCATION SANDHURST LIMITED; CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED; CATHOLIC HEALTHCARE LIMITED; CATHOLIC SCHOOLS NSW LIMITED; CATHOLIC SCHOOLS PARRAMATTA DIOCESE LIMITED; DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED; DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED; DIOCESE OF SALE CATHOLIC EDUCATION LIMITED; DOMINICAN EDUCATION AUSTRALIA LTD; LITTLE COMPANY OF MARY HEALTH CARE LIMITED; MACKILLOP FAMILY SERVICES LIMITED; MARIST SCHOOLS AUSTRALIA LIMITED; MATER MISERICORDIAE LTD; MERCYCARE LIMITED; MERCY EDUCATION LIMITED; MERCY HEALTH AUSTRALIA LTD; OZCARE; Roman Catholic Church Trust Corporation of The Archdiocese of Hobart; SOUTHERN CROSS CARE (NSW & ACT) LIMITED; SOUTHERN CROSS CARE (QLD) LTD; SOUTHERN CROSS CARE (WA) INC; ST JOHN OF GOD HEALTH CARE INC; ST VINCENT DE PAUL SOCIETY NSW; ST VINCENT DE PAUL SOCIETY QUEENSLAND; ST VINCENT'S HEALTH AUSTRALIA LTD; THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; The Trustee for Catholic Cemeteries & Crematoria Trust; THE UNIVERSITY OF NOTRE DAME AUSTRALIA; TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN; TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM; TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA; TRUSTEES OF THE DIOCESE OF WAGGA WAGGA ATF CATHOLIC SCHOOLS OFFICE; TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE; VICTORIAN CATHOLIC EDUCATION AUTHORITY LIMITED; VILLA MARIA CATHOLIC HOMES LIMITED",
+      "providers": 8
+    },
+    {
+      "group_key": "MSR-13790",
+      "group_name": "Archdiocese of Hobart - Catholic Education Office; AUSTRALIAN CATHOLIC UNIVERSITY LIMITED; CABRINI HEALTH LIMITED; CABRINI OUTREACH LIMITED; CABRINI PROPERTY LIMITED; CATHOLIC ARCHDIOCESE OF SYDNEY; [withheld: may name an individual]; [withheld: may name an individual]; CATHOLIC CHURCH INSURANCE LIMITED; CATHOLIC DEVELOPMENT FUND - ARCHDIOCESE OF SYDNEY; Catholic Development Fund Tasmania; Catholic Diocese of Parramatta; CATHOLIC EDUCATION CENTRE; CATHOLIC EDUCATION COMMISSION OF VICTORIA LIMITED; CATHOLIC EDUCATION DIOCESE OF BATHURST; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE DIOCESE OF PARRAMATTA; CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED; CATHOLIC HEALTHCARE LIMITED; CATHOLIC METROPOLITAN CEMETERIES TRUST; CATHOLIC SCHOOLS NSW LIMITED; CENTACARE EVOLVE HOUSING LIMITED; CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE - CENTACARE ADMINISTRATION SERVICES; DENCROSS PTY LTD; DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED; DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED; LITTLE COMPANY OF MARY HEALTH CARE LIMITED; MACKILLOP FAMILY SERVICES LIMITED; MARILLAC; MATER EDUCATION LIMITED; MATER MISERICORDIAE LTD; MATER RESEARCH LTD; MELBOURNE ARCHDIOCESE CATHOLIC SCHOOLS EARLY YEARS EDUCATION LTD; MELBOURNE ARCHDIOCESE CATHOLIC SCHOOLS LTD; MELBOURNE ARCHDIOCESE CATHOLIC SPECIALIST SCHOOLS LTD; MERCY AGED AND COMMUNITY CARE LTD; MERCYCARE LIMITED; MERCY COMMUNITY SERVICES LIMITED; MERCY COMMUNITY SERVICES SEQ LIMITED; MERCY EDUCATION LIMITED; MERCY HEALTH AUSTRALIA LTD; MERCY HEALTH FOUNDATION LTD; MERCY HEALTH PROPERTY LTD; MERCY HEALTH SERVICE ALBURY LIMITED; MERCY HOSPITALS NSW LTD; MERCY HOSPITALS VICTORIA LTD; MERCY HUMAN SERVICES LIMITED; MERCY PALLIATIVE CARE LTD; OZCARE; RICE VILLAGE LIMITED; Roman Catholic Church Trust Corporation of The Archdiocese of Hobart; Roman Catholic Church Trust Corporation of The Archdiocese of Hobart; SANDHURST CATHOLIC EARLY CHILDHOOD EDUCATION & CARE LIMITED; SOUTHERN CROSS CARE (NSW & ACT) LIMITED; SOUTHERN CROSS CARE (VIC); ST BRIGID'S CONVENT OF MERCY PERTH LIMITED; STELLA MARIS APOSTLESHIP OF THE SEAMACKAY HAY POINT; ST JOHN OF GOD BERWICK HEALTH CAMPUS LTD; ST JOHN OF GOD FOUNDATION INC.; ST JOHN OF GOD HEALTH CARE INC; ST JOHN OF GOD MIDLAND HEALTH CAMPUS LTD; ST JOHN OF GOD OUTREACH SERVICES; St Joseph Affordable Homes Inc.; [withheld: may name an individual]; ST VINCENT DE PAUL SOCIETY NSW; ST VINCENT DE PAUL SOCIETY QUEENSLAND; ST VINCENT DE PAUL SOCIETY QUEENSLAND HOUSING; ST VINCENT'S CARE SERVICES BOONDALL LTD; ST VINCENT'S CARE SERVICES CARSELDINE LTD; ST VINCENT'S CARE SERVICES LTD; ST VINCENT'S HEALTH AUSTRALIA LTD; ST VINCENT'S HEALTHCARE LTD; ST. VINCENT'S HOSPITAL (MELBOURNE) LIMITED; ST. VINCENT'S HOSPITAL SYDNEY LIMITED; ST VINCENT'S PRIVATE HOSPITALS LTD; THE BLUELINE LAUNDRY INC; THE CONGREGATION OF RELIGIOUS SISTERS OF CHARITY OF AUSTRALIA; THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; THE ROMAN CATHOLIC TRUSTS CORPORATION FOR THE DIOCESE OF MELBOURNE; The Trustee for CatholicCare Sydney Trust; THE TRUSTEE FOR MATER FOUNDATION; The Trustee for Sydney Catholic Schools Trust; The Trustee for the Diocese of Rockhampton Trust Fund; THE UNIVERSITY OF NOTRE DAME AUSTRALIA; TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN; TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM; TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA; TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE; VILLA MARIA CATHOLIC HOMES LIMITED; XAVIER CHILDREN'S SUPPORT NETWORK",
+      "providers": 7
+    },
+    {
+      "group_key": "MSR-18637",
+      "group_name": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED; CABRINI AUSTRALIA LIMITED; CATHOLIC ARCHDIOCESE OF MELBOURNE; CATHOLIC ARCHDIOCESE OF SYDNEY; CATHOLIC CHURCH ENDOWMENT SOCIETY INC; CATHOLIC CHURCH INSURANCE LIMITED; CATHOLIC EDUCATION CENTRE; CATHOLIC EDUCATION DIOCESE OF BATHURST; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION SANDHURST LIMITED; CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED; CATHOLIC FAMILY SERVICES; CATHOLIC HEALTHCARE LIMITED; CATHOLIC METROPOLITAN CEMETERIES TRUST; CATHOLIC SCHOOLS NSW LIMITED; CATHOLIC SCHOOLS PARRAMATTA DIOCESE LIMITED; DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED; DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED; DIOCESE OF SALE CATHOLIC EDUCATION LIMITED; DOMINICAN EDUCATION AUSTRALIA LTD; LITTLE COMPANY OF MARY HEALTH CARE LIMITED; MACKILLOP FAMILY SERVICES LIMITED; MARIST SCHOOLS AUSTRALIA LIMITED; MATER MISERICORDIAE LTD; MERCY AGED AND COMMUNITY CARE LTD; MERCYCARE LIMITED; MERCY COMMUNITY SERVICES LIMITED; MERCY COMMUNITY SERVICES SEQ LIMITED; MERCY EDUCATION LIMITED; MERCY HEALTH AUSTRALIA LTD; OZCARE; Roman Catholic Church Trust Corporation of The Archdiocese of Hobart; SOUTHERN CROSS CARE (NSW & ACT) LIMITED; SOUTHERN CROSS CARE (QLD) LTD; ST JOHN OF GOD HEALTH CARE INC; ST VINCENT DE PAUL SOCIETY NSW; ST VINCENT DE PAUL SOCIETY QUEENSLAND; ST VINCENT'S HEALTH AUSTRALIA LTD; THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; THE ROMAN CATHOLIC TRUSTS CORPORATION FOR THE DIOCESE OF MELBOURNE; THE UNIVERSITY OF NOTRE DAME AUSTRALIA; TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN; TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM; TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA; TRUSTEES OF THE DIOCESE OF WAGGA WAGGA ATF CATHOLIC SCHOOLS OFFICE; TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE; VICTORIAN CATHOLIC EDUCATION AUTHORITY LIMITED; VILLA MARIA CATHOLIC HOMES LIMITED",
+      "providers": 7
+    },
+    {
+      "group_key": "MSR-7369",
+      "group_name": "BIG FAT SMILE GROUP LTD; GOODSTART EARLY LEARNING LTD; GOODSTART EARLY YEARS LIMITED ( Mission Australia Early Learning Ltd )",
+      "providers": 3
+    },
+    {
+      "group_key": "68670538780",
+      "group_name": "SHEL HOLDCO PTY LIMITED",
+      "providers": 2
+    },
+    {
+      "group_key": "69139967794",
+      "group_name": "GOODSTART EARLY LEARNING LTD",
+      "providers": 2
+    },
+    {
+      "group_key": "MSR-25744",
+      "group_name": "GOODSTART EARLY LEARNING LTD",
+      "providers": 2
+    },
+    {
+      "group_key": "MSR-29606",
+      "group_name": "Armidale Catholic Schools; AUSTRALIAN CATHOLIC UNIVERSITY LIMITED; CABRINI AUSTRALIA LIMITED; CATHOLIC ARCHDIOCESE OF MELBOURNE; CATHOLIC ARCHDIOCESE OF SYDNEY; CATHOLIC CHURCH ENDOWMENT SOCIETY INC; CATHOLIC EDUCATION CENTRE; CATHOLIC EDUCATION DIOCESE OF BATHURST; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE DIOCESE OF PARRAMATTA; CATHOLIC EDUCATION SANDHURST LIMITED; CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED; CATHOLIC HEALTHCARE LIMITED; DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED; DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED; DIOCESE OF SALE CATHOLIC EDUCATION LIMITED; DOMINICAN EDUCATION AUSTRALIA LTD; LITTLE COMPANY OF MARY HEALTH CARE LIMITED; MACKILLOP FAMILY SERVICES LIMITED; MARIST SCHOOLS AUSTRALIA LIMITED; MATER MISERICORDIAE LTD; MERCYCARE LIMITED; MERCY EDUCATION LIMITED; MERCY HEALTH AUSTRALIA LTD; OZCARE; SOUTHERN CROSS CARE (NSW & ACT) LIMITED; SOUTHERN CROSS CARE (QLD) LTD; SOUTHERN CROSS CARE (TASMANIA) INC; SOUTHERN CROSS CARE (WA) INC; ST JOHN OF GOD HEALTH CARE INC; ST VINCENT DE PAUL SOCIETY NSW; ST VINCENT DE PAUL SOCIETY QUEENSLAND; ST VINCENT'S HEALTH AUSTRALIA LTD; THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; The Trustee for Sydney Catholic Schools Trust; THE UNIVERSITY OF NOTRE DAME AUSTRALIA; TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN; TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM; TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA; TRUSTEES OF THE DIOCESE OF WAGGA WAGGA ATF Catholic Education Diocese of Wagga Wagga; TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE; VICTORIAN CATHOLIC EDUCATION AUTHORITY LIMITED; VILLA MARIA CATHOLIC HOMES LIMITED",
+      "providers": 2
+    },
+    {
+      "group_key": "MSR-5780",
+      "group_name": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED; CABRINI AUSTRALIA LIMITED; CATHOLIC ARCHDIOCESE OF MELBOURNE; CATHOLIC ARCHDIOCESE OF SYDNEY; CATHOLIC CHURCH INSURANCE LIMITED; CATHOLIC EDUCATION COMMISSION OF VICTORIA LIMITED; CATHOLIC EDUCATION DIOCESE OF BATHURST; CATHOLIC EDUCATION MELBOURNE; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE DIOCESE OF PARRAMATTA; CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED; CATHOLIC HEALTHCARE LIMITED; CATHOLIC METROPOLITAN CEMETERIES TRUST; CATHOLIC SCHOOLS NSW LIMITED; DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED; LITTLE COMPANY OF MARY HEALTH CARE LIMITED; MATER MISERICORDIAE LTD; MERCY EDUCATION LIMITED; MERCY HEALTH AUSTRALIA LTD; Roman Catholic Church Trust Corporation of The Archdiocese of Hobart; ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; SOUTHERN CROSS CARE (NSW & ACT) LIMITED; ST JOHN OF GOD HEALTH CARE INC; ST VINCENT DE PAUL SOCIETY NSW; ST VINCENT DE PAUL SOCIETY QUEENSLAND; THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE ROMAN CATHOLIC ARCHBISHOP OF PERTH CORPORATION SOLE; The Trustee for Sydney Catholic Schools Trust; THE UNIVERSITY OF NOTRE DAME AUSTRALIA; TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN; TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM; TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA; TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE; VILLA MARIA CATHOLIC HOMES LIMITED",
+      "providers": 2
+    },
+    {
+      "group_key": "MSR-9643",
+      "group_name": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED; CABRINI AUSTRALIA LIMITED; CATHOLIC ARCHDIOCESE OF MELBOURNE; CATHOLIC ARCHDIOCESE OF SYDNEY; CATHOLIC CHURCH INSURANCE LIMITED; CATHOLIC EDUCATION DIOCESE OF BATHURST; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE; CATHOLIC EDUCATION OFFICE DIOCESE OF PARRAMATTA; CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED; CATHOLIC HEALTHCARE LIMITED; CATHOLIC METROPOLITAN CEMETERIES TRUST; CATHOLIC SCHOOLS NSW; DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED; DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED; LITTLE COMPANY OF MARY HEALTH CARE LIMITED; MACKILLOP FAMILY SERVICES LIMITED; MATER MISERICORDIAE LTD; MELBOURNE ARCHDIOCESE CATHOLIC SCHOOLS LTD; MERCY AGED AND COMMUNITY CARE LTD; MERCY COMMUNITY SERVICES SEQ LIMITED; MERCY EDUCATION LIMITED; MERCY HEALTH AUSTRALIA LTD; OZCARE; Roman Catholic Church Trust Corporation of The Archdiocese of Hobart; SOUTHERN CROSS CARE (NSW & ACT) LIMITED; SOUTHERN CROSS QUEENSLAND PTY LTD; ST JOHN OF GOD HEALTH CARE INC; ST VINCENT DE PAUL SOCIETY NSW; ST VINCENT DE PAUL SOCIETY QUEENSLAND; THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE; THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON; The Trustee for Sydney Catholic Schools Trust; THE UNIVERSITY OF NOTRE DAME AUSTRALIA; TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN; TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM; TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA; TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE; VILLA MARIA CATHOLIC HOMES LIMITED",
+      "providers": 2
+    },
+    {
+      "group_key": "32025287736",
+      "group_name": "THE CORPORATION OF THE SYNOD OF THE DIOCESE OF BRISBANE",
+      "providers": 1
+    },
+    {
+      "group_key": "34002919584",
+      "group_name": "ST PHILIP'S CHRISTIAN EDUCATION FOUNDATION LTD",
+      "providers": 1
+    },
+    {
+      "group_key": "34002919584",
+      "group_name": "ST PHILIP`S CHRISTIAN EDUCATION FOUNDATION LTD",
+      "providers": 1
+    },
+    {
+      "group_key": "39703442583",
+      "group_name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA)",
+      "providers": 1
+    },
+    {
+      "group_key": "42164655145",
+      "group_name": "WESLEY COMMUNITY SERVICES LIMITED",
+      "providers": 1
+    },
+    {
+      "group_key": "46141203125",
+      "group_name": "MQ HEALTH PTY LIMITED",
+      "providers": 1
+    },
+    {
+      "group_key": "59150737849",
+      "group_name": "The Creche and Kindergarten Association Limited",
+      "providers": 1
+    },
+    {
+      "group_key": "65124826722",
+      "group_name": "Christian Education Ministries Ltd",
+      "providers": 1
+    },
+    {
+      "group_key": "89755348137",
+      "group_name": "TECHNICAL AND FURTHER EDUCATION COMMISSION",
+      "providers": 1
+    },
+    {
+      "group_key": "90952801237",
+      "group_name": "MACQUARIE UNIVERSITY",
+      "providers": 1
+    },
+    {
+      "group_key": "96060703120",
+      "group_name": "CAMP AUSTRALIA PROPRIETARY LIMITED",
+      "providers": 1
+    },
+    {
+      "group_key": "MSR-10973",
+      "group_name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (TAS.); THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA); UNITING AGEWELL LIMITED; UNITING ETHICAL INVESTORS LIMITED; UNITING (VICTORIA AND TASMANIA) LIMITED",
+      "providers": 1
+    },
+    {
+      "group_key": "MSR-15643",
+      "group_name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (TAS.); THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA); UNITING AGEWELL LIMITED; UNITING ETHICAL INVESTORS LIMITED; UNITING (VICTORIA AND TASMANIA) LIMITED",
+      "providers": 1
+    },
+    {
+      "group_key": "MSR-20448",
+      "group_name": "GOODSTART EARLY LEARNING LTD",
+      "providers": 1
+    },
+    {
+      "group_key": "MSR-23357",
+      "group_name": "NEST EARLY EDUCATION SERVICES PTY LTD; NIDO EDUCATION LTD",
+      "providers": 1
+    },
+    {
+      "group_key": "MSR-25237",
+      "group_name": "THE YOUNG MEN'S CHRISTIAN ASSOCIATION OF VICTORIA INCORPORATED; VICTORIAN YMCA COMMUNITY PROGRAMMING PTY LTD",
+      "providers": 1
+    },
+    {
+      "group_key": "MSR-25594",
+      "group_name": "GUARDIAN NETWORK PTY. LTD.; UNITING AGEWELL LIMITED; UNITING HOUSING (AUSTRALIA) LIMITED; UNITING HOUSING (VICTORIA) LIMITED; UNITING (VICTORIA AND TASMANIA) LIMITED",
+      "providers": 1
+    },
+    {
+      "group_key": "MSR-27289",
+      "group_name": "THE YOUNG MEN'S CHRISTIAN ASSOCIATION OF VICTORIA INCORPORATED; VICTORIAN YMCA COMMUNITY PROGRAMMING PTY LTD",
+      "providers": 1
+    },
+    {
+      "group_key": "MSR-28864",
+      "group_name": "NEST EARLY EDUCATION SERVICES PTY LTD; NIDO EDUCATION LTD",
+      "providers": 1
+    },
+    {
+      "group_key": "MSR-3441",
+      "group_name": "ACTIVATING COMMUNITIES LIMITED; THE YOUNG MEN'S CHRISTIAN ASSOCIATION OF VICTORIA INCORPORATED; VICTORIAN YMCA ACCOMMODATION SERVICES PTY LTD; VICTORIAN YMCA COMMUNITY PROGRAMMING PTY LTD; VICTORIAN YMCA YOUTH & COMMUNITY SERVICES INC; YMCA AQUATIC AND EVENT SERVICES LIMITED; YMCA Aquatic Education Limited; YMCA CAMPING LIMITED",
+      "providers": 1
+    },
+    {
+      "group_key": "MSR-400",
+      "group_name": "GUARDIAN NETWORK PTY. LTD.; THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (TAS.); THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA); UCA CASH MANAGEMENT FUND LIMITED; UCA GROWTH FUND LIMITED; UNITING AGEWELL LIMITED; UNITING ETHICAL INVESTORS LIMITED; UNITING HOUSING (AUSTRALIA) LIMITED; UNITING HOUSING (VICTORIA) LIMITED; UNITING (VICTORIA AND TASMANIA) LIMITED",
+      "providers": 1
+    },
+    {
+      "group_key": "MSR-4811",
+      "group_name": "COMMUNITY VENUES LTD; HILLSONG CHILD CARE LTD; HILLSONG CHURCH AUSTRALIA LTD; HILLSONG CHURCH LTD; [withheld: may name an individual]; HILLSONG MEDIA & PERFORMING ARTS LTD.; The Trustee for Community Venues; The Trustee for Hillsong Church Australia; The Trustee for Hillsong Foundation",
+      "providers": 1
+    },
+    {
+      "group_key": "MSR-6810",
+      "group_name": "GUARDIAN NETWORK PTY. LTD.; THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (TAS.); THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA); UCA CASH MANAGEMENT FUND LIMITED; UCA GROWTH FUND LIMITED; UNITING AGEWELL LIMITED; UNITING ETHICAL INVESTORS LIMITED; UNITING HOUSING (AUSTRALIA) LIMITED; UNITING HOUSING (VICTORIA) LIMITED; UNITING (VICTORIA AND TASMANIA) LIMITED",
+      "providers": 1
+    }
+  ],
+  "caveats": [
+    "An edge means the provider's legal entity is named in a modern slavery statement on the Modern Slavery Statements Register: as a reporting entity (edge_type reporting_entity, matched by ABN) or as an entity included in the statement as owned or controlled by the reporting entity (edge_type included_entity, matched by exact normalised name agreeing with both the ACECQA legal name and the ABR entity name). It is not a verified ownership chain.",
+    "The register covers entities with annual consolidated revenue of at least AUD 100 million, plus voluntary reporters. Absence of an edge says nothing about ownership.",
+    "Included entities are listed by name only. An included_entity edge needs the MSR name to equal, after normalisation, exactly one ACECQA provider legal name and that provider's ABR entity name. It is not verified by ABN or ACN.",
+    "A reporting_entity edge from a joint statement (group_key MSR-<page id>) means the provider reported jointly with the other listed entities. Joint reporting is not, by itself, evidence of common ownership.",
+    "Edges span every reporting period on the register. A provider included in an older statement may since have changed hands; check reporting_period.",
+    "MSR licence unclear (Copyright Attorney-General's Department). Raw MSR files are not committed. Ask the department before any public display.",
+    "services_covered counts current ACECQA service approvals held by providers with an edge, from acecqa-services-latest.csv. ACECQA content is not openly licensed."
+  ],
+  "source": {
+    "csv_url_pattern": "https://modernslaveryregister.gov.au/resources/all-statement-information_<date>.csv",
+    "csv_fetched_at": "2026-10-30T19:32:05.492982+00:00",
+    "csv_url": "https://modernslaveryregister.gov.au/resources/all-statement-information_2026-10-31.csv",
+    "csv_sha256": "462075541ee2bfdbf84cebb7a55be12ff953ab77da48998d7857c0f195fb2a76",
+    "csv_statement_rows": 18869,
+    "columns_kept": [
+      "IDX",
+      "PeriodStart",
+      "PeriodEnd",
+      "Type",
+      "VoluntaryCompliance",
+      "HeadquarteredCountries",
+      "AnnualRevenue",
+      "ReportingEntities",
+      "IncludedEntities",
+      "ABN",
+      "ACN",
+      "ARBN",
+      "Link",
+      "IndustrySectors",
+      "RelatedStatements"
+    ],
+    "columns_dropped_for_privacy": [],
+    "robots": "robots.txt honoured via scrapers.common.fetch; statement pages fetched at least 2 s apart",
+    "licence": "No licence shown; 'Copyright Attorney-General's Department'. Raw not committed."
+  },
+  "candidate_statements": [
+    {
+      "statement_id": "2020-138",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/428/",
+      "reporting_period": "2019-07-01 to 2020-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Online Education Services Pty Ltd",
+          "abn": "75148177959"
+        },
+        {
+          "name": "SEEK LIMITED",
+          "abn": "46080075314"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2020-135",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/400/",
+      "reporting_period": "2019-07-01 to 2020-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "GUARDIAN NETWORK PTY. LTD.",
+          "abn": "32082447827"
+        },
+        {
+          "name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (TAS.)",
+          "abn": "88774033774"
+        },
+        {
+          "name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA)",
+          "abn": "39703442583"
+        },
+        {
+          "name": "UCA CASH MANAGEMENT FUND LIMITED",
+          "abn": "41075948444"
+        },
+        {
+          "name": "UCA GROWTH FUND LIMITED",
+          "abn": "39075948435"
+        },
+        {
+          "name": "UNITING AGEWELL LIMITED",
+          "abn": "19628178816"
+        },
+        {
+          "name": "UNITING ETHICAL INVESTORS LIMITED",
+          "abn": "46102469821"
+        },
+        {
+          "name": "UNITING HOUSING (AUSTRALIA) LIMITED",
+          "abn": "31640217803"
+        },
+        {
+          "name": "UNITING HOUSING (VICTORIA) LIMITED",
+          "abn": "69134589745"
+        },
+        {
+          "name": "UNITING (VICTORIA AND TASMANIA) LIMITED",
+          "abn": "81098317125"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-979",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/2719/",
+      "reporting_period": "2019-07-01 to 2020-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "WESLEY COMMUNITY SERVICES LIMITED",
+          "abn": "42164655145"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1031",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/2903/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "KILDARE EDUCATION MINISTRIES LIMITED",
+          "abn": "34169198421"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1147",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/3056/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "GOODSTART EARLY LEARNING LTD",
+          "abn": "69139967794"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1285",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/3203/",
+      "reporting_period": "2019-07-01 to 2020-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "RUSSO BUSINESS SCHOOL PTY LTD",
+          "abn": "34601105319"
+        },
+        {
+          "name": "RUSSO HIGHER EDUCATION PTY LTD",
+          "abn": "78114135563"
+        },
+        {
+          "name": "SARINA INVESTMENTS PTY. LTD.",
+          "abn": "81056887757"
+        },
+        {
+          "name": "SARINA RUSSO JOB ACCESS (AUSTRALIA) PTY. LTD.",
+          "abn": "21090052350"
+        },
+        {
+          "name": "SARINA RUSSO SCHOOLS AUSTRALIA PTY LTD",
+          "abn": "39010129325"
+        },
+        {
+          "name": "VOICE - PSYCHOLOGISTS & ALLIED PROFESSIONALS PTY LTD",
+          "abn": "65120069570"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1527",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/3441/",
+      "reporting_period": "2019-07-01 to 2020-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "ACTIVATING COMMUNITIES LIMITED",
+          "abn": "31619359590"
+        },
+        {
+          "name": "THE YOUNG MEN'S CHRISTIAN ASSOCIATION OF VICTORIA INCORPORATED",
+          "abn": "81174456784"
+        },
+        {
+          "name": "VICTORIAN YMCA ACCOMMODATION SERVICES PTY LTD",
+          "abn": "94081270706"
+        },
+        {
+          "name": "VICTORIAN YMCA COMMUNITY PROGRAMMING PTY LTD",
+          "abn": "75092818445"
+        },
+        {
+          "name": "VICTORIAN YMCA YOUTH & COMMUNITY SERVICES INC",
+          "abn": "42858439742"
+        },
+        {
+          "name": "YMCA AQUATIC AND EVENT SERVICES LIMITED",
+          "abn": "16148092148"
+        },
+        {
+          "name": "YMCA Aquatic Education Limited",
+          "abn": "88151552322"
+        },
+        {
+          "name": "YMCA CAMPING LIMITED",
+          "abn": "77606062793"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1879",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/4282/",
+      "reporting_period": "2020-04-01 to 2021-03-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "TORRENS GLOBAL EDUCATION SERVICES PTY LTD",
+          "abn": "33603224728"
+        },
+        {
+          "name": "Torrens University Australia Limited",
+          "abn": "99154937005"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2110",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/4680/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "THINK CHILDCARE DEVELOPMENT LIMITED",
+          "abn": "55635178166"
+        },
+        {
+          "name": "THINK CHILDCARE LIMITED",
+          "abn": "81600793388"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2203",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/4811/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "COMMUNITY VENUES LTD",
+          "abn": "84640640035"
+        },
+        {
+          "name": "HILLSONG CHILD CARE LTD",
+          "abn": "56617423775"
+        },
+        {
+          "name": "HILLSONG CHURCH AUSTRALIA LTD",
+          "abn": "24615339949"
+        },
+        {
+          "name": "HILLSONG CHURCH LTD",
+          "abn": "37002745879"
+        },
+        {
+          "name": "[withheld: may name an individual]",
+          "abn": "13003698726"
+        },
+        {
+          "name": "HILLSONG MEDIA & PERFORMING ARTS LTD.",
+          "abn": "45454866057"
+        },
+        {
+          "name": "The Trustee for Community Venues",
+          "abn": "36143775230"
+        },
+        {
+          "name": "The Trustee for Hillsong Church Australia",
+          "abn": "73640782059"
+        },
+        {
+          "name": "The Trustee for Hillsong Foundation",
+          "abn": "98060671646"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2228",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/4386/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "DIOCESE OF SALE CATHOLIC EDUCATION LIMITED",
+          "abn": "91621266993"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2263",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/4901/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "BUSY BEES AUSTRALIA BIDCO PTY LTD",
+          "abn": "63625478015"
+        },
+        {
+          "name": "BUSY BEES AUSTRALIA HOLDING PTY LTD",
+          "abn": "82625449809"
+        },
+        {
+          "name": "BUSY BEES EARLY LEARNING AUSTRALIA PTY LTD",
+          "abn": "20168187979"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1704",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/3905/",
+      "reporting_period": "2019-07-01 to 2020-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "CAMP AUSTRALIA PROPRIETARY LIMITED",
+          "abn": "96060703120"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2390",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/5010/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "The Creche and Kindergarten Association Limited",
+          "abn": "59150737849"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1629",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/3762/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "G8 EDUCATION LIMITED",
+          "abn": "95123828553"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1994",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/4497/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AFFINITY EDUCATION GROUP LIMITED",
+          "abn": "37163864195"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2632",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/5409/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "IDP EDUCATION LIMITED",
+          "abn": "59117676463"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2663",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/5458/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Townsville Catholic Education Office",
+          "abn": "13622319794"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2896",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/5780/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED",
+          "abn": "15050192660"
+        },
+        {
+          "name": "CABRINI AUSTRALIA LIMITED",
+          "abn": "42624828306"
+        },
+        {
+          "name": "CATHOLIC ARCHDIOCESE OF MELBOURNE",
+          "abn": "64047619369"
+        },
+        {
+          "name": "CATHOLIC ARCHDIOCESE OF SYDNEY",
+          "abn": "72823907843"
+        },
+        {
+          "name": "CATHOLIC CHURCH INSURANCE LIMITED",
+          "abn": "76000005210"
+        },
+        {
+          "name": "CATHOLIC EDUCATION COMMISSION OF VICTORIA LIMITED",
+          "abn": "92119459853"
+        },
+        {
+          "name": "CATHOLIC EDUCATION DIOCESE OF BATHURST",
+          "abn": "73470086952"
+        },
+        {
+          "name": "CATHOLIC EDUCATION MELBOURNE",
+          "abn": "85176448204"
+        },
+        {
+          "name": "CATHOLIC EDUCATION OFFICE",
+          "abn": "22616685167"
+        },
+        {
+          "name": "CATHOLIC EDUCATION OFFICE DIOCESE OF PARRAMATTA",
+          "abn": "86875623906"
+        },
+        {
+          "name": "CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED",
+          "abn": "47634504135"
+        },
+        {
+          "name": "CATHOLIC HEALTHCARE LIMITED",
+          "abn": "69064946318"
+        },
+        {
+          "name": "CATHOLIC METROPOLITAN CEMETERIES TRUST",
+          "abn": "85744325709"
+        },
+        {
+          "name": "CATHOLIC SCHOOLS NSW LIMITED",
+          "abn": "46619593369"
+        },
+        {
+          "name": "DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED",
+          "abn": "93638070836"
+        },
+        {
+          "name": "LITTLE COMPANY OF MARY HEALTH CARE LIMITED",
+          "abn": "11079815697"
+        },
+        {
+          "name": "MATER MISERICORDIAE LTD",
+          "abn": "83096708922"
+        },
+        {
+          "name": "MERCY EDUCATION LIMITED",
+          "abn": "69154531870"
+        },
+        {
+          "name": "MERCY HEALTH AUSTRALIA LTD",
+          "abn": "89614115856"
+        },
+        {
+          "name": "Roman Catholic Church Trust Corporation of The Archdiocese of Hobart",
+          "abn": "24097986470"
+        },
+        {
+          "name": "ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON",
+          "abn": "50979741889"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (NSW & ACT) LIMITED",
+          "abn": "76131082374"
+        },
+        {
+          "name": "ST JOHN OF GOD HEALTH CARE INC",
+          "abn": "21930207958"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY NSW",
+          "abn": "91161127340"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY QUEENSLAND",
+          "abn": "14211506904"
+        },
+        {
+          "name": "THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE",
+          "abn": "25328758007"
+        },
+        {
+          "name": "THE ROMAN CATHOLIC ARCHBISHOP OF PERTH CORPORATION SOLE",
+          "abn": "96993674415"
+        },
+        {
+          "name": "The Trustee for Sydney Catholic Schools Trust",
+          "abn": "26158447082"
+        },
+        {
+          "name": "THE UNIVERSITY OF NOTRE DAME AUSTRALIA",
+          "abn": "69330643210"
+        },
+        {
+          "name": "TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN",
+          "abn": "47824127996"
+        },
+        {
+          "name": "TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM",
+          "abn": "67786923621"
+        },
+        {
+          "name": "TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA",
+          "abn": "96372268340"
+        },
+        {
+          "name": "TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE",
+          "abn": "62089182027"
+        },
+        {
+          "name": "VILLA MARIA CATHOLIC HOMES LIMITED",
+          "abn": "32004364103"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3178",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/6253/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Online Education Services Pty Ltd",
+          "abn": "75148177959"
+        },
+        {
+          "name": "SEEK LIMITED",
+          "abn": "46080075314"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3270",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/6169/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "WESLEY COMMUNITY SERVICES LIMITED",
+          "abn": "42164655145"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3776",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/7162/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AMATEK HOLDINGS LIMITED",
+          "abn": "42081878453"
+        },
+        {
+          "name": "AMATEK INDUSTRIES PTY LIMITED",
+          "abn": "27081870653"
+        },
+        {
+          "name": "AMATEK INVESTMENTS PTY LIMITED",
+          "abn": "40081870706"
+        },
+        {
+          "name": "AUSTRAL BRONZE CRANE COPPER LIMITED",
+          "abn": "31008466840"
+        },
+        {
+          "name": "BANDELLE PTY. LIMITED",
+          "abn": "26003921891"
+        },
+        {
+          "name": "BARON INSULATION PTY LTD",
+          "abn": "99132459931"
+        },
+        {
+          "name": "CRANE ENFIELD METALS PTY. LIMITED",
+          "abn": "51008408151"
+        },
+        {
+          "name": "CRANE GROUP LIMITED",
+          "abn": "91008410302"
+        },
+        {
+          "name": "CRANE SHARE PLAN PTY LTD",
+          "abn": "57080982207"
+        },
+        {
+          "name": "CREVET LTD.",
+          "abn": "25011027115"
+        },
+        {
+          "name": "CREVET PIPELINES PTY LTD",
+          "abn": "26002992896"
+        },
+        {
+          "name": "CTCI PTY LIMITED",
+          "abn": "86152253837"
+        },
+        {
+          "name": "EE-FIT PTY LIMITED",
+          "abn": "82147368358"
+        },
+        {
+          "name": "EFA TECHNOLOGIES PTY LTD",
+          "abn": "41083189897"
+        },
+        {
+          "name": "FBHS (AUST) PTY LTD",
+          "abn": "83126232504"
+        },
+        {
+          "name": "FBSOL PTY LIMITED",
+          "abn": "75147653825"
+        },
+        {
+          "name": "FLETCHER BUILDING (AUSTRALIA) PTY LTD",
+          "abn": "11093539452"
+        },
+        {
+          "name": "FLETCHER BUILDING PRODUCTS AUSTRALIA PTY LTD",
+          "abn": "72166188610"
+        },
+        {
+          "name": "FLETCHER INDUSTRIES AUSTRALIA PTY LIMITED",
+          "abn": "97009643672"
+        },
+        {
+          "name": "FLETCHER INSULATION PTY LIMITED",
+          "abn": "72001175355"
+        },
+        {
+          "name": "GATIC PTY LIMITED",
+          "abn": "78006799757"
+        },
+        {
+          "name": "GERALDTON INDEPENDENT BUILDING SUPPLIES PTY LTD",
+          "abn": "55097089944"
+        },
+        {
+          "name": "IPLEX PIPELINES AUSTRALIA PTY LIMITED",
+          "abn": "56079613308"
+        },
+        {
+          "name": "IPLEX PROPERTIES PTY. LIMITED",
+          "abn": "91080073070"
+        },
+        {
+          "name": "KEY PLASTICS PTY. LTD.",
+          "abn": "80000063623"
+        },
+        {
+          "name": "KINGSTON BRIDGE ENGINEERING PTY LTD",
+          "abn": "38068106356"
+        },
+        {
+          "name": "LAMINATES HOLDINGS PTY LIMITED",
+          "abn": "39125475863"
+        },
+        {
+          "name": "LAMINEX GROUP PTY LIMITED",
+          "abn": "98004093092"
+        },
+        {
+          "name": "LAMINEX OVERSEAS HOLDINGS PTY LIMITED",
+          "abn": "70125356916"
+        },
+        {
+          "name": "LAMINEX US HOLDINGS PTY LIMITED",
+          "abn": "18125357066"
+        },
+        {
+          "name": "MILNES HOLDINGS LTD.",
+          "abn": "96003466591"
+        },
+        {
+          "name": "MORINDA AUSTRALIA PTY LTD",
+          "abn": "34082051287"
+        },
+        {
+          "name": "NORTHERN IRON AND BRASS FOUNDRY PTY. LTD.",
+          "abn": "83078991803"
+        },
+        {
+          "name": "OLIVERI SOLUTIONS PTY LIMITED",
+          "abn": "12007551886"
+        },
+        {
+          "name": "POLYMER FUSION EDUCATION PTY LTD",
+          "abn": "47102473049"
+        },
+        {
+          "name": "S CUBED PTY LIMITED",
+          "abn": "73147653816"
+        },
+        {
+          "name": "STRAMIT CORPORATION PTY LIMITED",
+          "abn": "57005010195"
+        },
+        {
+          "name": "TASMAN AUSTRALIA PTY LIMITED",
+          "abn": "43081835074"
+        },
+        {
+          "name": "TASMAN BUILDING PRODUCTS PTY LIMITED",
+          "abn": "62081835154"
+        },
+        {
+          "name": "TBP GROUP PTY LTD",
+          "abn": "68083878460"
+        },
+        {
+          "name": "TRADELINK PTY LIMITED",
+          "abn": "29000003832"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3997",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/7066/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "CAPRICORNIA TRAINING COMPANY LIMITED",
+          "abn": "13419019806"
+        },
+        {
+          "name": "FINDSTAFF PTY LTD",
+          "abn": "11073098718"
+        },
+        {
+          "name": "GIPPSLAND GROUP TRAINING LIMITED",
+          "abn": "95487784757"
+        },
+        {
+          "name": "HOSPITALITY TRAINING NETWORK LTD",
+          "abn": "42003692733"
+        },
+        {
+          "name": "Hume Employment Service Limited",
+          "abn": "87109950361"
+        },
+        {
+          "name": "INNER NORTHERN GROUP TRAINING LIMITED",
+          "abn": "85006162152"
+        },
+        {
+          "name": "INSTITUTE OF TRAINING AND FURTHER EDUCATION PTY LTD",
+          "abn": "35086004097"
+        },
+        {
+          "name": "INTERACT AUSTRALIA (VICTORIA) LIMITED",
+          "abn": "47072232083"
+        },
+        {
+          "name": "MAS NATIONAL LIMITED",
+          "abn": "11131047268"
+        },
+        {
+          "name": "MRAEL LIMITED",
+          "abn": "46322942323"
+        },
+        {
+          "name": "PLUS RECRUITMENT PTY LTD",
+          "abn": "79159257093"
+        },
+        {
+          "name": "STOCKDALE PERSONNEL PTY LTD",
+          "abn": "40098046854"
+        },
+        {
+          "name": "WORK & TRAINING LIMITED",
+          "abn": "34009577806"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3886",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/7332/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Keypath Education International, Inc.",
+          "abn": null
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3853",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/7284/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "RUSSO BUSINESS SCHOOL PTY LTD",
+          "abn": "34601105319"
+        },
+        {
+          "name": "RUSSO HIGHER EDUCATION PTY LTD",
+          "abn": "78114135563"
+        },
+        {
+          "name": "SARINA INVESTMENTS PTY. LTD.",
+          "abn": "81056887757"
+        },
+        {
+          "name": "SARINA RUSSO JOB ACCESS (AUSTRALIA) PTY. LTD.",
+          "abn": "21090052350"
+        },
+        {
+          "name": "SARINA RUSSO SCHOOLS AUSTRALIA PTY LTD",
+          "abn": "39010129325"
+        },
+        {
+          "name": "VOICE - PSYCHOLOGISTS & ALLIED PROFESSIONALS PTY LTD",
+          "abn": "65120069570"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-4053",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/7484/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "CAMP AUSTRALIA PROPRIETARY LIMITED",
+          "abn": "96060703120"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3541",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/6810/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "GUARDIAN NETWORK PTY. LTD.",
+          "abn": "32082447827"
+        },
+        {
+          "name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (TAS.)",
+          "abn": "88774033774"
+        },
+        {
+          "name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA)",
+          "abn": "39703442583"
+        },
+        {
+          "name": "UCA CASH MANAGEMENT FUND LIMITED",
+          "abn": "41075948444"
+        },
+        {
+          "name": "UCA GROWTH FUND LIMITED",
+          "abn": "39075948435"
+        },
+        {
+          "name": "UNITING AGEWELL LIMITED",
+          "abn": "19628178816"
+        },
+        {
+          "name": "UNITING ETHICAL INVESTORS LIMITED",
+          "abn": "46102469821"
+        },
+        {
+          "name": "UNITING HOUSING (AUSTRALIA) LIMITED",
+          "abn": "31640217803"
+        },
+        {
+          "name": "UNITING HOUSING (VICTORIA) LIMITED",
+          "abn": "69134589745"
+        },
+        {
+          "name": "UNITING (VICTORIA AND TASMANIA) LIMITED",
+          "abn": "81098317125"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-480",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/8418/",
+      "reporting_period": "2020-10-01 to 2021-09-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "COMPASS GROUP (AUSTRALIA) PTY LTD",
+          "abn": "41000683125"
+        },
+        {
+          "name": "COMPASS GROUP B&I HOSPITALITY SERVICES PTY LTD",
+          "abn": "82089388143"
+        },
+        {
+          "name": "COMPASS GROUP DEFENCE HOSPITALITY SERVICES PTY LTD",
+          "abn": "80089388134"
+        },
+        {
+          "name": "COMPASS GROUP EDUCATION HOSPITALITY SERVICES PTY LTD",
+          "abn": "60129203998"
+        },
+        {
+          "name": "COMPASS GROUP HEALTHCARE HOSPITALITY SERVICES PTY LTD",
+          "abn": "79114320615"
+        },
+        {
+          "name": "COMPASS GROUP REMOTE HOSPITALITY SERVICES PTY LTD",
+          "abn": "98113561363"
+        },
+        {
+          "name": "Delta FM Australia Pty Ltd",
+          "abn": "64157852054"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1261",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9530/",
+      "reporting_period": "2021-04-01 to 2022-03-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "TORRENS GLOBAL EDUCATION SERVICES PTY LTD",
+          "abn": "33603224728"
+        },
+        {
+          "name": "Torrens University Australia Limited",
+          "abn": "99154937005"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1010",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9233/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "The Creche and Kindergarten Association Limited",
+          "abn": "59150737849"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1351",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9643/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED",
+          "abn": "15050192660"
+        },
+        {
+          "name": "CABRINI AUSTRALIA LIMITED",
+          "abn": "42624828306"
+        },
+        {
+          "name": "CATHOLIC ARCHDIOCESE OF MELBOURNE",
+          "abn": "64047619369"
+        },
+        {
+          "name": "CATHOLIC ARCHDIOCESE OF SYDNEY",
+          "abn": "72823907843"
+        },
+        {
+          "name": "CATHOLIC CHURCH INSURANCE LIMITED",
+          "abn": "76000005210"
+        },
+        {
+          "name": "CATHOLIC EDUCATION DIOCESE OF BATHURST",
+          "abn": "73470086952"
+        },
+        {
+          "name": "CATHOLIC EDUCATION OFFICE",
+          "abn": "22616685167"
+        },
+        {
+          "name": "CATHOLIC EDUCATION OFFICE",
+          "abn": "94493967364"
+        },
+        {
+          "name": "CATHOLIC EDUCATION OFFICE DIOCESE OF PARRAMATTA",
+          "abn": "86875623906"
+        },
+        {
+          "name": "CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED",
+          "abn": "47634504135"
+        },
+        {
+          "name": "CATHOLIC HEALTHCARE LIMITED",
+          "abn": "69064946318"
+        },
+        {
+          "name": "CATHOLIC METROPOLITAN CEMETERIES TRUST",
+          "abn": "85744325709"
+        },
+        {
+          "name": "CATHOLIC SCHOOLS NSW",
+          "abn": "46619593369"
+        },
+        {
+          "name": "DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED",
+          "abn": "68629894686"
+        },
+        {
+          "name": "DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED",
+          "abn": "93638070836"
+        },
+        {
+          "name": "LITTLE COMPANY OF MARY HEALTH CARE LIMITED",
+          "abn": "11079815697"
+        },
+        {
+          "name": "MACKILLOP FAMILY SERVICES LIMITED",
+          "abn": "79078299288"
+        },
+        {
+          "name": "MATER MISERICORDIAE LTD",
+          "abn": "83096708922"
+        },
+        {
+          "name": "MELBOURNE ARCHDIOCESE CATHOLIC SCHOOLS LTD",
+          "abn": "18643442371"
+        },
+        {
+          "name": "MERCY AGED AND COMMUNITY CARE LTD",
+          "abn": "77191901062"
+        },
+        {
+          "name": "MERCY COMMUNITY SERVICES SEQ LIMITED",
+          "abn": "51166477318"
+        },
+        {
+          "name": "MERCY EDUCATION LIMITED",
+          "abn": "69154531870"
+        },
+        {
+          "name": "MERCY HEALTH AUSTRALIA LTD",
+          "abn": "89614115856"
+        },
+        {
+          "name": "OZCARE",
+          "abn": "58072422925"
+        },
+        {
+          "name": "Roman Catholic Church Trust Corporation of The Archdiocese of Hobart",
+          "abn": "24097986470"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (NSW & ACT) LIMITED",
+          "abn": "76131082374"
+        },
+        {
+          "name": "SOUTHERN CROSS QUEENSLAND PTY LTD",
+          "abn": "22649097021"
+        },
+        {
+          "name": "ST JOHN OF GOD HEALTH CARE INC",
+          "abn": "21930207958"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY NSW",
+          "abn": "91161127340"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY QUEENSLAND",
+          "abn": "14211506904"
+        },
+        {
+          "name": "THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE",
+          "abn": "25328758007"
+        },
+        {
+          "name": "THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON",
+          "abn": "50979741889"
+        },
+        {
+          "name": "The Trustee for Sydney Catholic Schools Trust",
+          "abn": "26158447082"
+        },
+        {
+          "name": "THE UNIVERSITY OF NOTRE DAME AUSTRALIA",
+          "abn": "69330643210"
+        },
+        {
+          "name": "TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN",
+          "abn": "47824127996"
+        },
+        {
+          "name": "TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM",
+          "abn": "67786923621"
+        },
+        {
+          "name": "TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA",
+          "abn": "96372268340"
+        },
+        {
+          "name": "TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE",
+          "abn": "62089182027"
+        },
+        {
+          "name": "VILLA MARIA CATHOLIC HOMES LIMITED",
+          "abn": "32004364103"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1309",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9596/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "BUSY BEES AUSTRALIA BIDCO PTY LTD",
+          "abn": "63625478015"
+        },
+        {
+          "name": "BUSY BEES AUSTRALIA HOLDING PTY LTD",
+          "abn": "82625449809"
+        },
+        {
+          "name": "BUSY BEES EARLY LEARNING AUSTRALIA PTY LTD",
+          "abn": "20168187979"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1032",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9265/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "BRIGIDINE COLLEGE, INDOOROOPILLY",
+          "abn": "89109598905"
+        },
+        {
+          "name": "BRIGIDINE COLLEGE, ST IVES",
+          "abn": "15085694695"
+        },
+        {
+          "name": "KILDARE EDUCATION MINISTRIES LIMITED",
+          "abn": "34169198421"
+        },
+        {
+          "name": "PRESENTATION SISTERS VICTORIA (PRESENTATION FAMILY CENTRE) INCORPORATED",
+          "abn": "83121768426"
+        },
+        {
+          "name": "STAR OF THE SEA COLLEGE INC",
+          "abn": "29411978418"
+        },
+        {
+          "name": "The Trustee for THE BRIGIDINE ASYLUM SEEKERS AND REFUGEE TRUST",
+          "abn": "24830510866"
+        },
+        {
+          "name": "Trustees of Kildare Ministries",
+          "abn": "80991443722"
+        },
+        {
+          "name": "WELLSPRINGS FOR WOMEN INCORPORATED",
+          "abn": "18282739596"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1099",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9367/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "G8 EDUCATION LIMITED",
+          "abn": "95123828553"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-924",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9125/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AFFINITY EDUCATION GROUP LIMITED",
+          "abn": "37163864195"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3922",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/7369/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "BIG FAT SMILE GROUP LTD",
+          "abn": "82002796232"
+        },
+        {
+          "name": "GOODSTART EARLY LEARNING LTD",
+          "abn": "69139967794"
+        },
+        {
+          "name": "GOODSTART EARLY YEARS LIMITED ( Mission Australia Early Learning Ltd )",
+          "abn": "26133530364"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1535",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9928/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "IDP EDUCATION LIMITED",
+          "abn": "59117676463"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2350",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11121/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "GOODSTART EARLY LEARNING LTD",
+          "abn": "69139967794"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2619",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11364/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Online Education Services Pty Ltd",
+          "abn": "75148177959"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2238",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/10973/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (TAS.)",
+          "abn": "88774033774"
+        },
+        {
+          "name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA)",
+          "abn": "39703442583"
+        },
+        {
+          "name": "UNITING AGEWELL LIMITED",
+          "abn": "19628178816"
+        },
+        {
+          "name": "UNITING ETHICAL INVESTORS LIMITED",
+          "abn": "46102469821"
+        },
+        {
+          "name": "UNITING (VICTORIA AND TASMANIA) LIMITED",
+          "abn": "81098317125"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2198",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/10899/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AUSTRALIAN TRADE COLLEGE NORTH BRISBANE LTD",
+          "abn": "54117167307"
+        },
+        {
+          "name": "Australian Trade Training College Limited",
+          "abn": "53139076636"
+        },
+        {
+          "name": "CAPRICORNIA TRAINING COMPANY LIMITED",
+          "abn": "13419019806"
+        },
+        {
+          "name": "COMMUNITY POTENTIAL FOUNDATION LIMITED",
+          "abn": "84092419960"
+        },
+        {
+          "name": "FINDSTAFF PTY LTD",
+          "abn": "11073098718"
+        },
+        {
+          "name": "GIPPSLAND GROUP TRAINING LIMITED",
+          "abn": "30006070828"
+        },
+        {
+          "name": "HOSPITALITY TRAINING NETWORK LTD",
+          "abn": "42003692733"
+        },
+        {
+          "name": "Hume Employment Service Limited",
+          "abn": "87109950361"
+        },
+        {
+          "name": "INSTITUTE OF TRAINING AND FURTHER EDUCATION PTY LTD",
+          "abn": "35086004097"
+        },
+        {
+          "name": "INTERACT AUSTRALIA LTD",
+          "abn": "47072232083"
+        },
+        {
+          "name": "INTOWORK AUSTRALIA LTD",
+          "abn": "85006162152"
+        },
+        {
+          "name": "MAS NATIONAL LIMITED",
+          "abn": "11131047268"
+        },
+        {
+          "name": "MRAEL LIMITED",
+          "abn": "61010617044"
+        },
+        {
+          "name": "PLUS RECRUITMENT PTY LTD",
+          "abn": "79159257093"
+        },
+        {
+          "name": "STOCKDALE PERSONNEL PTY LTD",
+          "abn": "40098046854"
+        },
+        {
+          "name": "TOOWOOMBA REGIONAL GROUP APPRENTICESHIP COMPANY PTY. LIMITED",
+          "abn": "82010704613"
+        },
+        {
+          "name": "WORK & TRAINING LIMITED",
+          "abn": "34009577806"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2714",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11588/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AMATEK HOLDINGS PTY LIMITED",
+          "abn": "42081878453"
+        },
+        {
+          "name": "AMATEK INDUSTRIES PTY LIMITED",
+          "abn": "27081870653"
+        },
+        {
+          "name": "AMATEK INVESTMENTS PTY LIMITED",
+          "abn": "40081870706"
+        },
+        {
+          "name": "BANDELLE PTY. LIMITED",
+          "abn": "26003921891"
+        },
+        {
+          "name": "BARON INSULATION PTY LTD",
+          "abn": "99132459931"
+        },
+        {
+          "name": "CRANE ENFIELD METALS PTY. LIMITED",
+          "abn": "51008408151"
+        },
+        {
+          "name": "CRANE GROUP PTY LIMITED",
+          "abn": "91008410302"
+        },
+        {
+          "name": "CRANE SHARE PLAN PTY LTD",
+          "abn": "57080982207"
+        },
+        {
+          "name": "CREVET PIPELINES PTY LTD",
+          "abn": "26002992896"
+        },
+        {
+          "name": "CREVET PTY LTD",
+          "abn": "25011027115"
+        },
+        {
+          "name": "CTCI PTY LIMITED",
+          "abn": "86152253837"
+        },
+        {
+          "name": "EE-FIT PTY LIMITED",
+          "abn": "82147368358"
+        },
+        {
+          "name": "FBHS (AUST) PTY LTD",
+          "abn": "83126232504"
+        },
+        {
+          "name": "FBSOL PTY LIMITED",
+          "abn": "75147653825"
+        },
+        {
+          "name": "FLETCHER BUILDING (AUSTRALIA) PTY LTD",
+          "abn": "11093539452"
+        },
+        {
+          "name": "FLETCHER BUILDING PRODUCTS AUSTRALIA PTY LTD",
+          "abn": "72166188610"
+        },
+        {
+          "name": "FLETCHER INDUSTRIES AUSTRALIA PTY LIMITED ( ROCLA INDUSTRIES PTY LIMITED )",
+          "abn": "97009643672"
+        },
+        {
+          "name": "FLETCHER INSULATION PTY LIMITED",
+          "abn": "72001175355"
+        },
+        {
+          "name": "GATIC PTY LIMITED",
+          "abn": "78006799757"
+        },
+        {
+          "name": "GERALDTON INDEPENDENT BUILDING SUPPLIES PTY LTD",
+          "abn": "55097089944"
+        },
+        {
+          "name": "IPLEX PIPELINES AUSTRALIA PTY LIMITED",
+          "abn": "56079613308"
+        },
+        {
+          "name": "IPLEX PROPERTIES PTY. LIMITED",
+          "abn": "91080073070"
+        },
+        {
+          "name": "KEY PLASTICS PTY LTD",
+          "abn": "80000063623"
+        },
+        {
+          "name": "KINGSTON BRIDGE ENGINEERING PTY LTD",
+          "abn": "38068106356"
+        },
+        {
+          "name": "LAMINEX GROUP PTY LIMITED",
+          "abn": "98004093092"
+        },
+        {
+          "name": "LAMINEX US HOLDINGS PTY LIMITED",
+          "abn": "18125357066"
+        },
+        {
+          "name": "MILNES HOLDINGS PTY LTD",
+          "abn": "96003466591"
+        },
+        {
+          "name": "MORINDA AUSTRALIA PTY LTD",
+          "abn": "34082051287"
+        },
+        {
+          "name": "NORTHERN IRON AND BRASS FOUNDRY PTY LTD",
+          "abn": "83078991803"
+        },
+        {
+          "name": "OLIVERI SOLUTIONS PTY LIMITED",
+          "abn": "12007551886"
+        },
+        {
+          "name": "POLYMER FUSION EDUCATION PTY LTD",
+          "abn": "47102473049"
+        },
+        {
+          "name": "S CUBED PTY LIMITED",
+          "abn": "73147653816"
+        },
+        {
+          "name": "STRAMIT CORPORATION PTY LIMITED",
+          "abn": "57005010195"
+        },
+        {
+          "name": "TASMAN AUSTRALIA PTY LIMITED",
+          "abn": "43081835074"
+        },
+        {
+          "name": "TASMAN BUILDING PRODUCTS PTY LIMITED",
+          "abn": "62081835154"
+        },
+        {
+          "name": "TBP GROUP PTY LTD",
+          "abn": "68083878460"
+        },
+        {
+          "name": "TRADELINK PTY LIMITED",
+          "abn": "29000003832"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2940",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11835/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "CAMP AUSTRALIA PROPRIETARY LIMITED",
+          "abn": "96060703120"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2648",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11506/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "CAMPION EDUCATION (AUST) PTY LTD",
+          "abn": "33074318602"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-3013",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11943/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Keypath Education International, Inc.",
+          "abn": "00649711026"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2398",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11193/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "WESLEY COMMUNITY SERVICES LIMITED",
+          "abn": "42164655145"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-203",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/12371/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "COMPASS GROUP (AUSTRALIA) PTY LTD",
+          "abn": "41000683125"
+        },
+        {
+          "name": "COMPASS GROUP B&I HOSPITALITY SERVICES PTY LTD",
+          "abn": "82089388143"
+        },
+        {
+          "name": "COMPASS GROUP DEFENCE HOSPITALITY SERVICES PTY LTD",
+          "abn": "80089388134"
+        },
+        {
+          "name": "COMPASS GROUP EDUCATION HOSPITALITY SERVICES PTY LTD",
+          "abn": "60129203998"
+        },
+        {
+          "name": "COMPASS GROUP HEALTHCARE HOSPITALITY SERVICES PTY LTD",
+          "abn": "79114320615"
+        },
+        {
+          "name": "COMPASS GROUP REMOTE HOSPITALITY SERVICES PTY LTD",
+          "abn": "98113561363"
+        },
+        {
+          "name": "Delta FM Australia Pty Ltd",
+          "abn": "64157852054"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-226",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/12401/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "RUSSO HIGHER EDUCATION PTY LTD",
+          "abn": "78114135563"
+        },
+        {
+          "name": "SARINA INVESTMENTS PTY. LTD.",
+          "abn": "81056887757"
+        },
+        {
+          "name": "SARINA RUSSO JOB ACCESS (AUSTRALIA) PTY. LTD.",
+          "abn": "21090052350"
+        },
+        {
+          "name": "SARINA RUSSO SCHOOLS AUSTRALIA PTY LTD",
+          "abn": "39010129325"
+        },
+        {
+          "name": "VOICE - PSYCHOLOGISTS & ALLIED PROFESSIONALS PTY LTD",
+          "abn": "65120069570"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-353",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/12597/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "BRIGIDINE COLLEGE, INDOOROOPILLY",
+          "abn": "89109598905"
+        },
+        {
+          "name": "BRIGIDINE COLLEGE, ST IVES",
+          "abn": "15085694695"
+        },
+        {
+          "name": "KILDARE EDUCATION MINISTRIES LIMITED",
+          "abn": "34169198421"
+        },
+        {
+          "name": "PRESENTATION SISTERS VICTORIA (PRESENTATION FAMILY CENTRE) INCORPORATED",
+          "abn": "83121768426"
+        },
+        {
+          "name": "STAR OF THE SEA COLLEGE INC",
+          "abn": "29411978418"
+        },
+        {
+          "name": "The Trustee for THE BRIGIDINE ASYLUM SEEKERS AND REFUGEE TRUST",
+          "abn": "24830510866"
+        },
+        {
+          "name": "Trustees of Kildare Ministries",
+          "abn": "80991443722"
+        },
+        {
+          "name": "WELLSPRINGS FOR WOMEN INCORPORATED",
+          "abn": "18282739596"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-488",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/12806/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "ST PHILIP`S CHRISTIAN EDUCATION FOUNDATION LTD",
+          "abn": "34002919584"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-524",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/12856/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AFFINITY EDUCATION GROUP LIMITED",
+          "abn": "37163864195"
+        },
+        {
+          "name": "All Kids Childcare Services Pty Ltd",
+          "abn": "20153144935"
+        },
+        {
+          "name": "Bambini Early Childhood Development Brisbane Pty Ltd",
+          "abn": "69150259546"
+        },
+        {
+          "name": "BHL Childcare Ltd",
+          "abn": "48153143803"
+        },
+        {
+          "name": "NTL Investments Pty Ltd",
+          "abn": "16150036936"
+        },
+        {
+          "name": "The trustee for Bambini Early Childhood Development Gold Coast 2 Trust",
+          "abn": "82041817285"
+        },
+        {
+          "name": "The Trustee for Bambini Early Childhood Development Meridan Trust",
+          "abn": "31769446861"
+        },
+        {
+          "name": "The Trustee for Bambini Early Childhood Development Peregian Trust",
+          "abn": "30214474616"
+        },
+        {
+          "name": "The Trustee for Bambini Early Childhood Development Southport Trust",
+          "abn": "69793173131"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-721",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/13149/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "CHISHOLM INSTITUTE",
+          "abn": "65335795326"
+        },
+        {
+          "name": "TAFE ONLINE PTY LTD",
+          "abn": "25166750107"
+        },
+        {
+          "name": "The Trustee for The Caroline Chisholm Education Foundation",
+          "abn": "43912374223"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1130",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/13742/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "G8 EDUCATION LIMITED",
+          "abn": "95123828553"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1361",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/14013/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "The Creche and Kindergarten Association Limited",
+          "abn": "59150737849"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1306",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/13919/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "TORRENS GLOBAL EDUCATION SERVICES PTY LTD",
+          "abn": "33603224728"
+        },
+        {
+          "name": "Torrens University Australia Limited",
+          "abn": "99154937005"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1195",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/13790/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "Archdiocese of Hobart - Catholic Education Office",
+          "abn": "43854833448"
+        },
+        {
+          "name": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED",
+          "abn": "15050192660"
+        },
+        {
+          "name": "CABRINI HEALTH LIMITED",
+          "abn": "33370684005"
+        },
+        {
+          "name": "CABRINI OUTREACH LIMITED",
+          "abn": "91637994720"
+        },
+        {
+          "name": "CABRINI PROPERTY LIMITED",
+          "abn": "24624981326"
+        },
+        {
+          "name": "CATHOLIC ARCHDIOCESE OF SYDNEY",
+          "abn": "72823907843"
+        },
+        {
+          "name": "[withheld: may name an individual]",
+          "abn": "90507529241"
+        },
+        {
+          "name": "[withheld: may name an individual]",
+          "abn": "79984899862"
+        },
+        {
+          "name": "CATHOLIC CHURCH INSURANCE LIMITED",
+          "abn": "76000005210"
+        },
+        {
+          "name": "CATHOLIC DEVELOPMENT FUND - ARCHDIOCESE OF SYDNEY",
+          "abn": "73866037848"
+        },
+        {
+          "name": "Catholic Development Fund Tasmania",
+          "abn": "21429090329"
+        },
+        {
+          "name": "Catholic Diocese of Parramatta",
+          "abn": "99716962606"
+        },
+        {
+          "name": "CATHOLIC EDUCATION CENTRE",
+          "abn": "55210770582"
+        },
+        {
+          "name": "CATHOLIC EDUCATION COMMISSION OF VICTORIA LIMITED",
+          "abn": "92119459853"
+        },
+        {
+          "name": "CATHOLIC EDUCATION DIOCESE OF BATHURST",
+          "abn": "73470086952"
+        },
+        {
+          "name": "CATHOLIC EDUCATION OFFICE",
+          "abn": "22616685167"
+        },
+        {
+          "name": "CATHOLIC EDUCATION OFFICE",
+          "abn": "94493967364"
+        },
+        {
+          "name": "CATHOLIC EDUCATION OFFICE DIOCESE OF PARRAMATTA",
+          "abn": "86875623906"
+        },
+        {
+          "name": "CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED",
+          "abn": "47634504135"
+        },
+        {
+          "name": "CATHOLIC HEALTHCARE LIMITED",
+          "abn": "69064946318"
+        },
+        {
+          "name": "CATHOLIC METROPOLITAN CEMETERIES TRUST",
+          "abn": "85744325709"
+        },
+        {
+          "name": "CATHOLIC SCHOOLS NSW LIMITED",
+          "abn": "46619593369"
+        },
+        {
+          "name": "CENTACARE EVOLVE HOUSING LIMITED",
+          "abn": "23154824969"
+        },
+        {
+          "name": "CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE - CENTACARE ADMINISTRATION SERVICES",
+          "abn": "51626296801"
+        },
+        {
+          "name": "DENCROSS PTY LTD",
+          "abn": "27086647298"
+        },
+        {
+          "name": "DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED",
+          "abn": "68629894686"
+        },
+        {
+          "name": "DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED",
+          "abn": "93638070836"
+        },
+        {
+          "name": "LITTLE COMPANY OF MARY HEALTH CARE LIMITED",
+          "abn": "11079815697"
+        },
+        {
+          "name": "MACKILLOP FAMILY SERVICES LIMITED",
+          "abn": "79078299288"
+        },
+        {
+          "name": "MARILLAC",
+          "abn": "34050463717"
+        },
+        {
+          "name": "MATER EDUCATION LIMITED",
+          "abn": "50148130349"
+        },
+        {
+          "name": "MATER MISERICORDIAE LTD",
+          "abn": "83096708922"
+        },
+        {
+          "name": "MATER RESEARCH LTD",
+          "abn": "28109834719"
+        },
+        {
+          "name": "MELBOURNE ARCHDIOCESE CATHOLIC SCHOOLS EARLY YEARS EDUCATION LTD",
+          "abn": "37653741612"
+        },
+        {
+          "name": "MELBOURNE ARCHDIOCESE CATHOLIC SCHOOLS LTD",
+          "abn": "18643442371"
+        },
+        {
+          "name": "MELBOURNE ARCHDIOCESE CATHOLIC SPECIALIST SCHOOLS LTD",
+          "abn": "75653741836"
+        },
+        {
+          "name": "MERCY AGED AND COMMUNITY CARE LTD",
+          "abn": "77191901062"
+        },
+        {
+          "name": "MERCYCARE LIMITED",
+          "abn": "31098197490"
+        },
+        {
+          "name": "MERCY COMMUNITY SERVICES LIMITED",
+          "abn": "96487116582"
+        },
+        {
+          "name": "MERCY COMMUNITY SERVICES SEQ LIMITED",
+          "abn": "51166477318"
+        },
+        {
+          "name": "MERCY EDUCATION LIMITED",
+          "abn": "69154531870"
+        },
+        {
+          "name": "MERCY HEALTH AUSTRALIA LTD",
+          "abn": "89614115856"
+        },
+        {
+          "name": "MERCY HEALTH FOUNDATION LTD",
+          "abn": "73107275230"
+        },
+        {
+          "name": "MERCY HEALTH PROPERTY LTD",
+          "abn": "26412756615"
+        },
+        {
+          "name": "MERCY HEALTH SERVICE ALBURY LIMITED",
+          "abn": "82068291234"
+        },
+        {
+          "name": "MERCY HOSPITALS NSW LTD",
+          "abn": "53075648350"
+        },
+        {
+          "name": "MERCY HOSPITALS VICTORIA LTD",
+          "abn": "74762230429"
+        },
+        {
+          "name": "MERCY HUMAN SERVICES LIMITED",
+          "abn": "21612759654"
+        },
+        {
+          "name": "MERCY PALLIATIVE CARE LTD",
+          "abn": "77896699763"
+        },
+        {
+          "name": "OZCARE",
+          "abn": "58072422925"
+        },
+        {
+          "name": "RICE VILLAGE LIMITED",
+          "abn": "58089460935"
+        },
+        {
+          "name": "Roman Catholic Church Trust Corporation of The Archdiocese of Hobart",
+          "abn": "24097986470"
+        },
+        {
+          "name": "Roman Catholic Church Trust Corporation of The Archdiocese of Hobart",
+          "abn": "24097986470"
+        },
+        {
+          "name": "SANDHURST CATHOLIC EARLY CHILDHOOD EDUCATION & CARE LIMITED",
+          "abn": "98643978205"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (NSW & ACT) LIMITED",
+          "abn": "76131082374"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (VIC)",
+          "abn": "27004788612"
+        },
+        {
+          "name": "ST BRIGID'S CONVENT OF MERCY PERTH LIMITED",
+          "abn": "57714505919"
+        },
+        {
+          "name": "STELLA MARIS APOSTLESHIP OF THE SEAMACKAY HAY POINT",
+          "abn": "94424754630"
+        },
+        {
+          "name": "ST JOHN OF GOD BERWICK HEALTH CAMPUS LTD",
+          "abn": "60606404915"
+        },
+        {
+          "name": "ST JOHN OF GOD FOUNDATION INC.",
+          "abn": "53066805132"
+        },
+        {
+          "name": "ST JOHN OF GOD HEALTH CARE INC",
+          "abn": "21930207958"
+        },
+        {
+          "name": "ST JOHN OF GOD MIDLAND HEALTH CAMPUS LTD",
+          "abn": "18152874845"
+        },
+        {
+          "name": "ST JOHN OF GOD OUTREACH SERVICES",
+          "abn": "36064831965"
+        },
+        {
+          "name": "St Joseph Affordable Homes Inc.",
+          "abn": "96397668255"
+        },
+        {
+          "name": "[withheld: may name an individual]",
+          "abn": "13120232163"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY NSW",
+          "abn": "91161127340"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY QUEENSLAND",
+          "abn": "14211506904"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY QUEENSLAND HOUSING",
+          "abn": "31618167632"
+        },
+        {
+          "name": "ST VINCENT'S CARE SERVICES BOONDALL LTD",
+          "abn": "15146972303"
+        },
+        {
+          "name": "ST VINCENT'S CARE SERVICES CARSELDINE LTD",
+          "abn": "49094645262"
+        },
+        {
+          "name": "ST VINCENT'S CARE SERVICES LTD",
+          "abn": "50055210378"
+        },
+        {
+          "name": "ST VINCENT'S HEALTH AUSTRALIA LTD",
+          "abn": "75073503536"
+        },
+        {
+          "name": "ST VINCENT'S HEALTHCARE LTD",
+          "abn": "46095382791"
+        },
+        {
+          "name": "ST. VINCENT'S HOSPITAL (MELBOURNE) LIMITED",
+          "abn": "22052110755"
+        },
+        {
+          "name": "ST. VINCENT'S HOSPITAL SYDNEY LIMITED",
+          "abn": "77054038872"
+        },
+        {
+          "name": "ST VINCENT'S PRIVATE HOSPITALS LTD",
+          "abn": "61083645505"
+        },
+        {
+          "name": "THE BLUELINE LAUNDRY INC",
+          "abn": "77795370902"
+        },
+        {
+          "name": "THE CONGREGATION OF RELIGIOUS SISTERS OF CHARITY OF AUSTRALIA",
+          "abn": "99269630262"
+        },
+        {
+          "name": "THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE",
+          "abn": "25328758007"
+        },
+        {
+          "name": "THE CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE",
+          "abn": "35020644975"
+        },
+        {
+          "name": "THE CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE",
+          "abn": "49991006857"
+        },
+        {
+          "name": "THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON",
+          "abn": "21528592597"
+        },
+        {
+          "name": "THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON",
+          "abn": "50979741889"
+        },
+        {
+          "name": "THE ROMAN CATHOLIC TRUSTS CORPORATION FOR THE DIOCESE OF MELBOURNE",
+          "abn": "52768159282"
+        },
+        {
+          "name": "The Trustee for CatholicCare Sydney Trust",
+          "abn": "38841427747"
+        },
+        {
+          "name": "THE TRUSTEE FOR MATER FOUNDATION",
+          "abn": "96723184640"
+        },
+        {
+          "name": "The Trustee for Sydney Catholic Schools Trust",
+          "abn": "26158447082"
+        },
+        {
+          "name": "The Trustee for the Diocese of Rockhampton Trust Fund",
+          "abn": "64786814301"
+        },
+        {
+          "name": "THE UNIVERSITY OF NOTRE DAME AUSTRALIA",
+          "abn": "69330643210"
+        },
+        {
+          "name": "TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN",
+          "abn": "47824127996"
+        },
+        {
+          "name": "TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM",
+          "abn": "67786923621"
+        },
+        {
+          "name": "TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA",
+          "abn": "96372268340"
+        },
+        {
+          "name": "TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE",
+          "abn": "62089182027"
+        },
+        {
+          "name": "VILLA MARIA CATHOLIC HOMES LIMITED",
+          "abn": "32004364103"
+        },
+        {
+          "name": "XAVIER CHILDREN'S SUPPORT NETWORK",
+          "abn": "24547377893"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1488",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/14143/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "BUSY BEES AUSTRALIA BIDCO PTY LTD",
+          "abn": "63625478015"
+        },
+        {
+          "name": "BUSY BEES AUSTRALIA HOLDING PTY LTD",
+          "abn": "82625449809"
+        },
+        {
+          "name": "BUSY BEES EARLY LEARNING AUSTRALIA PTY LTD",
+          "abn": "20168187979"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1852",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/14693/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "IDP EDUCATION LIMITED",
+          "abn": "59117676463"
+        },
+        {
+          "name": "IELTS AUSTRALIA PTY. LIMITED",
+          "abn": "84008664766"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-2011",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/14898/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "DIOCESE OF SALE CATHOLIC EDUCATION LIMITED",
+          "abn": "91621266993"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1714",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/14493/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "TECHNICAL AND FURTHER EDUCATION COMMISSION",
+          "abn": "89755348137"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-2263",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/15268/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "DIOCESE OF SALE CATHOLIC EDUCATION LIMITED",
+          "abn": "91621266993"
+        }
+      ],
+      "included_entities": 44
+    },
+    {
+      "statement_id": "2023-2461",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/15563/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "GOODSTART EARLY LEARNING LTD",
+          "abn": "69139967794"
+        }
+      ],
+      "included_entities": 3
+    },
+    {
+      "statement_id": "2023-2536",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/15643/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (TAS.)",
+          "abn": "88774033774"
+        },
+        {
+          "name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA)",
+          "abn": "39703442583"
+        },
+        {
+          "name": "UNITING AGEWELL LIMITED",
+          "abn": "19628178816"
+        },
+        {
+          "name": "UNITING ETHICAL INVESTORS LIMITED",
+          "abn": "46102469821"
+        },
+        {
+          "name": "UNITING (VICTORIA AND TASMANIA) LIMITED",
+          "abn": "81098317125"
+        }
+      ],
+      "included_entities": 5
+    },
+    {
+      "statement_id": "2023-2782",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/15972/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "WESLEY COMMUNITY SERVICES LIMITED",
+          "abn": "42164655145"
+        }
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2023-2959",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/16195/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AMATEK HOLDINGS PTY LIMITED",
+          "abn": "42081878453"
+        },
+        {
+          "name": "AMATEK INDUSTRIES PTY LIMITED",
+          "abn": "27081870653"
+        },
+        {
+          "name": "AMATEK INVESTMENTS PTY LIMITED",
+          "abn": "40081870706"
+        },
+        {
+          "name": "BANDELLE PTY. LIMITED",
+          "abn": "26003921891"
+        },
+        {
+          "name": "BARON INSULATION PTY LTD",
+          "abn": "99132459931"
+        },
+        {
+          "name": "CRANE ENFIELD METALS PTY. LIMITED",
+          "abn": "51008408151"
+        },
+        {
+          "name": "CRANE GROUP PTY LIMITED",
+          "abn": "91008410302"
+        },
+        {
+          "name": "CRANE SHARE PLAN PTY LTD",
+          "abn": "57080982207"
+        },
+        {
+          "name": "CREVET PIPELINES PTY LTD",
+          "abn": "26002992896"
+        },
+        {
+          "name": "CREVET PTY LTD",
+          "abn": "25011027115"
+        },
+        {
+          "name": "CTCI PTY LIMITED",
+          "abn": "86152253837"
+        },
+        {
+          "name": "EE-FIT PTY LIMITED",
+          "abn": "82147368358"
+        },
+        {
+          "name": "FBHS (AUST) PTY LTD",
+          "abn": "83126232504"
+        },
+        {
+          "name": "FBSOL PTY LIMITED",
+          "abn": "75147653825"
+        },
+        {
+          "name": "FLETCHER BUILDING (AUSTRALIA) PTY LTD",
+          "abn": "11093539452"
+        },
+        {
+          "name": "FLETCHER BUILDING PRODUCTS AUSTRALIA PTY LTD",
+          "abn": "72166188610"
+        },
+        {
+          "name": "FLETCHER INDUSTRIES AUSTRALIA PTY LIMITED",
+          "abn": "97009643672"
+        },
+        {
+          "name": "FLETCHER INSULATION PTY LIMITED",
+          "abn": "72001175355"
+        },
+        {
+          "name": "GATIC PTY LIMITED",
+          "abn": "78006799757"
+        },
+        {
+          "name": "GERALDTON INDEPENDENT BUILDING SUPPLIES PTY LTD",
+          "abn": "55097089944"
+        },
+        {
+          "name": "IPLEX PIPELINES AUSTRALIA PTY LIMITED",
+          "abn": "56079613308"
+        },
+        {
+          "name": "IPLEX PROPERTIES PTY. LIMITED",
+          "abn": "91080073070"
+        },
+        {
+          "name": "KEY PLASTICS PTY. LTD.",
+          "abn": "80000063623"
+        },
+        {
+          "name": "KINGSTON BRIDGE ENGINEERING PTY LTD",
+          "abn": "38068106356"
+        },
+        {
+          "name": "LAMINEX GROUP PTY LIMITED",
+          "abn": "98004093092"
+        },
+        {
+          "name": "MILNES HOLDINGS PTY LTD.",
+          "abn": "96003466591"
+        },
+        {
+          "name": "MORINDA AUSTRALIA PTY LTD",
+          "abn": "34082051287"
+        },
+        {
+          "name": "NORTHERN IRON AND BRASS FOUNDRY PTY. LTD.",
+          "abn": "83078991803"
+        },
+        {
+          "name": "OLIVERI SOLUTIONS PTY LIMITED",
+          "abn": "12007551886"
+        },
+        {
+          "name": "POLYMER FUSION EDUCATION PTY LTD",
+          "abn": "47102473049"
+        },
+        {
+          "name": "S CUBED PTY LIMITED",
+          "abn": "73147653816"
+        },
+        {
+          "name": "STRAMIT CORPORATION PTY LIMITED",
+          "abn": "57005010195"
+        },
+        {
+          "name": "TASMAN AUSTRALIA PTY LIMITED",
+          "abn": "43081835074"
+        },
+        {
+          "name": "TASMAN BUILDING PRODUCTS PTY LIMITED",
+          "abn": "62081835154"
+        },
+        {
+          "name": "TBP GROUP PTY LTD",
+          "abn": "68083878460"
+        },
+        {
+          "name": "TRADELINK PTY LIMITED",
+          "abn": "29000003832"
+        },
+        {
+          "name": "WATER FILTERS AUSTRALIA PTY LIMITED",
+          "abn": "78089574489"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-26",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/16747/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "CAMPION EDUCATION (AUST) PTY LTD",
+          "abn": "33074318602"
+        }
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2023-3409",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/16700/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Keypath Education International, Inc.",
+          "abn": null
+        }
+      ],
+      "included_entities": 7
+    },
+    {
+      "statement_id": "2024-34",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/16762/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "RUSSO HIGHER EDUCATION PTY LTD",
+          "abn": "78114135563"
+        },
+        {
+          "name": "SARINA INVESTMENTS PTY. LTD.",
+          "abn": "81056887757"
+        },
+        {
+          "name": "SARINA RUSSO JOB ACCESS (AUSTRALIA) PTY. LTD.",
+          "abn": "21090052350"
+        },
+        {
+          "name": "SARINA RUSSO SCHOOLS AUSTRALIA PTY LTD",
+          "abn": "39010129325"
+        },
+        {
+          "name": "VOICE - PSYCHOLOGISTS & ALLIED PROFESSIONALS PTY LTD",
+          "abn": "65120069570"
+        }
+      ],
+      "included_entities": 3
+    },
+    {
+      "statement_id": "2023-3320",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/16604/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Online Education Services Pty Ltd",
+          "abn": "75148177959"
+        }
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2024-267",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/17154/",
+      "reporting_period": "2022-10-01 to 2023-09-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "COMPASS GROUP (AUSTRALIA) PTY LTD",
+          "abn": "41000683125"
+        },
+        {
+          "name": "COMPASS GROUP B&I HOSPITALITY SERVICES PTY LTD",
+          "abn": "82089388143"
+        },
+        {
+          "name": "COMPASS GROUP DEFENCE HOSPITALITY SERVICES PTY LTD",
+          "abn": "80089388134"
+        },
+        {
+          "name": "COMPASS GROUP EDUCATION HOSPITALITY SERVICES PTY LTD",
+          "abn": "60129203998"
+        },
+        {
+          "name": "COMPASS GROUP HEALTHCARE HOSPITALITY SERVICES PTY LTD",
+          "abn": "79114320615"
+        },
+        {
+          "name": "COMPASS GROUP REMOTE HOSPITALITY SERVICES PTY LTD",
+          "abn": "98113561363"
+        },
+        {
+          "name": "Delta FM Australia Pty Ltd",
+          "abn": "64157852054"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-316",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/17221/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "BRIGIDINE COLLEGE, INDOOROOPILLY",
+          "abn": "89109598905"
+        },
+        {
+          "name": "BRIGIDINE COLLEGE, ST IVES",
+          "abn": "15085694695"
+        },
+        {
+          "name": "KILDARE EDUCATION MINISTRIES LIMITED",
+          "abn": "34169198421"
+        },
+        {
+          "name": "PRESENTATION FAMILY CENTRE INC.",
+          "abn": "83121768426"
+        },
+        {
+          "name": "STAR OF THE SEA COLLEGE INC",
+          "abn": "29411978418"
+        },
+        {
+          "name": "The Trustee for THE BRIGIDINE ASYLUM SEEKERS AND REFUGEE TRUST",
+          "abn": "24830510866"
+        },
+        {
+          "name": "Trustees of Kildare Ministries",
+          "abn": "80991443722"
+        },
+        {
+          "name": "WELLSPRINGS FOR WOMEN INCORPORATED",
+          "abn": "18282739596"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-513",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/17514/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "Christian Education Ministries Ltd",
+          "abn": "65124826722"
+        }
+      ],
+      "included_entities": 11
+    },
+    {
+      "statement_id": "2024-1021",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18265/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "KINGS CHRISTIAN EDUCATION LTD.",
+          "abn": "84010547994"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-1143",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18440/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "THE CORPORATION OF THE SYNOD OF THE DIOCESE OF BRISBANE",
+          "abn": "32025287736"
+        }
+      ],
+      "included_entities": 14
+    },
+    {
+      "statement_id": "2024-1133",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18433/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "G8 EDUCATION LIMITED",
+          "abn": "95123828553"
+        }
+      ],
+      "included_entities": 73
+    },
+    {
+      "statement_id": "2024-1139",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18298/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "MACQUARIE UNIVERSITY",
+          "abn": "90952801237"
+        }
+      ],
+      "included_entities": 4
+    },
+    {
+      "statement_id": "2024-1225",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18539/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "ST PHILIP`S CHRISTIAN EDUCATION FOUNDATION LTD",
+          "abn": "34002919584"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-1335",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18637/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED",
+          "abn": "15050192660"
+        },
+        {
+          "name": "CABRINI AUSTRALIA LIMITED",
+          "abn": "42624828306"
+        },
+        {
+          "name": "CATHOLIC ARCHDIOCESE OF MELBOURNE",
+          "abn": "64047619369"
+        },
+        {
+          "name": "CATHOLIC ARCHDIOCESE OF SYDNEY",
+          "abn": "72823907843"
+        },
+        {
+          "name": "CATHOLIC CHURCH ENDOWMENT SOCIETY INC",
+          "abn": "29608297012"
+        },
+        {
+          "name": "CATHOLIC CHURCH INSURANCE LIMITED",
+          "abn": "76000005210"
+        },
+        {
+          "name": "CATHOLIC EDUCATION CENTRE",
+          "abn": "55210770582"
+        },
+        {
+          "name": "CATHOLIC EDUCATION DIOCESE OF BATHURST",
+          "abn": "73470086952"
+        },
+        {
+          "name": "CATHOLIC EDUCATION OFFICE",
+          "abn": "22616685167"
+        },
+        {
+          "name": "CATHOLIC EDUCATION OFFICE",
+          "abn": "94493967364"
+        },
+        {
+          "name": "CATHOLIC EDUCATION SANDHURST LIMITED",
+          "abn": "94643894384"
+        },
+        {
+          "name": "CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED",
+          "abn": "47634504135"
+        },
+        {
+          "name": "CATHOLIC FAMILY SERVICES",
+          "abn": "21578907988"
+        },
+        {
+          "name": "CATHOLIC HEALTHCARE LIMITED",
+          "abn": "69064946318"
+        },
+        {
+          "name": "CATHOLIC METROPOLITAN CEMETERIES TRUST",
+          "abn": "85744325709"
+        },
+        {
+          "name": "CATHOLIC SCHOOLS NSW LIMITED",
+          "abn": "46619593369"
+        },
+        {
+          "name": "CATHOLIC SCHOOLS PARRAMATTA DIOCESE LIMITED",
+          "abn": "66661001798"
+        },
+        {
+          "name": "DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED",
+          "abn": "68629894686"
+        },
+        {
+          "name": "DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED",
+          "abn": "93638070836"
+        },
+        {
+          "name": "DIOCESE OF SALE CATHOLIC EDUCATION LIMITED",
+          "abn": "91621266993"
+        },
+        {
+          "name": "DOMINICAN EDUCATION AUSTRALIA LTD",
+          "abn": "54610124322"
+        },
+        {
+          "name": "LITTLE COMPANY OF MARY HEALTH CARE LIMITED",
+          "abn": "11079815697"
+        },
+        {
+          "name": "MACKILLOP FAMILY SERVICES LIMITED",
+          "abn": "79078299288"
+        },
+        {
+          "name": "MARIST SCHOOLS AUSTRALIA LIMITED",
+          "abn": "76654014794"
+        },
+        {
+          "name": "MATER MISERICORDIAE LTD",
+          "abn": "83096708922"
+        },
+        {
+          "name": "MERCY AGED AND COMMUNITY CARE LTD",
+          "abn": "77191901062"
+        },
+        {
+          "name": "MERCYCARE LIMITED",
+          "abn": "31098197490"
+        },
+        {
+          "name": "MERCY COMMUNITY SERVICES LIMITED",
+          "abn": "96487116582"
+        },
+        {
+          "name": "MERCY COMMUNITY SERVICES SEQ LIMITED",
+          "abn": "51166477318"
+        },
+        {
+          "name": "MERCY EDUCATION LIMITED",
+          "abn": "69154531870"
+        },
+        {
+          "name": "MERCY HEALTH AUSTRALIA LTD",
+          "abn": "89614115856"
+        },
+        {
+          "name": "OZCARE",
+          "abn": "58072422925"
+        },
+        {
+          "name": "Roman Catholic Church Trust Corporation of The Archdiocese of Hobart",
+          "abn": "24097986470"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (NSW & ACT) LIMITED",
+          "abn": "76131082374"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (QLD) LTD",
+          "abn": "65104033471"
+        },
+        {
+          "name": "ST JOHN OF GOD HEALTH CARE INC",
+          "abn": "21930207958"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY NSW",
+          "abn": "91161127340"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY QUEENSLAND",
+          "abn": "14211506904"
+        },
+        {
+          "name": "ST VINCENT'S HEALTH AUSTRALIA LTD",
+          "abn": "75073503536"
+        },
+        {
+          "name": "THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE",
+          "abn": "25328758007"
+        },
+        {
+          "name": "THE CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE",
+          "abn": "35020644975"
+        },
+        {
+          "name": "THE CORPORATION OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE",
+          "abn": "49991006857"
+        },
+        {
+          "name": "THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON",
+          "abn": "21528592597"
+        },
+        {
+          "name": "THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON",
+          "abn": "50979741889"
+        },
+        {
+          "name": "THE ROMAN CATHOLIC TRUSTS CORPORATION FOR THE DIOCESE OF MELBOURNE",
+          "abn": "52768159282"
+        },
+        {
+          "name": "THE UNIVERSITY OF NOTRE DAME AUSTRALIA",
+          "abn": "69330643210"
+        },
+        {
+          "name": "TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN",
+          "abn": "47824127996"
+        },
+        {
+          "name": "TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM",
+          "abn": "67786923621"
+        },
+        {
+          "name": "TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA",
+          "abn": "96372268340"
+        },
+        {
+          "name": "TRUSTEES OF THE DIOCESE OF WAGGA WAGGA ATF CATHOLIC SCHOOLS OFFICE",
+          "abn": "36345537994"
+        },
+        {
+          "name": "TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE",
+          "abn": "62089182027"
+        },
+        {
+          "name": "VICTORIAN CATHOLIC EDUCATION AUTHORITY LIMITED",
+          "abn": "92119459853"
+        },
+        {
+          "name": "VILLA MARIA CATHOLIC HOMES LIMITED",
+          "abn": "32004364103"
+        }
+      ],
+      "included_entities": 63
+    },
+    {
+      "statement_id": "2024-1378",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18698/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "The Creche and Kindergarten Association Limited",
+          "abn": "59150737849"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-1385",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18685/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AFFINITY EDUCATION GROUP LIMITED",
+          "abn": "37163864195"
+        }
+      ],
+      "included_entities": 8
+    },
+    {
+      "statement_id": "2024-1513",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18827/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "TORRENS GLOBAL EDUCATION SERVICES PTY LTD",
+          "abn": "33603224728"
+        },
+        {
+          "name": "Torrens University Australia Limited",
+          "abn": "99154937005"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-2081",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/19403/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "IDP EDUCATION LIMITED",
+          "abn": null
+        }
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2024-2666",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/20448/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "GOODSTART EARLY LEARNING LTD",
+          "abn": null
+        }
+      ],
+      "included_entities": 2
+    },
+    {
+      "statement_id": "2024-2758",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/20567/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Online Education Services Pty Ltd",
+          "abn": "75148177959"
+        }
+      ],
+      "included_entities": 5
+    },
+    {
+      "statement_id": "2024-2665",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/20442/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Keypath Education International Inc",
+          "abn": null
+        }
+      ],
+      "included_entities": 7
+    },
+    {
+      "statement_id": "2024-3118",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/20947/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AMATEK HOLDINGS PTY LIMITED",
+          "abn": "42081878453"
+        },
+        {
+          "name": "AMATEK INDUSTRIES PTY LIMITED",
+          "abn": "27081870653"
+        },
+        {
+          "name": "AMATEK INVESTMENTS PTY LIMITED",
+          "abn": "40081870706"
+        },
+        {
+          "name": "BANDELLE PTY LIMITED",
+          "abn": "26003921891"
+        },
+        {
+          "name": "BARON INSULATION PTY LTD",
+          "abn": "99132459931"
+        },
+        {
+          "name": "CRANE ENFIELD METALS PTY LIMITED",
+          "abn": "51008408151"
+        },
+        {
+          "name": "CRANE GROUP PTY LIMITED",
+          "abn": "91008410302"
+        },
+        {
+          "name": "CRANE SHARE PLAN PTY LTD",
+          "abn": "57080982207"
+        },
+        {
+          "name": "CREVET PIPELINES PTY LTD",
+          "abn": "26002992896"
+        },
+        {
+          "name": "CREVET PTY LTD",
+          "abn": "25011027115"
+        },
+        {
+          "name": "CTCI PTY LIMITED",
+          "abn": "86152253837"
+        },
+        {
+          "name": "EE-FIT PTY LIMITED",
+          "abn": "82147368358"
+        },
+        {
+          "name": "FBHS (AUST) PTY LTD",
+          "abn": "83126232504"
+        },
+        {
+          "name": "FBSOL PTY LIMITED",
+          "abn": "75147653825"
+        },
+        {
+          "name": "FLETCHER BUILDING (AUSTRALIA) PTY LTD",
+          "abn": "11093539452"
+        },
+        {
+          "name": "FLETCHER BUILDING PRODUCTS AUSTRALIA PTY LTD",
+          "abn": "72166188610"
+        },
+        {
+          "name": "FLETCHER INDUSTRIES AUSTRALIA PTY LIMITED",
+          "abn": "97009643672"
+        },
+        {
+          "name": "FLETCHER INSULATION PTY LIMITED",
+          "abn": "72001175355"
+        },
+        {
+          "name": "GATIC PTY LIMITED",
+          "abn": "78006799757"
+        },
+        {
+          "name": "GERALDTON INDEPENDENT BUILDING SUPPLIES PTY LTD",
+          "abn": "55097089944"
+        },
+        {
+          "name": "IPLEX PIPELINES AUSTRALIA PTY LIMITED",
+          "abn": "56079613308"
+        },
+        {
+          "name": "IPLEX PROPERTIES PTY LIMITED",
+          "abn": "91080073070"
+        },
+        {
+          "name": "KEY PLASTICS PTY. LTD",
+          "abn": "80000063623"
+        },
+        {
+          "name": "KINGSTON BRIDGE ENGINEERING PTY LTD",
+          "abn": "38068106356"
+        },
+        {
+          "name": "LAMINEX GROUP PTY LIMITED",
+          "abn": "98004093092"
+        },
+        {
+          "name": "MILNES HOLDINGS PTY LTD",
+          "abn": "96003466591"
+        },
+        {
+          "name": "MORINDA AUSTRALIA PTY LTD",
+          "abn": "34082051287"
+        },
+        {
+          "name": "NORTHERN IRON AND BRASS FOUNDRY PTY. LTD",
+          "abn": "83078991803"
+        },
+        {
+          "name": "OLIVERI SOLUTIONS PTY LIMITED",
+          "abn": "12007551886"
+        },
+        {
+          "name": "POLYMER FUSION EDUCATION PTY LTD",
+          "abn": "47102473049"
+        },
+        {
+          "name": "S CUBED PTY LIMITED",
+          "abn": "73147653816"
+        },
+        {
+          "name": "STRAMIT CORPORATION PTY LIMITED",
+          "abn": "57005010195"
+        },
+        {
+          "name": "TASMAN AUSTRALIA PTY LIMITED",
+          "abn": "43081835074"
+        },
+        {
+          "name": "TASMAN BUILDING PRODUCTS PTY LIMITED",
+          "abn": "62081835154"
+        },
+        {
+          "name": "TBP GROUP PTY LTD",
+          "abn": "68083878460"
+        },
+        {
+          "name": "WATER FILTERS AUSTRALIA PTY LIMITED",
+          "abn": "78089574489"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-3070",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/20964/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "THE UNITING CHURCH IN AUSTRALIA PROPERTY TRUST (VICTORIA)",
+          "abn": "39703442583"
+        }
+      ],
+      "included_entities": 10
+    },
+    {
+      "statement_id": "2024-3487",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/21454/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "WESLEY COMMUNITY SERVICES LIMITED",
+          "abn": "42164655145"
+        }
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2024-3358",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/21322/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "THE AUSTRALIAN COUNCIL FOR EDUCATIONAL RESEARCH LIMITED",
+          "abn": "19004398145"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-3665",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/21103/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AUSTRALIAN BUS AND TRUCK PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "AVALON AIRPORT EXPRESS PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "BINGLEY GROUP PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "BTI PTY. LIMITED",
+          "abn": null
+        },
+        {
+          "name": "BUS & COACH SUPPORT SERVICES PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "CALABRO BROS HOLDINGS PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "COMITY PTY. LTD.",
+          "abn": null
+        },
+        {
+          "name": "CRAWN'S MOTORS PTY. LTD.",
+          "abn": null
+        },
+        {
+          "name": "EAST TAMAR BUS LINES PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "GULF TECH PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "JAMIST PTY. LTD.",
+          "abn": null
+        },
+        {
+          "name": "KACM 1A PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KACM 1 PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KACM 2A PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KACM 2 PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KACM 3A PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KACM 3 PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KEWELL (ALONSO) HOLDCO PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KEWELL (ALONSO) HOLDCO PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KEWELL (ALONSO) TOPCO PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC ASSETCO (MELBOURNE) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC FLEET SERVICES (MELBOURNE) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC FLEET SERVICES PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC GROUP FINCO PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC GROUP HOLDINGS PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC GROUP INVESTMENTS PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC GROUP MIDCO PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC GROUP SERVICES PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC HOLDING COMPANY PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC (MELBOURNE) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC (MELBOURNE URBAN) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC (NSW 1) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC (NSW) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC SPECIALISED RESOURCES (HOLDINGS) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC SPECIALISED RESOURCES (HOLDINGS) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC (TASMANIA) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KINETIC (WA) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KOCM 1 PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KOCM 2 PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "KOCM 3 PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "MACKAY TRANSIT COACHES PTY. LTD.",
+          "abn": null
+        },
+        {
+          "name": "MARRICKVILLE BUS LINES PTY. LTD.",
+          "abn": null
+        },
+        {
+          "name": "O'DRISCOLL COACHES PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "PHOENIX COACHES PTY. LTD.",
+          "abn": null
+        },
+        {
+          "name": "REDLINE HOLDINGS PTY. LTD.",
+          "abn": null
+        },
+        {
+          "name": "REDLINE INVESTMENTS PTY. LTD.",
+          "abn": null
+        },
+        {
+          "name": "REYIPO HOLDINGS PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "SKYBUS (QLD) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "SURFSIDE BUSLINES PTY. LTD.",
+          "abn": null
+        },
+        {
+          "name": "TAG MOBILITY SERVICES PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "TASCOAST PTY. LTD.",
+          "abn": null
+        },
+        {
+          "name": "TASMANIAN RETREAT TOURS PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "TELFORD EDUCATIONAL TOURS PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "TRANSIT AUSTRALIA GROUP PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "TRANSIT AUSTRALIA PTY. LIMITED",
+          "abn": null
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-329",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/22085/",
+      "reporting_period": "2023-10-01 to 2024-09-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "COMPASS GROUP (AUSTRALIA) PTY LTD",
+          "abn": "41000683125"
+        },
+        {
+          "name": "COMPASS GROUP B&I HOSPITALITY SERVICES PTY LTD",
+          "abn": "82089388143"
+        },
+        {
+          "name": "COMPASS GROUP DEFENCE HOSPITALITY SERVICES PTY LTD",
+          "abn": "80089388134"
+        },
+        {
+          "name": "COMPASS GROUP EDUCATION HOSPITALITY SERVICES PTY LTD",
+          "abn": "60129203998"
+        },
+        {
+          "name": "COMPASS GROUP HEALTHCARE HOSPITALITY SERVICES PTY LTD",
+          "abn": "79114320615"
+        },
+        {
+          "name": "COMPASS GROUP REMOTE HOSPITALITY SERVICES PTY LTD",
+          "abn": "98113561363"
+        },
+        {
+          "name": "Delta FM Australia Pty Ltd",
+          "abn": "64157852054"
+        }
+      ],
+      "included_entities": 6
+    },
+    {
+      "statement_id": "2024-2571",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/20307/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "ASG Education Funding Solutions",
+          "abn": "21087648879"
+        },
+        {
+          "name": "ASG Education Programmes (NZ) Ltd",
+          "abn": "21087648879"
+        },
+        {
+          "name": "Futurity Custodians Pty Ltd",
+          "abn": "21087648879"
+        },
+        {
+          "name": "Futurity Education Funding Pty Ltd",
+          "abn": "21087648879"
+        },
+        {
+          "name": "FUTURITY INVESTMENT GROUP LIMITED",
+          "abn": "21087648879"
+        },
+        {
+          "name": "NEITA FOUNDATION TRUST",
+          "abn": "95196764032"
+        },
+        {
+          "name": "The Trustee for Futurity Education Foundation",
+          "abn": "71990561840"
+        }
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2024-3526",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/21491/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "CAMPION EDUCATION (AUST) PTY LTD",
+          "abn": "33074318602"
+        }
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2025-785",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/22830/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "SHEL HOLDCO PTY LIMITED",
+          "abn": "68670538780"
+        }
+      ],
+      "included_entities": 31
+    },
+    {
+      "statement_id": "2025-1019",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23172/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "The Creche and Kindergarten Association Limited",
+          "abn": "59150737849"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-1018",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23118/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "MACQUARIE UNIVERSITY",
+          "abn": "90952801237"
+        }
+      ],
+      "included_entities": 4
+    },
+    {
+      "statement_id": "2025-1222",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23391/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AFFINITY EDUCATION GROUP LIMITED",
+          "abn": null
+        }
+      ],
+      "included_entities": 8
+    },
+    {
+      "statement_id": "2025-1002",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23141/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "Christian Education Ministries Ltd",
+          "abn": "65124826722"
+        }
+      ],
+      "included_entities": 14
+    },
+    {
+      "statement_id": "2025-1400",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23664/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "THE CORPORATION OF THE SYNOD OF THE DIOCESE OF BRISBANE",
+          "abn": "32025287736"
+        }
+      ],
+      "included_entities": 15
+    },
+    {
+      "statement_id": "2025-1485",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23758/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "G8 EDUCATION LIMITED",
+          "abn": "95123828553"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-1579",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23594/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "Armidale Catholic Schools",
+          "abn": "90702916776"
+        },
+        {
+          "name": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED",
+          "abn": "15050192660"
+        },
+        {
+          "name": "CABRINI AUSTRALIA LIMITED",
+          "abn": "42624828306"
+        },
+        {
+          "name": "CATHOLIC ARCHDIOCESE OF MELBOURNE",
+          "abn": "64047619369"
+        },
+        {
+          "name": "CATHOLIC ARCHDIOCESE OF SYDNEY",
+          "abn": "72823907843"
+        },
+        {
+          "name": "Catholic Church Diocese of Darwin Education Property Trust",
+          "abn": "58600950933"
+        },
+        {
+          "name": "CATHOLIC CHURCH ENDOWMENT SOCIETY INC",
+          "abn": "29608297012"
+        },
+        {
+          "name": "CATHOLIC EDUCATION DIOCESE OF BATHURST LIMITED",
+          "abn": "15679442089"
+        },
+        {
+          "name": "CATHOLIC EDUCATION SANDHURST LIMITED",
+          "abn": "94643894384"
+        },
+        {
+          "name": "CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED",
+          "abn": "47634504135"
+        },
+        {
+          "name": "CATHOLIC HEALTHCARE LIMITED",
+          "abn": "69064946318"
+        },
+        {
+          "name": "CATHOLIC SCHOOLS NSW LIMITED",
+          "abn": "46619593369"
+        },
+        {
+          "name": "CATHOLIC SCHOOLS PARRAMATTA DIOCESE LIMITED",
+          "abn": "66661001798"
+        },
+        {
+          "name": "DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED",
+          "abn": "68629894686"
+        },
+        {
+          "name": "DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED",
+          "abn": "93638070836"
+        },
+        {
+          "name": "DIOCESE OF SALE CATHOLIC EDUCATION LIMITED",
+          "abn": "91621266993"
+        },
+        {
+          "name": "DOMINICAN EDUCATION AUSTRALIA LTD",
+          "abn": "54610124322"
+        },
+        {
+          "name": "LITTLE COMPANY OF MARY HEALTH CARE LIMITED",
+          "abn": "11079815697"
+        },
+        {
+          "name": "MACKILLOP FAMILY SERVICES LIMITED",
+          "abn": "79078299288"
+        },
+        {
+          "name": "MARIST SCHOOLS AUSTRALIA LIMITED",
+          "abn": "76654014794"
+        },
+        {
+          "name": "MATER MISERICORDIAE LTD",
+          "abn": "83096708922"
+        },
+        {
+          "name": "MERCYCARE LIMITED",
+          "abn": "31098197490"
+        },
+        {
+          "name": "MERCY EDUCATION LIMITED",
+          "abn": "69154531870"
+        },
+        {
+          "name": "MERCY HEALTH AUSTRALIA LTD",
+          "abn": "89614115856"
+        },
+        {
+          "name": "OZCARE",
+          "abn": "58072422925"
+        },
+        {
+          "name": "Roman Catholic Church Trust Corporation of The Archdiocese of Hobart",
+          "abn": "24097986470"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (NSW & ACT) LIMITED",
+          "abn": "76131082374"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (QLD) LTD",
+          "abn": "65104033471"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (WA) INC",
+          "abn": "55046572944"
+        },
+        {
+          "name": "ST JOHN OF GOD HEALTH CARE INC",
+          "abn": "21930207958"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY NSW",
+          "abn": "91161127340"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY QUEENSLAND",
+          "abn": "14211506904"
+        },
+        {
+          "name": "ST VINCENT'S HEALTH AUSTRALIA LTD",
+          "abn": "75073503536"
+        },
+        {
+          "name": "THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE",
+          "abn": "25328758007"
+        },
+        {
+          "name": "THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON",
+          "abn": "21528592597"
+        },
+        {
+          "name": "The Trustee for Catholic Cemeteries & Crematoria Trust",
+          "abn": "54281755117"
+        },
+        {
+          "name": "THE UNIVERSITY OF NOTRE DAME AUSTRALIA",
+          "abn": "69330643210"
+        },
+        {
+          "name": "TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN",
+          "abn": "47824127996"
+        },
+        {
+          "name": "TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM",
+          "abn": "67786923621"
+        },
+        {
+          "name": "TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA",
+          "abn": "96372268340"
+        },
+        {
+          "name": "TRUSTEES OF THE DIOCESE OF WAGGA WAGGA ATF CATHOLIC SCHOOLS OFFICE",
+          "abn": "36345537994"
+        },
+        {
+          "name": "TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE",
+          "abn": "62089182027"
+        },
+        {
+          "name": "VICTORIAN CATHOLIC EDUCATION AUTHORITY LIMITED",
+          "abn": "92119459853"
+        },
+        {
+          "name": "VILLA MARIA CATHOLIC HOMES LIMITED",
+          "abn": "32004364103"
+        }
+      ],
+      "included_entities": 68
+    },
+    {
+      "statement_id": "2025-1782",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/24079/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "KINGS CHRISTIAN EDUCATION LTD.",
+          "abn": "84010547994"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-1144",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23357/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "NEST EARLY EDUCATION SERVICES PTY LTD",
+          "abn": "44651726859"
+        },
+        {
+          "name": "NIDO EDUCATION LTD",
+          "abn": "12650967703"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-1308",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23574/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "ST PHILIP'S CHRISTIAN EDUCATION FOUNDATION LTD",
+          "abn": "34002919584"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2551",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25237/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "THE YOUNG MEN'S CHRISTIAN ASSOCIATION OF VICTORIA INCORPORATED",
+          "abn": "81174456784"
+        },
+        {
+          "name": "VICTORIAN YMCA COMMUNITY PROGRAMMING PTY LTD",
+          "abn": "75092818445"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2545",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25227/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "CAMPION EDUCATION (AUST) PTY LTD",
+          "abn": "33074318602"
+        },
+        {
+          "name": "INSIGHT PUBLICATIONS PTY. LTD.",
+          "abn": "57005102983"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2202",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/24706/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "THE AUSTRALIAN COUNCIL FOR EDUCATIONAL RESEARCH LIMITED",
+          "abn": "19004398145"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2201",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/24704/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Alberto Hurtado Jesuit Community",
+          "abn": "64113150800"
+        },
+        {
+          "name": "Australian Jesuit Foundation",
+          "abn": "24107869652"
+        },
+        {
+          "name": "[withheld: may name an individual]",
+          "abn": "36313402012"
+        },
+        {
+          "name": "CANISIUS COLLEGE",
+          "abn": "76958486785"
+        },
+        {
+          "name": "HOLY FAMILY EMERTON JESUIT COMMUNITY",
+          "abn": "18918418601"
+        },
+        {
+          "name": "JESUIT AND IGNATIAN SPIRITUALITY AUSTRALIA LIMITED",
+          "abn": "91637748906"
+        },
+        {
+          "name": "JESUIT COMMUNITY HAWTHORN CATHOLIC CHURCH",
+          "abn": "54312188609"
+        },
+        {
+          "name": "JESUIT COMMUNITY NORTH SYDNEY",
+          "abn": "72175383956"
+        },
+        {
+          "name": "Jesuit Community Park Drive",
+          "abn": "75045975416"
+        },
+        {
+          "name": "JESUIT COMMUNITY RICHMOND",
+          "abn": "25063680139"
+        },
+        {
+          "name": "JESUIT COMMUNITY SAINT IGNATIUS COLLEGE RIVERVIEW",
+          "abn": "33564840238"
+        },
+        {
+          "name": "JESUIT COMMUNITY XAVIER COLLEGE",
+          "abn": "93253197624"
+        },
+        {
+          "name": "JESUIT EDUCATION AUSTRALASIA LTD",
+          "abn": "24620192136"
+        },
+        {
+          "name": "[withheld: may name an individual]",
+          "abn": "18347641419"
+        },
+        {
+          "name": "JESUIT MISSION AUSTRALIA LIMITED",
+          "abn": "62639931230"
+        },
+        {
+          "name": "JESUIT REFUGEE SERVICE AUSTRALIA INCORPORATED",
+          "abn": "75692565034"
+        },
+        {
+          "name": "JESUIT SOCIAL SERVICES LIMITED",
+          "abn": "72005269554"
+        },
+        {
+          "name": "JESUIT THEOLOGICAL COLLEGE",
+          "abn": "63220072037"
+        },
+        {
+          "name": "MANRESA",
+          "abn": "86922833438"
+        },
+        {
+          "name": "MANRESA SOCIETY INCORPORATED",
+          "abn": "17398312682"
+        },
+        {
+          "name": "NEWMAN JESUIT COMMUNITY",
+          "abn": "27318798461"
+        },
+        {
+          "name": "Novitiate of Australian Province of the Society of Jesus",
+          "abn": "41023427450"
+        },
+        {
+          "name": "POLISH JESUIT COMMUNITY",
+          "abn": "77293895257"
+        },
+        {
+          "name": "Redfern Jarjum College Ltd",
+          "abn": null
+        },
+        {
+          "name": "SAINT IGNATIUS' COLLEGE (ADELAIDE) LIMITED",
+          "abn": "92626057716"
+        },
+        {
+          "name": "SAINT IGNATIUS' COLLEGE RIVERVIEW LIMITED",
+          "abn": "68621312990"
+        },
+        {
+          "name": "SEVENHILL COLLEGE",
+          "abn": "22383554742"
+        },
+        {
+          "name": "Society of Jesus Centres of Ignatian Spirituality",
+          "abn": "24671806567"
+        },
+        {
+          "name": "SOCIETY OF JESUS IN VICTORIA",
+          "abn": "88447370208"
+        },
+        {
+          "name": "ST ALOYSIUS' COLLEGE",
+          "abn": "46621313264"
+        },
+        {
+          "name": "ST ALOYSIUS COLLEGE COMMUNITY",
+          "abn": "12357811650"
+        },
+        {
+          "name": "ST CANICE CATHOLIC CHURCH ELIZABETH BAY PASTORAL REVENUE",
+          "abn": "45574371481"
+        },
+        {
+          "name": "THE AUSTRALIAN PROVINCE OF THE SOCIETY OF JESUS",
+          "abn": "19179772790"
+        },
+        {
+          "name": "THE CARDONER NETWORK LIMITED",
+          "abn": "33626253487"
+        },
+        {
+          "name": "THE SOCIETY OF JESUS IN AUSTRALIA LIMITED",
+          "abn": "21628088979"
+        },
+        {
+          "name": "THE SOCIETY OF JESUS IN VICTORIA",
+          "abn": "95004238948"
+        },
+        {
+          "name": "The Trustee for AUSTRALIAN JESUIT FOUNDATION ANCILLARY TRUST",
+          "abn": "71615878848"
+        },
+        {
+          "name": "THE TRUSTEE FOR JESUIT AUSTRALIA MISSION FUND",
+          "abn": "53645934239"
+        },
+        {
+          "name": "The Trustee for The Society of Jesus in Australia NRS Charitable Fund",
+          "abn": "38875400714"
+        },
+        {
+          "name": "TRUSTEES OF THE JESUIT FATHERS ROMAN CATHOLIC COMMUNITIES LANDS ACT NSW",
+          "abn": "80167682043"
+        },
+        {
+          "name": "XAVIER COLLEGE LTD",
+          "abn": "51621514172"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2299",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/24847/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "IDP EDUCATION LIMITED",
+          "abn": "59117676463"
+        },
+        {
+          "name": "IELTS AUSTRALIA PTY. LIMITED",
+          "abn": "84008664766"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2106",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/24566/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "SWAN CHRISTIAN EDUCATION ASSN INC",
+          "abn": "91922863387"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-170",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/27289/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "THE YOUNG MEN'S CHRISTIAN ASSOCIATION OF VICTORIA INCORPORATED",
+          "abn": "81174456784"
+        },
+        {
+          "name": "VICTORIAN YMCA COMMUNITY PROGRAMMING PTY LTD",
+          "abn": "75092818445"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2795",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25594/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "GUARDIAN NETWORK PTY. LTD.",
+          "abn": "32082447827"
+        },
+        {
+          "name": "UNITING AGEWELL LIMITED",
+          "abn": "19628178816"
+        },
+        {
+          "name": "UNITING HOUSING (AUSTRALIA) LIMITED",
+          "abn": "31640217803"
+        },
+        {
+          "name": "UNITING HOUSING (VICTORIA) LIMITED",
+          "abn": "69134589745"
+        },
+        {
+          "name": "UNITING (VICTORIA AND TASMANIA) LIMITED",
+          "abn": "81098317125"
+        }
+      ],
+      "included_entities": 5
+    },
+    {
+      "statement_id": "2025-2897",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25744/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "GOODSTART EARLY LEARNING LTD",
+          "abn": null
+        }
+      ],
+      "included_entities": 2
+    },
+    {
+      "statement_id": "2025-2935",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25804/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Online Education Services Pty Ltd",
+          "abn": "75148177959"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-3076",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25998/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AMATEK HOLDINGS PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "AMATEK INDUSTRIES PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "AMATEK INVESTMENTS PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "BANDELLE PTY. LIMITED",
+          "abn": null
+        },
+        {
+          "name": "BARON INSULATION PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "CRANE ENFIELD METALS PTY. LIMITED",
+          "abn": null
+        },
+        {
+          "name": "CRANE GROUP PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "CREVET PIPELINES PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "CREVET PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "CTCI PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "EE-FIT PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "FBHS (AUST) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "FBSOL PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "FLETCHER BUILDING (AUSTRALIA) PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "FLETCHER BUILDING PRODUCTS AUSTRALIA PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "FLETCHER INDUSTRIES AUSTRALIA PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "FLETCHER INSULATION PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "GATIC PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "GERALDTON INDEPENDENT BUILDING SUPPLIES PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "IPLEX PIPELINES AUSTRALIA PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "IPLEX PROPERTIES PTY. LIMITED",
+          "abn": null
+        },
+        {
+          "name": "KEY PLASTICS PTY. LTD.",
+          "abn": null
+        },
+        {
+          "name": "KINGSTON BRIDGE ENGINEERING PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "LAMINEX GROUP PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "MILNES HOLDINGS PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "MORINDA AUSTRALIA PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "NORTHERN IRON AND BRASS FOUNDRY PTY. LTD.",
+          "abn": null
+        },
+        {
+          "name": "OLIVERI SOLUTIONS PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "POLYMER FUSION EDUCATION PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "S CUBED PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "SONATA ACOUSTIC PANELS PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "STRAMIT CORPORATION PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "TASMAN AUSTRALIA PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "TASMAN BUILDING PRODUCTS PTY LIMITED",
+          "abn": null
+        },
+        {
+          "name": "TBP GROUP PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "WATER FILTERS AUSTRALIA PTY LIMITED",
+          "abn": null
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-3682",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/26771/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "WESLEY COMMUNITY SERVICES LIMITED",
+          "abn": "42164655145"
+        }
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2025-2439",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25083/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "TECHNICAL AND FURTHER EDUCATION COMMISSION",
+          "abn": "89755348137"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-341",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/27579/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "CAMP AUSTRALIA PROPRIETARY LIMITED",
+          "abn": "96060703120"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-340",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/27577/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "CAMP AUSTRALIA PROPRIETARY LIMITED",
+          "abn": "96060703120"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-338",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/27576/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "CAMP AUSTRALIA PROPRIETARY LIMITED",
+          "abn": "96060703120"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-386",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/27639/",
+      "reporting_period": "2024-10-01 to 2025-09-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "COMPASS GROUP (AUSTRALIA) PTY LTD",
+          "abn": "41000683125"
+        },
+        {
+          "name": "COMPASS GROUP B&I HOSPITALITY SERVICES PTY LTD",
+          "abn": "82089388143"
+        },
+        {
+          "name": "COMPASS GROUP DEFENCE HOSPITALITY SERVICES PTY LTD",
+          "abn": "80089388134"
+        },
+        {
+          "name": "COMPASS GROUP EDUCATION HOSPITALITY SERVICES PTY LTD",
+          "abn": "60129203998"
+        },
+        {
+          "name": "COMPASS GROUP HEALTHCARE HOSPITALITY SERVICES PTY LTD",
+          "abn": "79114320615"
+        },
+        {
+          "name": "COMPASS GROUP REMOTE HOSPITALITY SERVICES PTY LTD",
+          "abn": "98113561363"
+        },
+        {
+          "name": "Delta FM Australia Pty Ltd",
+          "abn": "64157852054"
+        }
+      ],
+      "included_entities": 6
+    },
+    {
+      "statement_id": "2026-793",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/27847/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "KILDARE EDUCATION MINISTRIES LIMITED",
+          "abn": "34169198421"
+        },
+        {
+          "name": "Trustees of Kildare Ministries",
+          "abn": "80991443722"
+        }
+      ],
+      "included_entities": 6
+    },
+    {
+      "statement_id": "2026-953",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/28532/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "The Creche and Kindergarten Association Limited",
+          "abn": "59150737849"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-990",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/28586/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "AFFINITY EDUCATION GROUP LIMITED",
+          "abn": null
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-701",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/28116/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "Christian Education Ministries Ltd",
+          "abn": "65124826722"
+        }
+      ],
+      "included_entities": 8
+    },
+    {
+      "statement_id": "2026-1156",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/28864/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "NEST EARLY EDUCATION SERVICES PTY LTD",
+          "abn": "44651726859"
+        },
+        {
+          "name": "NIDO EDUCATION LTD",
+          "abn": "12650967703"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-1300",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/28997/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "MQ HEALTH PTY LIMITED",
+          "abn": "46141203125"
+        }
+      ],
+      "included_entities": 4
+    },
+    {
+      "statement_id": "2026-1352",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29120/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "ST PHILIP'S CHRISTIAN EDUCATION FOUNDATION LTD",
+          "abn": null
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-1450",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29210/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "BUSY BEES AUSTRALIA BIDCO PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "BUSY BEES AUSTRALIA HOLDING PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "BUSY BEES EARLY LEARNING AUSTRALIA PTY LTD",
+          "abn": null
+        },
+        {
+          "name": "THINK CHILDCARE LIMITED",
+          "abn": null
+        }
+      ],
+      "included_entities": 79
+    },
+    {
+      "statement_id": "2026-1539",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29345/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "KINGS CHRISTIAN EDUCATION LTD.",
+          "abn": "84010547994"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-1648",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29430/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "G8 EDUCATION LIMITED",
+          "abn": "95123828553"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-1775",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29606/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entities": [
+        {
+          "name": "Armidale Catholic Schools",
+          "abn": "90702916776"
+        },
+        {
+          "name": "AUSTRALIAN CATHOLIC UNIVERSITY LIMITED",
+          "abn": "15050192660"
+        },
+        {
+          "name": "CABRINI AUSTRALIA LIMITED",
+          "abn": "42624828306"
+        },
+        {
+          "name": "CATHOLIC ARCHDIOCESE OF MELBOURNE",
+          "abn": "64047619369"
+        },
+        {
+          "name": "CATHOLIC ARCHDIOCESE OF SYDNEY",
+          "abn": "72823907843"
+        },
+        {
+          "name": "CATHOLIC CHURCH ENDOWMENT SOCIETY INC",
+          "abn": "29608297012"
+        },
+        {
+          "name": "CATHOLIC EDUCATION CENTRE",
+          "abn": "55210770582"
+        },
+        {
+          "name": "CATHOLIC EDUCATION DIOCESE OF BATHURST",
+          "abn": "73470086952"
+        },
+        {
+          "name": "CATHOLIC EDUCATION OFFICE",
+          "abn": "22616685167"
+        },
+        {
+          "name": "CATHOLIC EDUCATION OFFICE DIOCESE OF PARRAMATTA",
+          "abn": "86875623906"
+        },
+        {
+          "name": "CATHOLIC EDUCATION SANDHURST LIMITED",
+          "abn": "94643894384"
+        },
+        {
+          "name": "CATHOLIC EDUCATION WESTERN AUSTRALIA LIMITED",
+          "abn": "47634504135"
+        },
+        {
+          "name": "CATHOLIC HEALTHCARE LIMITED",
+          "abn": "69064946318"
+        },
+        {
+          "name": "DIOCESE OF BALLARAT CATHOLIC EDUCATION LIMITED",
+          "abn": "68629894686"
+        },
+        {
+          "name": "DIOCESE OF LISMORE CATHOLIC SCHOOLS LIMITED",
+          "abn": "93638070836"
+        },
+        {
+          "name": "DIOCESE OF SALE CATHOLIC EDUCATION LIMITED",
+          "abn": "91621266993"
+        },
+        {
+          "name": "DOMINICAN EDUCATION AUSTRALIA LTD",
+          "abn": "54610124322"
+        },
+        {
+          "name": "LITTLE COMPANY OF MARY HEALTH CARE LIMITED",
+          "abn": "11079815697"
+        },
+        {
+          "name": "MACKILLOP FAMILY SERVICES LIMITED",
+          "abn": "79078299288"
+        },
+        {
+          "name": "MARIST SCHOOLS AUSTRALIA LIMITED",
+          "abn": "76654014794"
+        },
+        {
+          "name": "MATER MISERICORDIAE LTD",
+          "abn": "83096708922"
+        },
+        {
+          "name": "MERCYCARE LIMITED",
+          "abn": "31098197490"
+        },
+        {
+          "name": "MERCY EDUCATION LIMITED",
+          "abn": "69154531870"
+        },
+        {
+          "name": "MERCY HEALTH AUSTRALIA LTD",
+          "abn": "89614115856"
+        },
+        {
+          "name": "OZCARE",
+          "abn": "58072422925"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (NSW & ACT) LIMITED",
+          "abn": "76131082374"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (QLD) LTD",
+          "abn": "65104033471"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (TASMANIA) INC",
+          "abn": "18773507851"
+        },
+        {
+          "name": "SOUTHERN CROSS CARE (WA) INC",
+          "abn": "55046572944"
+        },
+        {
+          "name": "ST JOHN OF GOD HEALTH CARE INC",
+          "abn": "21930207958"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY NSW",
+          "abn": "91161127340"
+        },
+        {
+          "name": "ST VINCENT DE PAUL SOCIETY QUEENSLAND",
+          "abn": "14211506904"
+        },
+        {
+          "name": "ST VINCENT'S HEALTH AUSTRALIA LTD",
+          "abn": "75073503536"
+        },
+        {
+          "name": "THE CORP OF THE TRUSTEES OF THE ROMAN CATHOLIC ARCHDIOCESE OF BRISBANE",
+          "abn": "25328758007"
+        },
+        {
+          "name": "THE ROMAN CATHOLIC TRUST CORPORATION FOR THE DIOCESE OF ROCKHAMPTON",
+          "abn": "21528592597"
+        },
+        {
+          "name": "The Trustee for Sydney Catholic Schools Trust",
+          "abn": "26158447082"
+        },
+        {
+          "name": "THE UNIVERSITY OF NOTRE DAME AUSTRALIA",
+          "abn": "69330643210"
+        },
+        {
+          "name": "TRUSTEES FOR CATHOLIC EDUCATION OFFICE ARCHDIOCESE OF CANBERRA & GOULBURN",
+          "abn": "47824127996"
+        },
+        {
+          "name": "TRUSTEES FOR THE WOLLONGONG DIOCESE CATHOLIC SCHOOL SYSTEM",
+          "abn": "67786923621"
+        },
+        {
+          "name": "TRUSTEES OF EDMUND RICE EDUCATION AUSTRALIA",
+          "abn": "96372268340"
+        },
+        {
+          "name": "TRUSTEES OF THE DIOCESE OF WAGGA WAGGA ATF Catholic Education Diocese of Wagga Wagga",
+          "abn": "36345537994"
+        },
+        {
+          "name": "TRUSTEES OF THE ROMAN CATHOLIC CHURCH FOR THE DIOCESE OF MAITLAND-NEWCASTLE",
+          "abn": "62089182027"
+        },
+        {
+          "name": "VICTORIAN CATHOLIC EDUCATION AUTHORITY LIMITED",
+          "abn": "92119459853"
+        },
+        {
+          "name": "VILLA MARIA CATHOLIC HOMES LIMITED",
+          "abn": "32004364103"
+        }
+      ],
+      "included_entities": 7
+    },
+    {
+      "statement_id": "2026-1755",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29573/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "Alberto Hurtado Jesuit Community",
+          "abn": "64113150800"
+        },
+        {
+          "name": "Australian Jesuit Foundation",
+          "abn": "24107869652"
+        },
+        {
+          "name": "[withheld: may name an individual]",
+          "abn": "36313402012"
+        },
+        {
+          "name": "CANISIUS COLLEGE",
+          "abn": "76958486785"
+        },
+        {
+          "name": "HOLY FAMILY EMERTON JESUIT COMMUNITY",
+          "abn": "18918418601"
+        },
+        {
+          "name": "JESUIT AND IGNATIAN SPIRITUALITY AUSTRALIA LIMITED",
+          "abn": "91637748906"
+        },
+        {
+          "name": "JESUIT COMMUNITY HAWTHORN CATHOLIC CHURCH",
+          "abn": "54312188609"
+        },
+        {
+          "name": "JESUIT COMMUNITY NORTH SYDNEY",
+          "abn": "72175383956"
+        },
+        {
+          "name": "Jesuit Community Park Drive",
+          "abn": "75045975416"
+        },
+        {
+          "name": "JESUIT COMMUNITY RICHMOND",
+          "abn": "25063680139"
+        },
+        {
+          "name": "JESUIT COMMUNITY SAINT IGNATIUS COLLEGE RIVERVIEW",
+          "abn": "33564840238"
+        },
+        {
+          "name": "JESUIT COMMUNITY XAVIER COLLEGE",
+          "abn": "93253197624"
+        },
+        {
+          "name": "JESUIT EDUCATION AUSTRALASIA LTD",
+          "abn": "24620192136"
+        },
+        {
+          "name": "[withheld: may name an individual]",
+          "abn": "18347641419"
+        },
+        {
+          "name": "JESUIT MISSION AUSTRALIA LIMITED",
+          "abn": "62639931230"
+        },
+        {
+          "name": "JESUIT REFUGEE SERVICE AUSTRALIA INCORPORATED",
+          "abn": "75692565034"
+        },
+        {
+          "name": "JESUIT SOCIAL SERVICES LIMITED",
+          "abn": "72005269554"
+        },
+        {
+          "name": "JESUIT THEOLOGICAL COLLEGE",
+          "abn": "63220072037"
+        },
+        {
+          "name": "MANRESA",
+          "abn": "86922833438"
+        },
+        {
+          "name": "MANRESA SOCIETY INCORPORATED",
+          "abn": "17398312682"
+        },
+        {
+          "name": "NEWMAN JESUIT COMMUNITY",
+          "abn": "27318798461"
+        },
+        {
+          "name": "Novitiate of Australian Province of the Society of Jesus",
+          "abn": "41023427450"
+        },
+        {
+          "name": "POLISH JESUIT COMMUNITY",
+          "abn": "77293895257"
+        },
+        {
+          "name": "REDFERN JARJUM COLLEGE LTD",
+          "abn": "98419515730"
+        },
+        {
+          "name": "SAINT IGNATIUS' COLLEGE (ADELAIDE) LIMITED",
+          "abn": "92626057716"
+        },
+        {
+          "name": "SAINT IGNATIUS' COLLEGE RIVERVIEW LIMITED",
+          "abn": "68621312990"
+        },
+        {
+          "name": "SEVENHILL COLLEGE",
+          "abn": "22383554742"
+        },
+        {
+          "name": "Society of Jesus Centres of Ignatian Spirituality",
+          "abn": "24671806567"
+        },
+        {
+          "name": "SOCIETY OF JESUS IN VICTORIA",
+          "abn": "88447370208"
+        },
+        {
+          "name": "ST ALOYSIUS' COLLEGE",
+          "abn": "46621313264"
+        },
+        {
+          "name": "ST ALOYSIUS COLLEGE COMMUNITY",
+          "abn": "12357811650"
+        },
+        {
+          "name": "ST CANICE CATHOLIC CHURCH ELIZABETH BAY PASTORAL REVENUE",
+          "abn": "45574371481"
+        },
+        {
+          "name": "THE AUSTRALIAN PROVINCE OF THE SOCIETY OF JESUS",
+          "abn": "19179772790"
+        },
+        {
+          "name": "THE CARDONER NETWORK LIMITED",
+          "abn": "33626253487"
+        },
+        {
+          "name": "THE SOCIETY OF JESUS IN AUSTRALIA LIMITED",
+          "abn": "21628088979"
+        },
+        {
+          "name": "THE SOCIETY OF JESUS IN VICTORIA",
+          "abn": "95004238948"
+        },
+        {
+          "name": "The Trustee for AUSTRALIAN JESUIT FOUNDATION ANCILLARY TRUST",
+          "abn": "71615878848"
+        },
+        {
+          "name": "THE TRUSTEE FOR JESUIT AUSTRALIA MISSION FUND",
+          "abn": "53645934239"
+        },
+        {
+          "name": "The Trustee for The Society of Jesus in Australia NRS Charitable Fund",
+          "abn": "38875400714"
+        },
+        {
+          "name": "TRUSTEES OF THE JESUIT FATHERS ROMAN CATHOLIC COMMUNITIES LANDS ACT NSW",
+          "abn": "80167682043"
+        },
+        {
+          "name": "XAVIER COLLEGE LTD",
+          "abn": "51621514172"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-1929",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29819/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "EDUCATION AUSTRALIA LIMITED",
+          "abn": "63008597831"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-1928",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29818/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "EDUCATION AUSTRALIA LIMITED",
+          "abn": "63008597831"
+        }
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-2022",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29931/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entities": [
+        {
+          "name": "TORRENS GLOBAL EDUCATION SERVICES PTY LTD",
+          "abn": "33603224728"
+        },
+        {
+          "name": "Torrens University Australia Limited",
+          "abn": "99154937005"
+        }
+      ],
+      "included_entities": 0
+    }
+  ],
+  "inputs": [
+    "data/processed/provider-abn.csv",
+    "data/processed/provider-profile.csv",
+    "data/processed/acecqa-services-latest.csv",
+    "data/raw/msr/ (local only)"
+  ]
+}
