@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T21:05:21.914230+00:00",
+  "generated_at": "2026-10-30T21:48:55.166244+00:00",
   "inputs": {
     "providers_file": "data/processed/acecqa-providers-latest.csv",
     "services_file": "data/processed/acecqa-services-latest.csv",
@@ -9,11 +9,11 @@
     "snapshot_last_modified_services": "Wed, 28 Oct 2026 19:28:15 GMT",
     "raw_inputs": [
       "data/processed/acecqa-providers-latest.csv",
-      "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz",
-      "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz.meta.json",
+      "data/raw/acecqa-providers/2026-10-29T2316Z.csv.gz",
+      "data/raw/acecqa-providers/2026-10-29T2316Z.csv.gz.meta.json",
       "data/processed/acecqa-services-latest.csv",
-      "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
-      "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json"
+      "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz",
+      "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz.meta.json"
     ]
   },
   "window_note": "Point-in-time counts from the ACECQA register snapshot named above, not a time series. Denominator for every share: providers in the providers file, or services in the services file.",
@@ -62,7 +62,7 @@
     "unknown": 0.0335
   },
   "likely_individual_providers_names_withheld": 756,
-  "providers_names_withheld_total": 953,
+  "providers_names_withheld_total": 1572,
   "providers_with_no_services_in_services_table": 2871,
   "providers_by_service_count_band": {
     "0": 2871,
@@ -243,14 +243,6 @@
       "states_operated_in": "NSW|QLD|SA|VIC|WA"
     },
     {
-      "provider_approval_number": "PR-00006465",
-      "legal_name": "ACT Education Directorate",
-      "trading_name": "ACT Education and Training Directorate",
-      "entity_form": "unknown",
-      "service_count": 75,
-      "states_operated_in": "ACT"
-    },
-    {
       "provider_approval_number": "PR-40022356",
       "legal_name": "SYDNEY CATHOLIC EARLY CHILDHOOD SERVICES LTD",
       "trading_name": "Sydney Catholic Early Childhood Services",
@@ -321,6 +313,14 @@
       "entity_form": "company",
       "service_count": 56,
       "states_operated_in": "VIC"
+    },
+    {
+      "provider_approval_number": "PR-40004334",
+      "legal_name": "Big Childcare Pty Ltd ATF Big Childcare Unit Trust",
+      "trading_name": "Big Childcare Pty Ltd",
+      "entity_form": "trust_or_trustee",
+      "service_count": 55,
+      "states_operated_in": "NSW|VIC|WA"
     }
   ],
   "top_30_note": "Providers whose names are withheld are excluded from this list by design. Service count is approved services on the register on the snapshot date, out of the services_total above. A large count does not by itself indicate any compliance concern.",
