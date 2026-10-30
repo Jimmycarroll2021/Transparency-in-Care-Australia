@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Enforcement action record",
-  "description": "One published enforcement action against an education and care service or approved provider, as parsed from an official register. One row per action per service. Person-level fields are never stored.",
+  "description": "One published enforcement action against an education and care service or approved provider, as parsed from an official register. One row per action per service. Person-level fields are never stored. The structured fact columns (service_type, start_date, end_date, date_charged, date_of_sentence, plea, penalty_amount_aud) are carried unchanged into enforcement-actions-all.csv, keyed by record_id.",
   "type": "object",
   "required": [
     "record_id",

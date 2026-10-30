@@ -181,6 +181,15 @@ ACTION_COLUMNS = [
     "date_issued_raw",
     "period_label",
     "notes",
+    # Structured facts some parsers keep apart from the prose (null where a register does not
+    # print them). Carried through unchanged so that withholding prose never loses them.
+    "service_type",
+    "start_date",
+    "end_date",
+    "date_charged",
+    "date_of_sentence",
+    "plea",
+    "penalty_amount_aud",
 ]
 JOIN_COLUMNS = [
     "join_key_kind",
