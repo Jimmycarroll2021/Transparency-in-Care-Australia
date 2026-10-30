@@ -1,12 +1,12 @@
 {
   "output": "data/processed/abn-details.csv",
-  "written_at": "2026-10-30T04:49:35.629763+00:00",
+  "written_at": "2026-10-30T21:21:08.378922+00:00",
   "rows": 44,
   "schema": null,
   "raw_inputs": [
     "data/processed/enforcement-actions-all.csv"
   ],
-  "notes": "One row per distinct ABN printed on Commonwealth CCS enforcement rows (enforcement-actions-all.csv abn column), resolved with ABN Lookup AbnDetails. lookup_status ok, not_found, excluded_individual or error. Rows for individuals or sole traders keep no name of any kind (CLAUDE.md rule 2); business names that read as a person's name are withheld unless already an ACECQA organisation name. ABR data is as reported by the ABR and is not verified here; verify any ABN on ABN Lookup before it is shown publicly.",
+  "notes": "One row per distinct ABN printed on Commonwealth CCS enforcement rows (enforcement-actions-all.csv abn column), resolved with ABN Lookup AbnDetails. lookup_status ok, not_found, excluded_individual or error. Rows for individuals or sole traders keep no name of any kind (CLAUDE.md rule 2); business names that read as a person's name are withheld unless already an ACECQA organisation name. ABR data is as reported by the ABR and is not verified here; verify any ABN on ABN Lookup before it is shown publicly. Name filter re-applied offline (no ABN Lookup calls) with the shared fail-closed rule (profile_providers.name_is_withheld); name_withheld marks rows whose names were nulled.",
   "abr_source": {
     "service": "ABN Lookup web services (JSON)",
     "endpoints": [
