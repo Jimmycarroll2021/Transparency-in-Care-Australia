@@ -482,9 +482,14 @@ def usable_provider_name(value: str | None) -> bool:
     )
 
 
+# The shared prose rule's note (scrapers.common.PROSE_WITHHELD_NOTE). It says a prose field
+# was withheld, not the subject's name, so it does not make a row name-withheld.
+PROSE_WITHHELD_NOTE = "free text withheld: may name an individual"
+
+
 def name_withheld_row(row: dict) -> bool:
     """True where a parser withheld the subject's name as a possible individual."""
-    notes = (row.get("notes") or "").lower()
+    notes = (row.get("notes") or "").lower().replace(PROSE_WITHHELD_NOTE, "")
     return "withheld" in notes or "individual" in notes
 
 
