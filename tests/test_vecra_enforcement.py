@@ -65,6 +65,14 @@ def rows() -> list[dict]:
     return vecra.parse_actions(FIXTURE, period_label="August 2026", **KWARGS)
 
 
+def org_rows() -> list[dict]:
+    """The same fixture with the second provider an organisation, so its free text is kept.
+    Withheld rows keep no free text (Codex round 1, finding 1), so tests of text parsing use
+    this variant."""
+    html = FIXTURE.replace("Jane Citizen", "Example Care Pty Ltd")
+    return vecra.parse_actions(html, period_label="August 2026", **KWARGS)
+
+
 def test_cell_splitting_service_and_address():
     row = rows()[0]
     assert row["service_name"] == "Bulsho Family Day Care Pty Ltd"
@@ -74,7 +82,7 @@ def test_cell_splitting_service_and_address():
 
 
 def test_cell_splitting_with_paragraphs_and_school_address():
-    row = rows()[1]
+    row = org_rows()[1]
     assert row["service_name"] == "Clyde Creek PS TheirCare"
     assert row["address"] == "Clyde Creek Primary School, 40 Eliston Ave, Clyde, Vic, 3978"
     assert row["suburb"] == "Clyde"
@@ -119,7 +127,7 @@ def test_legal_references_deduplicated_and_cleaned():
 
 
 def test_action_type_mapping():
-    first, second = rows()
+    first, second = org_rows()
     assert first["action_type"] == "compliance_notice"
     assert second["action_type"] == "direction_to_exclude"
     assert second["action_type_raw"] == "Direction to suspend staff or volunteer (not FDC educator)"
@@ -137,7 +145,7 @@ def test_action_type_mapping():
 
 
 def test_personal_names_removed_and_counted():
-    second = rows()[1]
+    second = org_rows()[1]
     assert "Mary Example" not in second["reason"]
     assert "[name removed]" in second["reason"]
     assert "1 personal name" in second["notes"]
@@ -155,15 +163,17 @@ def test_record_id_is_stable_and_distinct():
     b = rows()
     assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
     assert a[0]["record_id"] != a[1]["record_id"]
+    # Codex round 1, finding 3: non-name facts only (document, date, keys, action type, ordinal).
     expected = vecra.record_hash(
-        "VIC", "SE-00012251", "Compliance notice issued", "3 August 2026", a[0]["reason"]
+        "VIC", DOC, "3 August 2026", "SE-00012251", "PR-00006942", "compliance_notice", "1"
     )
     assert a[0]["record_id"] == expected
 
 
 def test_rows_have_schema_fields_only():
     for row in rows():
-        assert set(row) == set(vecra.FIELDNAMES)
+        # _fingerprint is an in-memory duplicate check; write_processed never writes it.
+        assert {k for k in row if k != "_fingerprint"} == set(vecra.FIELDNAMES)
         assert row["jurisdiction"] == "VIC"
         assert row["period_label"] == "August 2026"
 
@@ -253,3 +263,26 @@ def test_person_named_trust_provider_is_withheld_by_shared_rule():
     assert row["provider_name"] is None
     assert "provider name withheld" in row["notes"]
     assert "Jane" not in json.dumps(row)
+
+
+# --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------
+
+from scrapers.common import FREE_TEXT_WITHHELD_NOTE  # noqa: E402
+
+
+def test_withheld_vic_row_keeps_no_free_text_and_keeps_keys():
+    row = rows()[1]
+    assert row["provider_name"] is None
+    assert row["reason"] is None and row["action_type_raw"] == "(withheld)"
+    assert row["legal_references"] == "[]"
+    assert FREE_TEXT_WITHHELD_NOTE in row["notes"]
+    assert row["service_approval_number"] == "SE-40022723"
+    assert row["provider_approval_number"] == "PR-40011145"
+    assert "Example" not in json.dumps(row) and "Citizen" not in json.dumps(row)
+
+
+def test_vic_record_ids_do_not_depend_on_names():
+    a = rows()
+    other = FIXTURE.replace("Jane Citizen", "Mary Sample")
+    b = vecra.parse_actions(other, period_label="August 2026", **KWARGS)
+    assert [r["record_id"] for r in a] == [r["record_id"] for r in b]

@@ -44,12 +44,14 @@ from scrapers.common import (
     PROJECT_ROOT,
     RAW_DIR,
     USER_AGENT,
+    assign_record_ids,
     list_snapshots,
     log,
     normalise_pr,
     normalise_se,
     record_hash,
     utc_now,
+    withhold_free_text,
     write_processed,
 )
 from scrapers.profile_providers import classify_entity_form, name_is_withheld
@@ -379,12 +381,10 @@ def parse_wa_html_table(html_content: str, source_snapshot: str, captured_at: st
                 postcode = m_pc.group(1)
 
         row = {
-            "record_id": record_hash(
-                JURISDICTION,
-                srv["legacy_name"] or "",  # name as printed, so ids do not change with cleaning
-                se_norm or pr_norm or "",
-                action_type,
-                date_iso or year_raw,
+            "record_id": None,  # set below from non-name facts (assign_record_ids)
+            # In-memory only, never written: the printed row, to spot a repeated row.
+            "_fingerprint": record_hash(
+                JURISDICTION, year_raw, date_raw, prov_raw, srv_raw, action_raw, postcode_raw
             ),
             "jurisdiction": JURISDICTION,
             "source_register": INDEX_URL,
@@ -410,8 +410,13 @@ def parse_wa_html_table(html_content: str, source_snapshot: str, captured_at: st
             "period_label": f"WA ECRU {year_raw}" if year_raw else "WA ECRU",
             "notes": "; ".join(notes) if notes else None,
         }
+        if INDIVIDUAL_NOTE in prov_notes:
+            # Rule 2: the subject may be an individual, so every free-text field (including the
+            # street address, which can be a family day care educator's home) is withheld whole.
+            withhold_free_text(row, (INDIVIDUAL_NOTE,))
         rows.append(row)
 
+    assign_record_ids(rows)
     return rows
 
 

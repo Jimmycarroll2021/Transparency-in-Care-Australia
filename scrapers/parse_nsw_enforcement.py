@@ -29,6 +29,7 @@ from scrapers import common
 from scrapers.common import (
     PROJECT_ROOT,
     RAW_DIR,
+    assign_record_ids,
     fetch,
     known_hashes,
     list_snapshots,
@@ -36,6 +37,7 @@ from scrapers.common import (
     normalise_pr,
     normalise_se,
     record_hash,
+    withhold_free_text,
     write_processed,
     write_snapshot,
 )
@@ -568,10 +570,9 @@ def build_row(
         notes.append("approval number missing in source")
 
     provider_name = service_name = address = suburb = state = postcode = None
+    withheld_note = None
     if is_provider_row:
-        provider_name, name_note = provider_name_if_entity(f.get("name"))
-        if name_note:
-            notes.append(name_note)
+        provider_name, withheld_note = provider_name_if_entity(f.get("name"))
     else:
         service_name = f.get("name") or None
         address = f.get("address") or None
@@ -596,9 +597,8 @@ def build_row(
     if raw.continued:
         notes.append("row wrapped across a page break and was rejoined")
 
-    key = se or pr or (f.get("name") if not is_provider_row else None) or id_raw
-    return {
-        "record_id": record_hash(JURISDICTION, key, action_type_raw, date_raw, reason),
+    row = {
+        "record_id": None,  # set by parse_file from non-name facts (assign_record_ids)
         "jurisdiction": JURISDICTION,
         "source_register": INDEX_URL,
         "source_document": meta.get("final_url") or meta.get("url") or INDEX_URL,
@@ -623,7 +623,19 @@ def build_row(
         "period_label": period_label,
         "notes": "; ".join(notes) if notes else None,
         "_details": details,
+        # In-memory only, never written: the printed row, names included, so a repeated row is
+        # spotted without the record_id ever depending on a name.
+        "_fingerprint": record_hash(
+            JURISDICTION, id_raw, f.get("name"), f.get("address"), nature, details, date_raw, reason
+        ),
     }
+    if withheld_note:
+        # Rule 2: the reason and details can repeat the name in forms no redaction catches, so
+        # every free-text field is withheld whole. Keys, dates and the action type stay.
+        # The key note quotes only the printed approval number, which is kept anyway.
+        withhold_free_text(row, tuple(n for n in (key_note, withheld_note) if n))
+        row["_details"] = None
+    return row
 
 
 DUPLICATE_NOTE = "duplicate row in source"
@@ -638,17 +650,7 @@ def mark_duplicates(rows: list[dict]) -> int:
     seen: set[tuple] = set()
     count = 0
     for row in rows:
-        key = (
-            row["source_snapshot"],
-            row["service_approval_number_raw"],
-            row["provider_approval_number_raw"],
-            row["service_name"],
-            row["address"],
-            row["action_type_raw"],
-            row["date_issued_raw"],
-            row["reason"],
-            row.get("_details"),
-        )
+        key = (row["source_snapshot"], row["_fingerprint"])
         if key in seen:
             row["notes"] = (
                 f"{row['notes']}; {DUPLICATE_NOTE}" if row.get("notes") else DUPLICATE_NOTE
@@ -751,6 +753,7 @@ def _parse_snapshot(path: Path, root: Path, summary: dict) -> list[dict] | None:
     rel = snapshot_rel_path(path, root=root)
     file_rows = [build_row(r, meta=meta, snapshot_rel=rel, period_label=label) for r in raws]
     summary["duplicates"] += mark_duplicates(file_rows)
+    assign_record_ids(file_rows)
     summary["by_file"][path.name] = {"rows": len(file_rows), **stats}
     log.info("parsed %s: %d rows %s", path.name, len(file_rows), stats)
     return file_rows

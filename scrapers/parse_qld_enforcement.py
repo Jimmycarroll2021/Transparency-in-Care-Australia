@@ -45,12 +45,14 @@ if __package__ in (None, ""):  # allow `python3 scrapers/parse_qld_enforcement.p
 from scrapers.common import (
     PROJECT_ROOT,
     RAW_DIR,
+    assign_record_ids,
     fetch,
     list_snapshots,
     log,
     normalise_pr,
     normalise_se,
     record_hash,
+    withhold_free_text,
     write_processed,
     write_snapshot,
 )
@@ -199,40 +201,6 @@ def contains_token(text: str, tokens: set[str]) -> bool:
     return bool(found & tokens)
 
 
-def redact_tokens(text: str, tokens: set[str]) -> str:
-    def repl(m: re.Match) -> str:
-        return "[name withheld]" if m.group(0).lower().strip("'’-") in tokens else m.group(0)
-
-    return _WORD.sub(repl, text)
-
-
-# Columns that never carry printed register text, so never need scrubbing.
-_FIXED_COLUMNS = frozenset(
-    {"record_id", "jurisdiction", "source_register", "source_document", "date_issued"}
-)
-
-
-def scrub_row(row: dict, tokens: set[str]) -> list[str]:
-    """Redact every word of a withheld name from every text column of a row, in place.
-
-    Returns the names of the columns that were changed.
-    """
-    changed = []
-    for key, value in row.items():
-        if key in _FIXED_COLUMNS or value is None:
-            continue
-        if isinstance(value, str):
-            new = redact_tokens(value, tokens)
-        elif isinstance(value, list):
-            new = [redact_tokens(v, tokens) if isinstance(v, str) else v for v in value]
-        else:
-            continue
-        if new != value:
-            row[key] = new
-            changed.append(key)
-    return changed
-
-
 # ---------------------------------------------------------------------------
 # Action type mapping (conservative)
 # ---------------------------------------------------------------------------
@@ -339,6 +307,7 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
     provider_name: str | None = None
     service_name: str | None = None
     tokens: set[str] = set()
+    withheld_markers: list[str] = []  # constant phrases only, never source text
 
     if kind == "entity":
         provider_name = first
@@ -359,21 +328,22 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
                 if _LEGAL.search(first) or _BUSINESS.search(first)
                 else "no legal-entity or business word in the printed name"
             )
-            notes.append(f"{INDIVIDUAL_NOTE} ({detail})")
+            withheld_markers.append(f"{INDIVIDUAL_NOTE} ({detail})")
         else:
-            notes.append(f"{INDIVIDUAL_NOTE} (register prints a generic role, no name)")
+            withheld_markers.append(f"{INDIVIDUAL_NOTE} (register prints a generic role, no name)")
         if service_parts:
             candidate = "; ".join(service_parts)
             if tokens and contains_token(candidate, tokens):
-                notes.append("service name withheld: it repeats a word from the individual's name")
+                withheld_markers.append(
+                    "service name withheld: it repeats a word from the individual's name"
+                )
             else:
                 service_name = candidate
-        if tokens and reason and contains_token(reason, tokens):
-            reason = redact_tokens(reason, tokens)
-            notes.append("reason redacted: it repeated a word from the individual's name")
         # File names of linked documents usually embed the person's name.
         if hrefs:
-            notes.append("linked document URLs withheld because file names can embed the name")
+            withheld_markers.append(
+                "linked document URLs withheld because file names can embed the name"
+            )
         primary = page_url
         hrefs = []
 
@@ -392,9 +362,7 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
 
     se_raw = pr_raw = None
     row = {
-        "record_id": record_hash(
-            JURISDICTION, provider_name, service_name, action_type_raw, date_raw
-        ),
+        "record_id": None,  # set by parse_register from non-name facts (assign_record_ids)
         "jurisdiction": JURISDICTION,
         "source_register": INDEX_URL,
         "source_document": primary,
@@ -417,14 +385,20 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         "period_label": period,
         "notes": "; ".join(notes),
         "linked_documents": " ".join(u for u in hrefs if u != primary) or None,
+        # In-memory only (not written): the printed content, names included, to spot a row the
+        # register prints twice. Never published and never used as the record_id.
+        "_fingerprint": record_hash(
+            JURISDICTION,
+            " | ".join(name_parts),
+            action_type_raw,
+            date_raw,
+            " | ".join(breach_parts),
+        ),
     }
-    if tokens:
-        # A withheld name must not survive in any text column (action text, breaches, notes).
-        changed = [c for c in scrub_row(row, tokens) if c not in {"reason", "notes"}]
-        if changed:
-            row["notes"] += (
-                f"; {', '.join(changed)} redacted: it repeated a word from the individual's name"
-            )
+    if kind in ("individual", "role"):
+        # Rule 2: free text can repeat the name in forms no redaction catches, so it is withheld
+        # whole. Structured fields stay.
+        withhold_free_text(row, (NO_APPROVAL_NOTE, *withheld_markers))
     return row
 
 
@@ -438,7 +412,7 @@ def parse_register(
     """Parse every register table in the page into schema rows."""
     soup = BeautifulSoup(html, "lxml")
     rows: list[dict] = []
-    seen: dict[str, int] = {}
+    seen: dict[str, int] = {}  # printed-content fingerprint -> count
     for table in soup.find_all("table"):
         if not _is_register_table(table):
             continue
@@ -449,10 +423,11 @@ def parse_register(
                 continue
             row["captured_at"] = captured_at
             row["source_snapshot"] = source_snapshot
-            seen[row["record_id"]] = seen.get(row["record_id"], 0) + 1
-            if seen[row["record_id"]] > 1:
-                row["notes"] += "; duplicate record_id: another row has the same key fields"
+            seen[row["_fingerprint"]] = seen.get(row["_fingerprint"], 0) + 1
+            if seen[row["_fingerprint"]] > 1:
+                row["notes"] += "; duplicate row: another row prints the same text"
             rows.append(row)
+    assign_record_ids(rows)
     return rows
 
 

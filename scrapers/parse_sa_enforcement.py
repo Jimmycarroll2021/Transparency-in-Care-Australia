@@ -43,6 +43,7 @@ from scrapers.common import (
     USER_AGENT,
     Fetched,
     RobotsDisallowed,
+    assign_record_ids,
     fetch,
     known_hashes,
     log,
@@ -50,6 +51,7 @@ from scrapers.common import (
     normalise_se,
     record_hash,
     utc_stamp,
+    withhold_free_text,
     write_processed,
 )
 from scrapers.profile_providers import name_is_withheld
@@ -785,6 +787,7 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
         service_name_hash = service_name
 
     # Withhold provider names that may be individuals (rule 2).
+    withheld_markers: list[str] = []  # constant phrases only, never source text
     if provider_name:
         family_trust = re.search(r"\bfamily trust\b|^\s*trustee for\b", provider_name, re.I)
         if (
@@ -792,7 +795,7 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
             or not is_organisation(provider_name)
             or name_is_withheld(provider_name)  # shared fail-closed rule
         ):
-            notes.append(
+            withheld_markers.append(
                 "provider name withheld: no company or organisation marker or a family trust, "
                 "may identify an individual"
             )
@@ -803,9 +806,11 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
                 and service_name.casefold() == provider_name.casefold()
             ):
                 service_name = None
-                notes.append("service name withheld: identical to the withheld provider name")
+                withheld_markers.append(
+                    "service name withheld: identical to the withheld provider name"
+                )
             if address:
-                notes.append("street address withheld: provider may be an individual")
+                withheld_markers.append("street address withheld: provider may be an individual")
                 address = None
             provider_name = None
 
@@ -847,6 +852,7 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
         "notes": notes,
         "_hash_fallback": provider_raw_for_hash or service_name_hash,
         "_hash_service": service_name_hash,
+        "_withheld_markers": withheld_markers,
     }
 
 
@@ -878,6 +884,7 @@ def parse_actions(
         notes = info.pop("notes")
         fallback = info.pop("_hash_fallback")
         fallback_service = info.pop("_hash_service")
+        withheld_markers = info.pop("_withheld_markers")
         page_year = re.search(r"\b(20\d{2})$", period_label)
         if (
             page_year
@@ -888,28 +895,31 @@ def parse_actions(
                 f"date year differs from the {page_year.group(1)} page it is printed on: check source"
             )
         key = info["service_approval_number"] or info["provider_approval_number"] or fallback
-        rows.append(
-            {
-                # Without an SE- number the service name keeps different services of one
-                # provider apart (the pre-2022 pages print no keys).
-                "record_id": record_hash(
-                    "SA",
-                    key,
-                    info["action_type_raw"],
-                    info["date_issued_raw"],
-                    info["reason"],
-                    None if info["service_approval_number"] else fallback_service,
-                ),
-                "jurisdiction": JURISDICTION,
-                "source_register": INDEX_URL,
-                "source_document": source_document,
-                "source_snapshot": source_snapshot,
-                "captured_at": captured_at,
-                **info,
-                "period_label": period_label,
-                "notes": " | ".join(notes) if notes else None,
-            }
-        )
+        row = {
+            "record_id": None,  # set below from non-name facts (assign_record_ids)
+            # In-memory only, never written: the printed action, names included, to find
+            # the same action printed twice (on one page or on two pages).
+            "_fingerprint": record_hash(
+                "SA",
+                key,
+                info["action_type_raw"],
+                info["date_issued_raw"],
+                info["reason"],
+                None if info["service_approval_number"] else fallback_service,
+            ),
+            "jurisdiction": JURISDICTION,
+            "source_register": INDEX_URL,
+            "source_document": source_document,
+            "source_snapshot": source_snapshot,
+            "captured_at": captured_at,
+            **info,
+            "period_label": period_label,
+            "notes": " | ".join(notes) if notes else None,
+        }
+        if withheld_markers:
+            withhold_free_text(row, tuple(withheld_markers))
+        rows.append(row)
+    assign_record_ids(rows)
     return rows
 
 
@@ -974,15 +984,16 @@ def parse_counts(
 
 
 def mark_duplicates(rows: list[dict]) -> int:
-    """Flag rows whose record_id repeats (same action printed twice, or on two pages)."""
+    """Flag rows that print the same action again (twice on a page, or on two pages). Rows are
+    compared by printed content, never by record_id, which is unique per printed row."""
     seen: dict[str, str] = {}
     dupes = 0
     for row in rows:
-        rid = row["record_id"]
+        rid = row["_fingerprint"]
         if rid in seen:
             dupes += 1
             extra = (
-                f"duplicate record_id: same action also printed on '{seen[rid]}'; row kept, "
+                f"duplicate row: same action also printed on '{seen[rid]}'; row kept, "
                 "count once when aggregating"
             )
             row["notes"] = f"{row['notes']} | {extra}" if row["notes"] else extra

@@ -38,12 +38,14 @@ if __package__ in (None, ""):
 from scrapers import common
 from scrapers.common import (
     PROJECT_ROOT,
+    assign_record_ids,
     fetch,
     list_snapshots,
     log,
     normalise_pr,
     normalise_se,
     record_hash,
+    withhold_free_text,
     write_processed,
     write_snapshot,
 )
@@ -179,16 +181,17 @@ def parse_page(
 
         notes: list[str] = []
         prov_name: str | None = None
+        withheld_markers: list[str] = []  # constant phrases only, never source text
         if prov_raw:
             kind = classify_subject(prov_raw, has_service_line=True)
             if kind in {"entity", "service_only"}:
                 prov_name = prov_raw
             else:
-                notes.append(INDIVIDUAL_NOTE)
+                withheld_markers.append(INDIVIDUAL_NOTE)
                 tokens = name_tokens(prov_raw) if kind == "individual" else set()
                 if tokens and srv_name and contains_token(srv_name, tokens):
                     srv_name = None
-                    notes.append(
+                    withheld_markers.append(
                         "service text withheld: it repeated a word from the individual's name"
                     )
         else:
@@ -228,7 +231,7 @@ def parse_page(
         )
 
         row = {
-            "record_id": record_hash(JURISDICTION, srv_name, se_norm, action_type, date_iso),
+            "record_id": None,  # set below from non-name facts (assign_record_ids)
             "jurisdiction": JURISDICTION,
             "source_register": INDEX_URL,
             "source_document": page_url,
@@ -252,9 +255,14 @@ def parse_page(
             "date_issued_raw": date_raw,
             "period_label": "Published Enforcement Actions under the National Law",
             "notes": "; ".join(notes) if notes else None,
+            # In-memory only, never written: printed content, to spot a repeated row.
+            "_fingerprint": record_hash(JURISDICTION, srv_part, prov_blob, blob),
         }
+        if withheld_markers:
+            withhold_free_text(row, tuple(withheld_markers))
         rows.append(row)
 
+    assign_record_ids(rows)
     return rows
 
 

@@ -133,7 +133,8 @@ def test_named_individual_is_withheld_everywhere():
     assert r["source_document"] == INDEX_URL
     assert r["linked_documents"] is None
     assert r["action_type"] == "prosecution"
-    assert len(r["legal_references"]) == 2
+    # Codex round 1, finding 1: free text of a withheld row is withheld whole.
+    assert r["legal_references"] == []
     blob = json.dumps(r).lower()
     assert "sample" not in blob and "janet" not in blob
 
@@ -308,7 +309,7 @@ def test_withheld_name_is_scrubbed_from_every_text_column():
         assert "jane" not in blob and "example" not in blob, date_raw
     r = privacy_rows()["01/02/2026"]
     assert r["action_type"] == "prosecution"
-    assert len(r["legal_references"]) == 1 and r["legal_references"][0].startswith("NL s.165")
+    assert r["legal_references"] == []  # withheld whole (Codex round 1, finding 1)
 
 
 def test_individual_trustee_is_withheld():
@@ -353,3 +354,35 @@ def test_person_named_trust_with_company_trustee_is_withheld():
     assert r["provider_name"] is None
     assert INDIVIDUAL_NOTE in r["notes"]
     assert "jane" not in _text_blob(r)
+
+
+# --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------
+
+from scrapers.common import FREE_TEXT_WITHHELD_NOTE  # noqa: E402
+
+
+def test_withheld_qld_row_keeps_no_free_text():
+    r = privacy_rows()["01/02/2026"]
+    assert r["provider_name"] is None
+    assert r["reason"] is None and r["action_type_raw"] == "(withheld)"
+    assert r["legal_references"] == [] and r["linked_documents"] is None
+    assert FREE_TEXT_WITHHELD_NOTE in r["notes"]
+    assert r["action_type"] == "prosecution" and r["date_issued"] == "2026-02-01"
+
+
+def test_withheld_qld_row_keeps_structured_fields_and_keys_as_printed():
+    # The QLD register prints no SE-/PR- numbers; withholding must not invent or drop any.
+    r = privacy_rows()["06/02/2026"]
+    assert r["service_approval_number"] is None and r["provider_approval_number"] is None
+    assert r["period_label"] == "2026" and r["source_register"] == INDEX_URL
+
+
+def test_qld_record_ids_do_not_depend_on_names():
+    other = PRIVACY_FIXTURE.replace("Jane Example", "Mary Sample").replace(
+        "Zo\u00eb Ex\u00e4mple", "Ann Sample"
+    )
+    kw = {"page_url": INDEX_URL, "captured_at": "2026-10-29T07:00:00+00:00", "source_snapshot": "x"}
+    a = parse_register(PRIVACY_FIXTURE, **kw)
+    b = parse_register(other, **kw)
+    assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
+    assert len({r["record_id"] for r in a}) == len(a)

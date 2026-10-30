@@ -322,23 +322,6 @@ def withhold_free_text(row: dict, markers: tuple[str, ...] = ()) -> dict:
     return row
 
 
-_NAME_STOPWORDS = frozenset(
-    "and the of for pty ltd limited inc trust trustee trustees atf family mrs miss".split()
-)
-
-
-def name_words(name: str | None) -> set[str]:
-    """Lower-case words of three or more letters in a withheld name, any alphabet."""
-    words = re.findall(r"[^\W\d_][^\W\d_'’-]*", (name or "").lower())
-    return {w for w in words if len(w) >= 3 and w not in _NAME_STOPWORDS}
-
-
-def shares_name_word(text: str | None, name: str | None) -> bool:
-    """True when text repeats a word of a withheld name. Used to withhold a whole field (a service
-    name, say), never to redact inside it."""
-    return bool(text) and bool(name_words(text) & name_words(name))
-
-
 def assign_record_ids(rows: list[dict]) -> None:
     """Give each row a record_id from non-name source facts only, in place.
 

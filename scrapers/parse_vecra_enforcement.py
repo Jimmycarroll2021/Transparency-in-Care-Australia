@@ -38,6 +38,7 @@ from scrapers.common import (
     RAW_DIR,
     USER_AGENT,
     Fetched,
+    assign_record_ids,
     fetch,
     known_hashes,
     log,
@@ -45,6 +46,7 @@ from scrapers.common import (
     normalise_se,
     record_hash,
     utc_stamp,
+    withhold_free_text,
     write_processed,
 )
 from scrapers.profile_providers import name_is_withheld
@@ -500,6 +502,7 @@ def parse_actions(
             notes.append(f"date not parsable: {date_raw!r}")
         if not date_raw:
             notes.append("date missing")
+        withheld_marker = None
         if info["provider_name"] and (
             not ENTITY_MARKER.search(info["provider_name"])
             or name_is_withheld(info["provider_name"])
@@ -507,7 +510,7 @@ def parse_actions(
             # Likely a sole trader approved in their own name, or a name the shared fail-closed
             # rule does not accept as an organisation. Rule 2: never name individuals.
             info["provider_name"] = None
-            notes.append(
+            withheld_marker = (
                 "provider name withheld: no company or organisation marker, may be an individual"
             )
         if "children's services act" in fold_apostrophes(reason or "").lower():
@@ -518,25 +521,31 @@ def parse_actions(
             notes.append("no legal reference found in reason")
 
         key = info["service_approval_number"] or info["provider_approval_number"]
-        rows.append(
-            {
-                "record_id": record_hash("VIC", key, action_raw, date_raw, reason),
-                "jurisdiction": JURISDICTION,
-                "source_register": INDEX_URL,
-                "source_document": source_document,
-                "source_snapshot": source_snapshot,
-                "captured_at": captured_at,
-                **info,
-                "action_type": map_action_type(action_raw),
-                "action_type_raw": action_raw,
-                "reason": reason,
-                "legal_references": json.dumps(refs, ensure_ascii=False),
-                "date_issued": date_iso,
-                "date_issued_raw": date_raw,
-                "period_label": period_label,
-                "notes": " | ".join(notes) if notes else None,
-            }
-        )
+        row = {
+            "record_id": None,  # set below from non-name facts (assign_record_ids)
+            # In-memory only, never written: the printed row, to find a row printed twice.
+            "_fingerprint": record_hash(
+                "VIC", key, clean(cells[0].get_text(" ")), action_raw, date_raw, reason
+            ),
+            "jurisdiction": JURISDICTION,
+            "source_register": INDEX_URL,
+            "source_document": source_document,
+            "source_snapshot": source_snapshot,
+            "captured_at": captured_at,
+            **info,
+            "action_type": map_action_type(action_raw),
+            "action_type_raw": action_raw,
+            "reason": reason,
+            "legal_references": json.dumps(refs, ensure_ascii=False),
+            "date_issued": date_iso,
+            "date_issued_raw": date_raw,
+            "period_label": period_label,
+            "notes": " | ".join(notes) if notes else None,
+        }
+        if withheld_marker:
+            withhold_free_text(row, (withheld_marker,))
+        rows.append(row)
+    assign_record_ids(rows)
     return rows
 
 
@@ -611,11 +620,11 @@ def mark_duplicates(rows: list[dict]) -> int:
     seen: dict[str, int] = {}
     dupes = 0
     for row in rows:
-        rid = row["record_id"]
+        rid = row["_fingerprint"]  # printed content, not the record_id (unique per row)
         seen[rid] = seen.get(rid, 0) + 1
         if seen[rid] > 1:
             dupes += 1
-            extra = "duplicate record_id within the register; row kept"
+            extra = "duplicate row within the register; row kept"
             row["notes"] = f"{row['notes']} | {extra}" if row["notes"] else extra
     return dupes
 

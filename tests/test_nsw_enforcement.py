@@ -777,3 +777,45 @@ def test_individual_trustee_and_estate_names_are_withheld():
 def test_organisation_trustee_name_is_kept():
     name, note = provider_name_if_entity("Example Holdings Pty Ltd ATF Smith Family Trust")
     assert name == "Example Holdings Pty Ltd ATF Smith Family Trust" and note is None
+
+
+# --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------
+
+from scrapers.common import FREE_TEXT_WITHHELD_NOTE, assign_record_ids  # noqa: E402
+
+
+def _withheld_nsw(name="Jane Q Citizen"):
+    return make_row(
+        make_raw(
+            id="PR-40006858",
+            name=name,
+            date="4/07/2025",
+            nature="Compliance notice",
+            details=f"Notice issued to {name}",
+            reason=f"{name} failed to supervise children. Regulation 168",
+        ),
+        label="2025-26 Q1",
+    )
+
+
+def test_withheld_row_keeps_no_free_text():
+    row = _withheld_nsw()
+    assert row["provider_name"] is None
+    assert row["reason"] is None and row["action_type_raw"] == "(withheld)"
+    assert row["legal_references"] == "" and row.get("_details") is None
+    assert FREE_TEXT_WITHHELD_NOTE in row["notes"]
+    assert "citizen" not in str({k: v for k, v in row.items() if k != "_fingerprint"}).lower()
+    assert row["action_type"] == "compliance_notice" and row["date_issued"] == "2025-07-04"
+
+
+def test_withheld_row_keeps_its_approval_number():
+    row = _withheld_nsw()
+    assert row["provider_approval_number"] == "PR-40006858"
+    assert row["provider_approval_number_raw"] == "PR-40006858"
+
+
+def test_record_id_does_not_depend_on_the_withheld_name():
+    a, b = [_withheld_nsw("Jane Q Citizen")], [_withheld_nsw("Mary Sample")]
+    assign_record_ids(a)
+    assign_record_ids(b)
+    assert a[0]["record_id"] == b[0]["record_id"]

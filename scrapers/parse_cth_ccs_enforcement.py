@@ -63,10 +63,12 @@ from scrapers import common
 from scrapers.common import (
     PROJECT_ROOT,
     RAW_DIR,
+    assign_record_ids,
     fetch,
     list_snapshots,
     log,
     record_hash,
+    withhold_free_text,
     write_processed,
 )
 from scrapers.parse_qld_enforcement import clean
@@ -314,14 +316,6 @@ def _words(text: str) -> set[str]:
     return {w.lower() for w in re.findall(r"[A-Za-z][A-Za-z\-]*", text)}
 
 
-def redact_words(text: str, tokens: set[str]) -> str:
-    return re.sub(
-        r"[A-Za-z][A-Za-z\-]*",
-        lambda m: "[name withheld]" if m.group(0).lower() in tokens else m.group(0),
-        text,
-    )
-
-
 # ---------------------------------------------------------------------------
 # Walking the page
 # ---------------------------------------------------------------------------
@@ -438,6 +432,7 @@ def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
     abn: str | None = None
     redact: set[str] = set()
     withheld = False
+    withheld_markers: list[str] = []  # constant phrases only, never source text
     if provider_raw:
         stripped, abn, abn_problem = split_abn(provider_raw)
         if abn_problem and not is_individual(stripped):
@@ -445,27 +440,20 @@ def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
         if is_individual(stripped):
             withheld = True
             redact = person_tokens(stripped)
-            notes.append(WITHHELD_NOTE)
+            withheld_markers.append(WITHHELD_NOTE)
             if abn:
-                notes.append("ABN not kept because the subject is an individual")
+                withheld_markers.append("ABN not kept because the subject is an individual")
                 abn = None
         else:
             provider_name = stripped or None
     else:
         notes.append("provider not printed")
 
-    service_withheld = False
     if withheld and service_name and redact & _words(service_name):
         service_name = None
-        service_withheld = True
-        notes.append("service name withheld: it repeats a word from the individual's name")
-    if withheld and grounds and redact & _words(grounds):
-        grounds = redact_words(grounds, redact)
-        notes.append("reason text redacted: it repeated a word from the individual's name")
-    if withheld:
-        for text_key in ("charge", "plea"):
-            if fields.get(text_key) and redact & _words(fields[text_key]):
-                fields[text_key] = redact_words(fields[text_key], redact)
+        withheld_markers.append(
+            "service name withheld: it repeats a word from the individual's name"
+        )
 
     if abn:
         notes.insert(0, f"ccs_identifier: ABN {abn}")
@@ -498,20 +486,16 @@ def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
     if not fields.get("location"):
         notes.append("location not printed")
 
-    blob = " ".join(v for _, v in entry["pairs"])
-    se_raw = None if withheld else (_SE.search(blob) or [None])[0]
-    pr_raw = None if withheld else (_PR.search(blob) or [None])[0]
+    # Approval numbers are public keys of the service and provider approvals, never a name:
+    # withholding a name never drops them.
+    blob = " ".join([entry["service"] or "", *(v for _, v in entry["pairs"])])
+    se_raw = (_SE.search(blob) or [None])[0]
+    pr_raw = (_PR.search(blob) or [None])[0]
     if not (se_raw or pr_raw):
         notes.append("register prints no SE-/PR- number in this row")
 
-    return {
-        "record_id": record_hash(
-            JURISDICTION,
-            "service name withheld" if service_withheld else service_name,
-            provider_name or "withheld",
-            sanction_raw,
-            date_raw,
-        ),
+    row = {
+        "record_id": None,  # set by parse_page from non-name facts (assign_record_ids)
         "jurisdiction": JURISDICTION,
         "source_register": CURRENT_URL,
         "source_document": page_url,
@@ -535,19 +519,28 @@ def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
         "date_issued_raw": date_raw or None,
         "period_label": role,
         "notes": "; ".join(notes) or None,
+        # In-memory only, never written: the printed entry, names included, so a repeated row
+        # is spotted without ever using a name or a placeholder in the record_id.
+        "_fingerprint": record_hash(
+            JURISDICTION, entry["service"], *(v for _, v in entry["pairs"])
+        ),
     }
+    if withheld:
+        withhold_free_text(row, tuple(withheld_markers))
+    return row
 
 
 def mark_duplicates(rows: list[dict]) -> None:
-    """Append '; duplicate row in source' to later rows sharing a record_id. Keeps every row."""
+    """Append '; duplicate row in source' to later rows that print the same entry. Keeps every
+    row. Rows are compared by their printed content, not by record_id."""
     seen: set[str] = set()
     for row in rows:
-        if row["record_id"] in seen:
+        if row["_fingerprint"] in seen:
             if DUPLICATE_NOTE not in (row["notes"] or ""):
                 row["notes"] = (
                     f"{row['notes']}; {DUPLICATE_NOTE}" if row["notes"] else DUPLICATE_NOTE
                 )
-        seen.add(row["record_id"])
+        seen.add(row["_fingerprint"])
 
 
 def parse_page(
@@ -570,6 +563,7 @@ def parse_page(
         row["source_snapshot"] = source_snapshot
         rows.append(row)
     mark_duplicates(rows)
+    assign_record_ids(rows)
     return rows
 
 

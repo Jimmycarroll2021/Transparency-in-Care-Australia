@@ -151,7 +151,9 @@ def test_parse_wa_html_table():
     r3 = rows[3]
     assert r3["provider_name"] is None
     assert INDIVIDUAL_NOTE in r3["notes"]
-    assert "certified_supervisor: CS-00051586" in r3["notes"]
+    # Codex round 1, finding 1: a certified supervisor number identifies a person, not an
+    # approval, so it goes with the rest of the withheld row's free text.
+    assert "CS-00051586" not in r3["notes"]
 
 
 # --- name fields carrying address text or key fragments -------------------------
@@ -270,14 +272,14 @@ def test_record_id_is_stable_when_the_service_name_is_cleaned():
     after = parse_wa_html_table(contaminated, "s.html", "2026-10-29T08:00:00Z")[0]
     assert after["service_name"] == "Melville Day Care Centre"
     assert after["address"] == "39 Rome Road Melville"
-    # record_id still hashes the name text as printed before the first comma, so ids already
-    # used downstream do not change when the cleaned name does.
+    # Codex round 1, finding 3: record_id uses non-name facts only, so cleaning the service
+    # name (or any name) never changes it.
+    before = parse_wa_html_table(SAMPLE_TABLE_HTML, "s.html", "2026-10-29T08:00:00Z")[0]
+    assert after["record_id"] == before["record_id"]
+    from scrapers.parse_wa_enforcement import INDEX_URL
+
     assert after["record_id"] == record_hash(
-        "WA",
-        "Melville Day Care Centre 39 Rome Road Melville",
-        "PR-00007392",
-        "compliance_notice",
-        "2013-09-16",
+        "WA", INDEX_URL, "16/09/2013", None, "PR-00007392", "compliance_notice", "1"
     )
 
 
@@ -306,3 +308,30 @@ def test_person_named_trust_provider_is_withheld_by_shared_rule():
         "Example Holdings Pty Ltd ATF Smith Family Trust (PR-00008205)"
     )
     assert kept == "Example Holdings Pty Ltd ATF Smith Family Trust"
+
+
+# --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------
+
+import json  # noqa: E402
+
+from scrapers.common import FREE_TEXT_WITHHELD_NOTE  # noqa: E402
+
+
+def test_withheld_wa_row_keeps_no_free_text_and_keeps_keys():
+    row = parse_wa_html_table(SAMPLE_TABLE_HTML, "s.html", "2026-10-29T08:00:00Z")[1]
+    assert row["provider_name"] is None
+    assert row["action_type_raw"] == "(withheld)" and row["address"] is None
+    assert FREE_TEXT_WITHHELD_NOTE in row["notes"]
+    assert row["provider_approval_number"] == "PR-00008204"
+    assert row["service_approval_number"] == "SE-00014349"
+    assert row["action_type"] == "approval_suspended"
+    assert "Sample" not in json.dumps(row)
+
+
+def test_wa_record_ids_do_not_depend_on_names_and_are_unique():
+    a = parse_wa_html_table(SAMPLE_TABLE_HTML, "s.html", "2026-10-29T08:00:00Z")
+    b = parse_wa_html_table(
+        SAMPLE_TABLE_HTML.replace("Mara Sample", "Ann Other"), "s.html", "2026-10-29T08:00:00Z"
+    )
+    assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
+    assert len({r["record_id"] for r in a}) == len(a)

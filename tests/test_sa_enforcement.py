@@ -252,7 +252,7 @@ def test_record_id_is_stable_and_duplicates_are_marked():
     assert len({r["record_id"] for r in first}) == len(first)
     both = first + second
     assert sa.mark_duplicates(both) == len(first)
-    assert "duplicate record_id" in both[-1]["notes"]
+    assert "duplicate row" in both[-1]["notes"]
 
 
 def test_summary_counts():
@@ -361,3 +361,26 @@ def test_person_named_trust_provider_is_withheld_by_shared_rule():
     assert row["provider_name"] is None
     assert "provider name withheld" in row["notes"]
     assert "Jane" not in json.dumps(row)
+
+
+# --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------
+
+from scrapers.common import FREE_TEXT_WITHHELD_NOTE  # noqa: E402
+
+
+def test_withheld_sa_row_keeps_no_free_text_and_keeps_keys():
+    row = by_service(rows_for(CURRENT_FIXTURE), "Citizen Family Day Care")
+    assert row["provider_name"] is None
+    assert row["reason"] is None and row["action_type_raw"] == "(withheld)"
+    assert row["legal_references"] == "[]"
+    assert FREE_TEXT_WITHHELD_NOTE in row["notes"]
+    assert row["provider_approval_number"] == "PR-00009999"
+    assert row["service_approval_number"] == "SE-00011111"
+    assert row["action_type"] == "emergency_action_notice"
+
+
+def test_sa_record_ids_do_not_depend_on_names():
+    a = rows_for(CURRENT_FIXTURE)
+    other = CURRENT_FIXTURE.replace("Jane Citizen (PR-00009999)", "Mary Sample (PR-00009999)")
+    b = rows_for(other)
+    assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
