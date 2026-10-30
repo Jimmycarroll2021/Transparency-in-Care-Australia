@@ -134,14 +134,55 @@ def parse_wa_date(text: str | None) -> str | None:
     return None
 
 
+# Zero-width space, non-joiner, joiner and byte order mark, printed inside some register cells.
+_ZERO_WIDTH = re.compile("[" + "".join(map(chr, (0x200B, 0x200C, 0x200D, 0xFEFF))) + "]")
+_SE_TOKEN = re.compile(r"\bSE[-:\s]*\d+\b\.?", re.IGNORECASE)
+# Some provider cells carry the service number instead of, or as well as, the provider number.
+_PROVIDER_CELL_KEY = re.compile(r"\b(?:PR|SE)[-:\s]*\d+\b\.?", re.IGNORECASE)
+_BARE_NUMBER = re.compile(r"\((\d{4,8})\)")
+_EDUCATOR = re.compile(r"\beducator\b", re.IGNORECASE)
+_STREET_TYPES = (
+    "Road|Rd|Street|St|Avenue|Ave|Av|Drive|Dr|Way|Place|Pl|Crescent|Cres|Court|Ct|Parade|Pde|"
+    "Highway|Hwy|Terrace|Tce|Boulevard|Blvd|Lane|Ln|Close|Circle|Loop|Grove|Mews|Rise|Square|"
+    "Esplanade|Promenade|Circuit|Cct|Bend|Retreat|Entrance|Link|Vista|Gardens|Approach|Glade"
+)
+# A street number (optionally after Unit, Shop, Lot or Suite) followed by up to three words and
+# a street type, e.g. '116 West Parade' or 'Unit 3, 12-14 Smith St'.
+_STREET_ADDRESS = re.compile(
+    r"(?:\b(?:Unit|Shop|Lot|Suite)\s+\d+[A-Za-z]?\s*[,/]?\s*)?"
+    r"\b\d+[A-Za-z]?(?:\s*[-/]\s*\d+[A-Za-z]?)?\s+(?:[A-Za-z'.]+\s+){0,3}"
+    rf"(?:{_STREET_TYPES})\b\.?",
+    re.IGNORECASE,
+)
+
+
+def _clean_cell(raw_text: str) -> str:
+    return re.sub(r"\s+", " ", _ZERO_WIDTH.sub("", raw_text)).strip()
+
+
+def _split_at_key(text: str, token: re.Pattern) -> tuple[str, str]:
+    """(name, after) around the first unbracketed key. A key printed first leaves the name after it."""
+    m = token.search(text)
+    if not m:
+        return text, ""
+    before = text[: m.start()].strip(" ,-")
+    after = text[m.end() :].strip(" ,-.")
+    return (before, after) if before else (after, "")
+
+
 def extract_provider_info(
     raw_text: str | None,
 ) -> tuple[str | None, str | None, str | None, list[str]]:
-    """Extract (provider_name, pr_norm, cs_norm, notes) from 'Provider (provider number)' cell."""
+    """Extract (provider_name, pr_norm, cs_norm, notes) from 'Provider (provider number)' cell.
+
+    A provider key printed without brackets is removed from the name. Text printed after it (a
+    postal address, or the name printed twice) is removed too, and a note says so without copying
+    the text. A name is withheld if either the printed or the cleaned text reads as a person.
+    """
     if not raw_text or not raw_text.strip():
         return None, None, None, []
 
-    clean_text = raw_text.strip()
+    clean_text = _clean_cell(raw_text)
     # Strip label prefix if present: "Provider (provider number): ..."
     if ":" in clean_text and clean_text.lower().startswith("provider"):
         clean_text = clean_text.split(":", 1)[1].strip()
@@ -162,60 +203,121 @@ def extract_provider_info(
         notes.append(f"certified_supervisor: {cs_norm}")
 
     # Remove parenthesized numbers from name
-    name_part = re.sub(r"\((?:PR|CS)[^)]*\)", "", clean_text, flags=re.IGNORECASE).strip()
-    name_part = re.sub(r"\s+", " ", name_part).strip(" ,-")
+    printed = re.sub(r"\((?:PR|CS)[^)]*\)", "", clean_text, flags=re.IGNORECASE).strip()
+    printed = re.sub(r"\s+", " ", printed).strip(" ,-")
+    name_part, after_key = _split_at_key(printed, _PROVIDER_CELL_KEY)
+    if after_key:
+        notes.append("text printed after the provider number removed from the provider name")
+    if _SE_TOKEN.search(printed) and not _SE_TOKEN.search(name_part):
+        notes.append(
+            "service number printed in the provider cell removed from the provider name; "
+            "not used as a key"
+        )
 
     prov_name: str | None = name_part if name_part else None
 
     # Privacy check: withhold individuals, including a person named with a role
-    # ("<person>, director of <company>").
+    # ("<person>, director of <company>", "<person> (Family Day Care Educator)"). Both the
+    # printed and the cleaned text are tested, so cleaning can only ever withhold more.
     if prov_name:
-        form = classify_entity_form(prov_name)
-        if form == "likely_individual" or cs_norm is not None or _PERSON_ROLE.search(prov_name):
+        candidates = [t for t in (printed, prov_name) if t]
+        if (
+            cs_norm is not None
+            or any(classify_entity_form(t) == "likely_individual" for t in candidates)
+            or any(_PERSON_ROLE.search(t) or _EDUCATOR.search(t) for t in candidates)
+        ):
             prov_name = None
             notes.append(INDIVIDUAL_NOTE)
 
     return prov_name, pr_norm, cs_norm, notes
 
 
-def extract_service_info(
-    raw_text: str | None,
-) -> tuple[str | None, str | None, str | None, str | None]:
-    """Extract (service_name, se_norm, address, suburb) from 'Service name' cell."""
+def extract_service_details(raw_text: str | None) -> dict:
+    """Split a 'Service name' cell into name, key, address, suburb and notes.
+
+    The register often prints '<name> SE-<number> <address>' or '<name> <street address>' in one
+    cell. A key printed without brackets ends the name and what follows it is address text; a
+    street address (number, words, street type) is moved from the name to the address; an
+    unlabelled number in brackets is removed and never used as a key. legacy_name is the name as
+    read before this cleaning (text before the first comma) and still feeds record_id. suburb is
+    derived only from the comma-separated address, exactly as before.
+    """
+    empty = {
+        "service_name": None,
+        "service_approval_number": None,
+        "address": None,
+        "suburb": None,
+        "legacy_name": None,
+        "notes": [],
+    }
     if not raw_text or not raw_text.strip():
-        return None, None, None, None
+        return empty
 
-    clean_text = raw_text.strip()
-    if ":" in clean_text and clean_text.lower().startswith("service"):
-        clean_text = clean_text.split(":", 1)[1].strip()
+    def without_label_and_bracketed_key(text: str) -> str:
+        if ":" in text and text.lower().startswith("service"):
+            text = text.split(":", 1)[1].strip()
+        # e.g. "Melville Day Care Centre, 39 Rome Road, Melville WA 6158"
+        # or "Tiny Beez Education and Care Centre Claremont (SE-00012493), 2 Alfred Road Claremont WA"
+        text = re.sub(r"\(SE[^)]*\)", "", text, flags=re.IGNORECASE).strip()
+        return re.sub(r"\s+", " ", text)
 
+    clean_text = _clean_cell(raw_text)
     se_norm: str | None = None
     se_match = re.search(r"\bSE[-:\s]*(\d+)\b", clean_text, re.IGNORECASE)
     if se_match:
         se_norm = normalise_se(f"SE-{se_match.group(1)}")
+    text_no_se = without_label_and_bracketed_key(clean_text)
 
-    # Split name and address if comma present
-    # e.g. "Melville Day Care Centre, 39 Rome Road, Melville WA 6158"
-    # or "Tiny Beez Education and Care Centre Claremont (SE-00012493), 2 Alfred Road Claremont WA"
-    text_no_se = re.sub(r"\(SE[^)]*\)", "", clean_text, flags=re.IGNORECASE).strip()
-    text_no_se = re.sub(r"\s+", " ", text_no_se)
-
-    parts = [p.strip() for p in text_no_se.split(",") if p.strip()]
-    if not parts:
-        return None, se_norm, None, None
-
-    srv_name = parts[0]
-    address: str | None = None
+    # The legacy reading (raw text, zero-width characters kept) feeds record_id and suburb only.
+    legacy_text = without_label_and_bracketed_key(raw_text.strip())
+    legacy_parts = [p.strip() for p in legacy_text.split(",") if p.strip()]
+    if not legacy_parts or not text_no_se:
+        return {**empty, "service_approval_number": se_norm}
+    legacy_name = legacy_parts[0]
     suburb: str | None = None
-
-    if len(parts) > 1:
-        address = ", ".join(parts[1:])
+    if len(legacy_parts) > 1:
+        legacy_address = ", ".join(legacy_parts[1:])
         # Try to extract suburb from end of address (before WA and postcode)
-        m_sub = re.search(r",?\s*([A-Za-z\s]+)\s+(?:WA\s*)?(?:\d{4})?$", address)
+        m_sub = re.search(r",?\s*([A-Za-z\s]+)\s+(?:WA\s*)?(?:\d{4})?$", legacy_address)
         if m_sub and len(m_sub.group(1).strip().split()) <= 3:
             suburb = m_sub.group(1).strip().upper()
 
-    return srv_name, se_norm, address, suburb
+    notes: list[str] = []
+    head, after_key = _split_at_key(text_no_se, _SE_TOKEN)
+    for number in _BARE_NUMBER.findall(head):
+        notes.append(
+            f"unlabelled number '{number}' removed from the service name; not used as a key"
+        )
+    head = re.sub(r"\s+", " ", _BARE_NUMBER.sub("", head)).strip()
+
+    parts = [p.strip() for p in head.split(",") if p.strip()]
+    srv_name = parts[0] if parts else ""
+    address_parts = parts[1:]
+    street = _STREET_ADDRESS.search(srv_name)
+    if street and street.start() > 0:
+        address_parts.insert(0, srv_name[street.start() :].strip())
+        srv_name = re.sub(r"\s+at$", "", srv_name[: street.start()].strip(" ,-"), flags=re.I)
+    if after_key:
+        address_parts.append(after_key)
+    if srv_name != legacy_name and (after_key or street):
+        notes.append("address or key text separated from the service name")
+
+    return {
+        "service_name": srv_name or None,
+        "service_approval_number": se_norm,
+        "address": ", ".join(address_parts) or None,
+        "suburb": suburb,
+        "legacy_name": legacy_name,
+        "notes": notes,
+    }
+
+
+def extract_service_info(
+    raw_text: str | None,
+) -> tuple[str | None, str | None, str | None, str | None]:
+    """Extract (service_name, se_norm, address, suburb) from 'Service name' cell."""
+    d = extract_service_details(raw_text)
+    return d["service_name"], d["service_approval_number"], d["address"], d["suburb"]
 
 
 def _get_field(raw_texts: list[str], label: str, default_idx: int) -> str:
@@ -260,9 +362,11 @@ def parse_wa_html_table(html_content: str, source_snapshot: str, captured_at: st
         action_type, type_note = map_wa_action_type(action_raw)
 
         prov_name, pr_norm, cs_norm, prov_notes = extract_provider_info(prov_raw)
-        srv_name, se_norm, address, suburb = extract_service_info(srv_raw)
+        srv = extract_service_details(srv_raw)
+        srv_name, se_norm = srv["service_name"], srv["service_approval_number"]
+        address, suburb = srv["address"], srv["suburb"]
 
-        notes = list(prov_notes)
+        notes = list(prov_notes) + srv["notes"]
         if type_note:
             notes.append(type_note)
 
@@ -275,7 +379,7 @@ def parse_wa_html_table(html_content: str, source_snapshot: str, captured_at: st
         row = {
             "record_id": record_hash(
                 JURISDICTION,
-                srv_name or "",
+                srv["legacy_name"] or "",  # name as printed, so ids do not change with cleaning
                 se_norm or pr_norm or "",
                 action_type,
                 date_iso or year_raw,
