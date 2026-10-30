@@ -1,11 +1,18 @@
 """Ownership layer 1: provider-to-group edges from the Modern Slavery Statements Register (MSR).
 
-An edge means: the provider's legal entity is named in a modern slavery statement either as a
-reporting entity (matched by ABN) or as an entity included in the statement (matched by name, with
-the ACECQA legal name and the ABR entity name both agreeing). Under the Modern Slavery Act 2018 a
-reporting entity's statement covers the entities it owns or controls, so an included-entity edge
-reads "included in the group's modern slavery statement as owned or controlled". The MSR covers
-only entities with consolidated revenue of at least AUD 100 million, plus voluntary reporters.
+Every provider named in a candidate statement is a relation, classified into exactly one of:
+- controlled_entity_of: an included entity in a Single statement (one reporting entity). Under
+  the Modern Slavery Act 2018 such a statement covers the entities the reporting entity owns or
+  controls, so this reads "included in the group's statement as owned or controlled". This is the
+  only ownership edge.
+- group_parent_self: the provider is the reporting entity of a Single statement that lists
+  included entities. It marks a group head; it is not an edge to another provider.
+- co_reported_joint: any relation from a Joint statement. Joint statements can combine unrelated
+  bodies, so these are never edges, even when one corporate group filed them.
+Two residual classes are counted but written nowhere: a reporting entity of a Single statement
+with no included entities (self_report_no_included_entities), and any other statement type
+(unclassified_statement). The MSR covers only entities with consolidated revenue of at least
+AUD 100 million, plus voluntary reporters.
 
 Steps:
 1. Read the MSR resources page, find the all-statements CSV, download it. Columns that could hold
@@ -15,19 +22,22 @@ Steps:
    text contains a childcare term.
 3. Fetch each candidate's statement page (at least 2 s apart, robots.txt honoured) and parse the
    reporting entities and included entities (name, and ABN where the statement gives one).
-4. Edges, strongest first: an entity's ABN equals a provider ABN (reporting_entity or
-   included_entity); or an included entity listed without an ABN whose normalised name equals
-   exactly one ACECQA provider legal name AND that provider's ABR entity name. Everything else that
-   looks like a match (ambiguous names, ABR or ABN disagreement, providers without a resolved ABN,
-   corporate-suffix differences, reporting entities named without an ABN) goes to the review
-   queue, never to edges.
+4. Matching, strongest first, one relation per provider and statement: an entity's ABN equals a
+   provider ABN; or an included entity listed without an ABN whose normalised name equals exactly
+   one ACECQA provider legal name AND that provider's ABR entity name. Everything else that looks
+   like a match goes to the review queue, never to a relation.
+5. Edges and group heads are collapsed to one row per provider and group from the latest
+   statement, listing every statement id and URL. The group key is the reporting entity's ABN,
+   taken from the statement, else from another candidate statement naming the same entity with
+   one ABN, else NAME:<normalised name>.
 
 Licence: the MSR shows "Copyright Attorney-General's Department" and no open licence. Raw MSR files
 and their sidecars stay in data/raw/msr/, which is gitignored. Only derived facts are written to
 data/processed/. Providers that are, or may be, individuals never appear in any output.
 
-Writes data/processed/provider-group-edges-msr.csv, provider-group-review-msr.csv (each with a
-provenance JSON) and provider-group-edges-msr-summary.json.
+Writes data/processed/provider-group-edges-msr.csv (controlled_entity_of only),
+provider-group-heads-msr.csv, provider-coreported-msr.csv and provider-group-review-msr.csv, each
+with a provenance JSON, plus provider-group-edges-msr-summary.json.
 
 Run:
   python3 scrapers/build_msr_group_edges.py              fetch the CSV and candidate pages
@@ -96,6 +106,8 @@ PROVIDER_ABN_CSV = PROCESSED_DIR / "provider-abn.csv"
 SERVICES_CSV = PROCESSED_DIR / "acecqa-services-latest.csv"
 EDGES_NAME = "provider-group-edges-msr"
 REVIEW_NAME = "provider-group-review-msr"
+HEADS_NAME = "provider-group-heads-msr"
+COREPORTED_NAME = "provider-coreported-msr"
 SUMMARY_JSON = PROCESSED_DIR / f"{EDGES_NAME}-summary.json"
 
 CHILDCARE_TERMS = re.compile(r"early\s+learning|child\s*care|kindergarten|education", re.IGNORECASE)
@@ -118,20 +130,61 @@ _RANK = {
     "included_name_equals_acecqa_and_abr_name": 2,
 }
 
-EDGE_COLUMNS = [
+CONTROLLED = "controlled_entity_of"
+HEAD = "group_parent_self"
+JOINT = "co_reported_joint"
+SELF_ONLY = "self_report_no_included_entities"
+UNCLASSIFIED = "unclassified_statement"
+JOINT_CAVEAT = "joint statement: co-reporting, not evidence of ownership"
+
+_COLLAPSED = [
     "provider_approval_number",
     "provider_legal_name",
     "provider_abn",
+    "relation",
     "group_key",
+    "group_key_source",
     "group_name",
     "statement_id",
-    "statement_page_id",
     "statement_url",
-    "statement_type",
     "reporting_period",
+    "statement_count",
+    "statement_ids",
+    "statement_urls",
+]
+EDGE_COLUMNS = [
+    *_COLLAPSED[:3],
     "edge_type",
+    *_COLLAPSED[3:],
+    "match_method",
+    "match_methods",
+    "msr_entity_name",
+    "captured_at",
+    "page_sha256",
+]
+HEAD_COLUMNS = [
+    *_COLLAPSED,
+    "included_entities_listed",
+    "controlled_providers_linked",
+    "captured_at",
+    "page_sha256",
+]
+COREPORTED_COLUMNS = [
+    "provider_approval_number",
+    "provider_legal_name",
+    "provider_abn",
+    "relation",
+    "caveat",
+    "msr_role",
     "match_method",
     "msr_entity_name",
+    "statement_key",
+    "statement_id",
+    "statement_url",
+    "reporting_period",
+    "reporting_entity_count",
+    "first_listed_reporting_entity",
+    "included_entities_listed",
     "captured_at",
     "page_sha256",
 ]
@@ -139,9 +192,10 @@ REVIEW_COLUMNS = [
     "statement_id",
     "statement_page_id",
     "statement_url",
+    "statement_type",
     "reporting_period",
-    "group_key",
-    "group_name",
+    "reporting_entity_count",
+    "first_listed_reporting_entity",
     "msr_role",
     "msr_entity_name",
     "msr_entity_abn",
@@ -152,11 +206,21 @@ REVIEW_COLUMNS = [
 ]
 
 EDGE_DEFINITION = (
-    "An edge means the provider's legal entity is named in a modern slavery statement on the "
-    "Modern Slavery Statements Register: as a reporting entity (edge_type reporting_entity, matched "
-    "by ABN) or as an entity included in the statement as owned or controlled by the reporting "
-    "entity (edge_type included_entity, matched by exact normalised name agreeing with both the "
-    "ACECQA legal name and the ABR entity name). It is not a verified ownership chain."
+    "controlled_entity_of: the provider is listed as an included entity in a Single modern "
+    "slavery statement on the Modern Slavery Statements Register, that is, included in the "
+    "group's statement as owned or controlled by the one reporting entity (group_key). Matched "
+    "by the included entity's ABN, or by exact normalised name agreeing with both the ACECQA legal "
+    "name and the ABR entity name. It is not a verified ownership chain, shareholding or date of "
+    "acquisition. This is the only ownership edge in this layer."
+)
+HEAD_DEFINITION = (
+    "group_parent_self: the provider is itself the one reporting entity of a Single statement "
+    "that lists included entities. It marks the provider as a group head; it is not an edge to "
+    "another provider."
+)
+JOINT_DEFINITION = (
+    "co_reported_joint: the provider is named (as a reporting or included entity) in a Joint "
+    "statement. Joint statements can combine unrelated bodies, so these rows are never edges."
 )
 
 
@@ -322,16 +386,6 @@ def _shown_name(name: str | None) -> str | None:
     return WITHHELD if classify_entity_form(name) == "likely_individual" else name
 
 
-def _group(statement: dict) -> tuple[str, str]:
-    reporting = statement["parsed"]["reporting"]
-    if len(reporting) == 1 and reporting[0]["abn"]:
-        key = reporting[0]["abn"]
-    else:
-        key = f"MSR-{statement['page_id']}"
-    names = [_shown_name(r["name"]) or "" for r in reporting]
-    return key, "; ".join(n for n in names if n)
-
-
 class _Index:
     def __init__(self, profiles: list[dict], abn_rows: list[dict]):
         self.legal: dict[str, str] = {}
@@ -369,39 +423,84 @@ class _Index:
             self.legal.setdefault(pr, (r.get("legal_name") or "").strip())
 
 
-def build_edges(
+def _statement_facts(statement: dict) -> dict:
+    reporting = statement["parsed"]["reporting"]
+    return {
+        "statement_id": statement["statement_id"],
+        "statement_page_id": statement["page_id"],
+        "statement_url": statement["statement_url"],
+        "statement_type": statement.get("type"),
+        "reporting_period": statement.get("reporting_period"),
+        "period_end": statement.get("period_end") or statement.get("reporting_period") or "",
+        "reporting_entity_count": len(reporting),
+        "first_listed_reporting_entity": _shown_name(reporting[0]["name"]) if reporting else None,
+        "included_entities_listed": len(statement["parsed"]["included"]),
+        "captured_at": statement.get("captured_at"),
+        "page_sha256": statement.get("page_sha256"),
+    }
+
+
+def _name_abn_map(statements: list[dict]) -> dict[str, str]:
+    """Normalised reporting-entity name -> ABN, where every statement giving one agrees."""
+    seen: dict[str, set[str]] = defaultdict(set)
+    for s in statements:
+        for rep in (s.get("parsed") or {}).get("reporting", []):
+            if rep["abn"] and normalise(rep["name"]):
+                seen[normalise(rep["name"])].add(rep["abn"])
+    return {k: next(iter(v)) for k, v in seen.items() if len(v) == 1}
+
+
+def _single_group(statement: dict, name_abn: dict[str, str]) -> dict:
+    """Group key and name of a statement with exactly one reporting entity."""
+    rep = statement["parsed"]["reporting"][0]
+    key = normalise(rep["name"])
+    if rep["abn"]:
+        group_key, source = rep["abn"], "abn_on_statement"
+    elif key in name_abn:
+        group_key, source = name_abn[key], "abn_of_same_name_on_another_statement"
+    else:
+        group_key, source = f"NAME:{key}", "name_only"
+    return {
+        "group_key": group_key,
+        "group_key_source": source,
+        "group_name": _shown_name(rep["name"]),
+    }
+
+
+def classify_relation(rel: dict) -> str:
+    """Exactly one class per relation. Only CONTROLLED is an ownership edge."""
+    if rel["statement_type"] == "Joint":
+        return JOINT
+    if rel["statement_type"] != "Single" or rel["reporting_entity_count"] != 1:
+        return UNCLASSIFIED
+    if rel["msr_role"] == "included_entity":
+        return CONTROLLED
+    return HEAD if rel["included_entities_listed"] > 0 else SELF_ONLY
+
+
+def match_relations(
     statements: list[dict], profiles: list[dict], abn_rows: list[dict]
 ) -> tuple[list[dict], list[dict], dict]:
-    """Edges, review queue and match statistics from parsed candidate statements."""
+    """Provider-statement relations, review queue and match statistics.
+
+    A relation is one provider named in one statement, by its strongest match. A relation is not
+    an edge: classify_relation decides what each one means.
+    """
     idx = _Index(profiles, abn_rows)
-    edges: dict[tuple[str, str], dict] = {}
+    relations: dict[tuple[str, str], dict] = {}
     review: list[dict] = []
     stats = Counter()
 
-    def base(s: dict) -> dict:
-        key, name = _group(s)
-        return {
-            "group_key": key,
-            "group_name": name,
-            "statement_id": s["statement_id"],
-            "statement_page_id": s["page_id"],
-            "statement_url": s["statement_url"],
-            "statement_type": s.get("type"),
-            "reporting_period": s.get("reporting_period"),
-            "captured_at": s.get("captured_at"),
-            "page_sha256": s.get("page_sha256"),
-        }
-
-    def add_edge(s: dict, pr: str, edge_type: str, method: str, msr_name: str) -> None:
+    def add_relation(s: dict, pr: str, role: str, method: str, msr_name: str) -> None:
         k = (pr, s["page_id"])
-        if k in edges and _RANK[edges[k]["match_method"]] <= _RANK[method]:
+        if k in relations and _RANK[relations[k]["match_method"]] <= _RANK[method]:
             return
-        edges[k] = {
-            **base(s),
+        relations[k] = {
+            **_statement_facts(s),
             "provider_approval_number": pr,
             "provider_legal_name": idx.legal.get(pr),
             "provider_abn": idx.abn_of.get(pr),
-            "edge_type": edge_type,
+            "msr_role": role,
             "match_method": method,
             "msr_entity_name": _shown_name(msr_name),
         }
@@ -410,10 +509,10 @@ def build_edges(
         prs = sorted(prs)
         shown = _shown_name(name)
         names = "" if shown == WITHHELD else "; ".join(idx.legal.get(p, "") for p in prs)
-        b = base(s)
+        facts = _statement_facts(s)
         review.append(
             {
-                **{k: b[k] for k in b if k in REVIEW_COLUMNS},
+                **{k: facts[k] for k in facts if k in REVIEW_COLUMNS},
                 "msr_role": role,
                 "msr_entity_name": shown,
                 "msr_entity_abn": abn,
@@ -426,7 +525,7 @@ def build_edges(
     def match_entity(s: dict, role: str, name: str, abn: str | None) -> None:
         matched = idx.by_abn.get(abn or "", [])
         for pr in matched:
-            add_edge(s, pr, role, f"{role}_abn_equals_provider_abn", name)
+            add_relation(s, pr, role, f"{role}_abn_equals_provider_abn", name)
         if matched:
             return
         key = normalise(name)
@@ -453,7 +552,7 @@ def build_edges(
             elif pr not in idx.abn_of:
                 reason = "name_unique_provider_without_abn"
             elif normalise(idx.abr_name.get(pr)) == key:
-                add_edge(s, pr, role, "included_name_equals_acecqa_and_abr_name", name)
+                add_relation(s, pr, role, "included_name_equals_acecqa_and_abr_name", name)
                 return
             else:
                 reason = "abr_name_disagrees"
@@ -465,26 +564,87 @@ def build_edges(
         if loose - idx.excluded:
             add_review(s, role, name, abn, "fuzzy_corporate_suffix_differs", loose - idx.excluded)
 
+    name_abn = _name_abn_map(statements)
     for s in statements:
-        parsed = s.get("parsed") or {"reporting": [], "included": []}
+        s = {**s, "parsed": s.get("parsed") or {"reporting": [], "included": []}}
+        parsed = s["parsed"]
         for rep in parsed["reporting"]:
             match_entity(s, "reporting_entity", rep["name"], rep["abn"])
         stats["included_entities_parsed"] += len(parsed["included"])
         stats["included_entities_with_abn"] += sum(1 for i in parsed["included"] if i["abn"])
         for inc in parsed["included"]:
             match_entity(s, "included_entity", inc["name"], inc["abn"])
+        single = (s.get("type") or "") == "Single" and len(parsed["reporting"]) == 1
+        group = (
+            _single_group(s, name_abn)
+            if single
+            else {"group_key": None, "group_key_source": None, "group_name": None}
+        )
+        for (_, page), rel in relations.items():
+            if page == s["page_id"]:
+                rel.update(group)
+                rel["relation"] = classify_relation(rel)
 
     out = sorted(
-        edges.values(),
-        key=lambda e: (
-            e["provider_approval_number"],
-            e["reporting_period"] or "",
-            e["statement_id"],
-        ),
+        relations.values(),
+        key=lambda r: (r["provider_approval_number"], r["period_end"], r["statement_id"]),
     )
     review.sort(key=lambda r: (r["statement_id"], r["msr_role"], r["msr_entity_name"] or ""))
     stats.setdefault("matches_to_excluded_providers", 0)
     return out, review, dict(stats)
+
+
+def _page_order(rel: dict) -> tuple[str, int]:
+    page = str(rel.get("statement_page_id") or "0")
+    return (rel["period_end"], int(page) if page.isdigit() else 0)
+
+
+def collapse(relations: list[dict], relation: str) -> list[dict]:
+    """One row per provider and group for a class: the latest statement, listing every one."""
+    grouped: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for r in relations:
+        if r["relation"] == relation:
+            grouped[(r["provider_approval_number"], r["group_key"])].append(r)
+    out = []
+    for _, rows in sorted(grouped.items()):
+        rows.sort(key=_page_order)
+        latest = rows[-1]
+        out.append(
+            {
+                **latest,
+                "edge_type": relation,
+                "statement_count": len(rows),
+                "statement_ids": "; ".join(r["statement_id"] for r in rows),
+                "statement_urls": "; ".join(r["statement_url"] for r in rows),
+                "match_methods": "; ".join(sorted({r["match_method"] for r in rows})),
+            }
+        )
+    return out
+
+
+def build_layer(statements: list[dict], profiles: list[dict], abn_rows: list[dict]) -> dict:
+    """Edges (controlled_entity_of only), group heads, joint co-reporting rows and review queue."""
+    relations, review, stats = match_relations(statements, profiles, abn_rows)
+    edges = collapse(relations, CONTROLLED)
+    heads = collapse(relations, HEAD)
+    linked: dict[str, set[str]] = defaultdict(set)
+    for e in edges:
+        linked[e["group_key"]].add(e["provider_approval_number"])
+    for h in heads:
+        h["controlled_providers_linked"] = len(linked.get(h["group_key"], set()))
+    coreported = [
+        {**r, "caveat": JOINT_CAVEAT, "statement_key": f"MSR-{r['statement_page_id']}"}
+        for r in relations
+        if r["relation"] == JOINT
+    ]
+    return {
+        "relations": relations,
+        "edges": edges,
+        "heads": heads,
+        "coreported": coreported,
+        "review": review,
+        "stats": stats,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -492,83 +652,125 @@ def build_edges(
 # ---------------------------------------------------------------------------
 
 
+def _services(services: list[dict], prs: set[str]) -> int:
+    return sum(1 for s in services if normalise_pr(s.get("provider_approval_number")) in prs)
+
+
+def joint_manual_candidates(coreported: list[dict]) -> list[dict]:
+    """Joint statements that list a provider as an included entity. Never promoted to edges.
+
+    Some are filed by one corporate group and may describe ownership; that needs confirmation
+    from another source.
+    """
+    by_stmt: dict[str, list[dict]] = defaultdict(list)
+    for r in coreported:
+        if r["msr_role"] == "included_entity":
+            by_stmt[r["statement_key"]].append(r)
+    out = []
+    for _, rows in sorted(by_stmt.items(), key=lambda kv: kv[1][0]["statement_id"]):
+        first = rows[0]
+        out.append(
+            {
+                "statement_id": first["statement_id"],
+                "statement_url": first["statement_url"],
+                "reporting_period": first["reporting_period"],
+                "reporting_entity_count": first["reporting_entity_count"],
+                "first_listed_reporting_entity": first["first_listed_reporting_entity"],
+                "included_providers": sorted({r["provider_approval_number"] for r in rows}),
+            }
+        )
+    return out
+
+
 def summarise(
-    edges: list[dict],
-    review: list[dict],
-    stats: dict,
-    abn_rows: list[dict],
-    services: list[dict],
-    *,
-    candidates_count: int,
+    layer: dict, abn_rows: list[dict], services: list[dict], *, candidates_count: int
 ) -> dict:
-    prs = {e["provider_approval_number"] for e in edges}
+    edges, heads, coreported = layer["edges"], layer["heads"], layer["coreported"]
+    relations, review, stats = layer["relations"], layer["review"], layer["stats"]
     priority = {normalise_pr(r.get("provider_approval_number")) for r in abn_rows} - {None}
     priority_with_abn = {
         normalise_pr(r.get("provider_approval_number")) for r in abn_rows if r.get("abn")
     } - {None}
-    services_covered = sum(
-        1 for s in services if normalise_pr(s.get("provider_approval_number")) in prs
-    )
-    by_type = Counter(e["edge_type"] for e in edges)
-    inc_prs = {e["provider_approval_number"] for e in edges if e["edge_type"] == "included_entity"}
+    edge_prs = {e["provider_approval_number"] for e in edges}
+    head_prs = {h["provider_approval_number"] for h in heads}
+    joint_prs = {r["provider_approval_number"] for r in coreported}
+    group_keys = sorted({e["group_key"] for e in edges})
     periods = sorted(e["reporting_period"] for e in edges if e.get("reporting_period"))
-    providers_by_type = {
-        t: len({e["provider_approval_number"] for e in edges if e["edge_type"] == t})
-        for t in ("reporting_entity", "included_entity")
-    }
-    groups = defaultdict(set)
-    for e in edges:
-        groups[(e["group_key"], e["group_name"])].add(e["provider_approval_number"])
+    groups = []
+    for key in group_keys:
+        members = [e for e in edges if e["group_key"] == key]
+        latest = max(members, key=_page_order)
+        prs = {e["provider_approval_number"] for e in members}
+        groups.append(
+            {
+                "group_key": key,
+                "group_name": latest["group_name"],
+                "controlled_providers": len(prs),
+                "services_of_controlled_providers": _services(services, prs),
+                "head_provider": next(
+                    (h["provider_approval_number"] for h in heads if h["group_key"] == key), None
+                ),
+            }
+        )
+    groups.sort(key=lambda g: (-g["controlled_providers"], g["group_key"]))
     return {
         "generated_at": utc_now().isoformat(),
-        "definition": EDGE_DEFINITION,
+        "definitions": [EDGE_DEFINITION, HEAD_DEFINITION, JOINT_DEFINITION],
         "counts": {
             "candidate_statements": candidates_count,
             "included_entities_parsed": stats.get("included_entities_parsed", 0),
             "included_entities_with_abn": stats.get("included_entities_with_abn", 0),
-            "edges_by_match_method": dict(
-                sorted(Counter(e["match_method"] for e in edges).items())
-            ),
-            "edges_reporting_entity": by_type.get("reporting_entity", 0),
-            "edges_included_entity": by_type.get("included_entity", 0),
-            "distinct_providers_with_edge": len(prs),
-            "distinct_providers_by_edge_type": providers_by_type,
+            "relations_total": len(relations),
+            "relations_by_class": dict(sorted(Counter(r["relation"] for r in relations).items())),
+            "controlled_entity_of": {
+                "edges": len(edges),
+                "distinct_providers": len(edge_prs),
+                "groups": len(group_keys),
+                "priority_providers_gained_edge": len(edge_prs & priority),
+                "services_of_those_providers": _services(services, edge_prs),
+                "edges_by_latest_match_method": dict(
+                    sorted(Counter(e["match_method"] for e in edges).items())
+                ),
+            },
+            "group_parent_self_not_ownership_edges": {
+                "rows": len(heads),
+                "distinct_providers": len(head_prs),
+                "services_of_those_providers": _services(services, head_prs),
+            },
+            "co_reported_joint_not_ownership": {
+                "rows": len(coreported),
+                "distinct_providers": len(joint_prs),
+                "statements": len({r["statement_key"] for r in coreported}),
+                "providers_only_in_joint_statements": len(joint_prs - edge_prs - head_prs),
+            },
             "priority_providers_total": len(priority),
             "priority_providers_with_abn": len(priority_with_abn),
-            "priority_providers_gained_edge": len(prs & priority),
-            "services_covered": services_covered,
-            "services_covered_by_included_entity_providers": sum(
-                1 for sv in services if normalise_pr(sv.get("provider_approval_number")) in inc_prs
-            ),
             "services_total": len(services),
             "review_queue": len(review),
             "review_by_reason": dict(sorted(Counter(r["reason"] for r in review).items())),
             "matches_to_excluded_providers": stats.get("matches_to_excluded_providers", 0),
         },
         "window": {
-            "reporting_periods_earliest": periods[0] if periods else None,
-            "reporting_periods_latest": periods[-1] if periods else None,
+            "edge_reporting_periods_earliest": periods[0] if periods else None,
+            "edge_reporting_periods_latest": periods[-1] if periods else None,
         },
-        "groups": [
-            {"group_key": k, "group_name": n, "providers": len(v)}
-            for (k, n), v in sorted(groups.items(), key=lambda kv: (-len(kv[1]), kv[0]))
-        ],
+        "groups": groups,
+        "joint_statements_for_manual_confirmation": joint_manual_candidates(coreported),
         "caveats": [
             EDGE_DEFINITION,
+            HEAD_DEFINITION,
+            JOINT_DEFINITION,
             "The register covers entities with annual consolidated revenue of at least AUD 100 "
             "million, plus voluntary reporters. Absence of an edge says nothing about ownership.",
-            "Included entities are listed by name only. An included_entity edge needs the MSR name "
-            "to equal, after normalisation, exactly one ACECQA provider legal name and that "
-            "provider's ABR entity name. It is not verified by ABN or ACN.",
-            "A reporting_entity edge from a joint statement (group_key MSR-<page id>) means the "
-            "provider reported jointly with the other listed entities. Joint reporting is not, by "
-            "itself, evidence of common ownership.",
-            "Edges span every reporting period on the register. A provider included in an older "
-            "statement may since have changed hands; check reporting_period.",
+            "Name-matched edges are not verified by ABN or ACN; they need the ACECQA legal name "
+            "and the ABR entity name to agree.",
+            "Each edge is collapsed to one row per provider and group from the latest statement; "
+            "statement_ids lists every statement. A provider in an older statement may since have "
+            "changed hands.",
             "MSR licence unclear (Copyright Attorney-General's Department). Raw MSR files are not "
             "committed. Ask the department before any public display.",
-            "services_covered counts current ACECQA service approvals held by providers with an "
-            "edge, from acecqa-services-latest.csv. ACECQA content is not openly licensed.",
+            "Service counts are current ACECQA service approvals from acecqa-services-latest.csv. "
+            "ACECQA content is not openly licensed.",
         ],
     }
 
@@ -662,33 +864,51 @@ def main(argv: list[str] | None = None) -> None:
 
     profiles = _load_csv(PROFILE_CSV)
     parsed = [s for s in candidates if "parsed" in s]
-    edges, review, stats = build_edges(parsed, profiles, abn_rows)
+    layer = build_layer(parsed, profiles, abn_rows)
     services = _load_csv(SERVICES_CSV) if SERVICES_CSV.exists() else []
     if not services:
-        log.warning("no %s: services_covered will be 0", SERVICES_CSV.name)
+        log.warning("no %s: service counts will be 0", SERVICES_CSV.name)
 
     raw_inputs = [csv_path, *page_paths, PROVIDER_ABN_CSV, PROFILE_CSV]
+    local_only = (
+        " Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: licence "
+        "unclear)."
+    )
     write_processed(
         EDGES_NAME,
-        edges,
+        layer["edges"],
         EDGE_COLUMNS,
         raw_inputs=raw_inputs,
         notes=EDGE_DEFINITION
-        + " Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: "
-        "licence unclear). group_key is the single reporting entity's ABN, or MSR-<page id> for "
-        "joint statements or reporting entities without an ABN.",
+        + " One row per provider and group, from the latest statement; statement_ids and "
+        "statement_urls list every statement. group_key is the reporting entity's ABN "
+        "(group_key_source says where it came from) or NAME:<normalised name>." + local_only,
+    )
+    write_processed(
+        HEADS_NAME,
+        layer["heads"],
+        HEAD_COLUMNS,
+        raw_inputs=raw_inputs,
+        notes=HEAD_DEFINITION + local_only,
+    )
+    write_processed(
+        COREPORTED_NAME,
+        layer["coreported"],
+        COREPORTED_COLUMNS,
+        raw_inputs=raw_inputs,
+        notes=JOINT_DEFINITION + f" Every row carries the caveat '{JOINT_CAVEAT}'." + local_only,
     )
     write_processed(
         REVIEW_NAME,
-        review,
+        layer["review"],
         REVIEW_COLUMNS,
         raw_inputs=raw_inputs,
-        notes="Possible links that did not meet the edge rule: ambiguous names, ABR name "
-        "disagreement, providers without an ABN, corporate-suffix differences and reporting "
-        "entities matched by name only. Not evidence of ownership. MSR names that may be an "
-        f"individual's are shown as '{WITHHELD}'.",
+        notes="Possible links that did not meet the matching rule: ambiguous names, ABR or ABN "
+        "disagreement, providers without a resolved ABN, corporate-suffix differences and "
+        "reporting entities matched by name only. Not evidence of ownership. MSR names that may "
+        f"be an individual's are shown as '{WITHHELD}'." + local_only,
     )
-    summary = summarise(edges, review, stats, abn_rows, services, candidates_count=len(candidates))
+    summary = summarise(layer, abn_rows, services, candidates_count=len(candidates))
     summary["counts"]["candidate_pages_missing"] = len(missing)
     summary["source"] = {
         "csv_url_pattern": f"{BASE_URL}/resources/all-statement-information_<date>.csv",
