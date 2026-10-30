@@ -70,6 +70,7 @@ from scrapers.common import (
     log,
     note_withheld_subject,
     printed_fingerprint,
+    refuse_if_reparse_incomplete,
     withhold_free_text,
     withhold_prose_naming_people,
     write_processed,
@@ -660,6 +661,8 @@ def _latest_by_role() -> dict[str, Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if refuse_if_reparse_incomplete():  # an interrupted reparse_offline run (Codex round 5)
+        return 3
     ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--skip-fetch", action="store_true", help="parse the newest local snapshots")

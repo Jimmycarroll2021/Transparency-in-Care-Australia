@@ -15,9 +15,12 @@ import csv
 import hashlib
 import json
 import logging
+import os
 import re
+import tempfile
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -30,6 +33,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
 EVIDENCE_DIR = PROJECT_ROOT / "data" / "evidence"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
+# Codex round 5: set while scrapers/reparse_offline.py replaces data/processed; removed only after a
+# fully successful run. Gitignored.
+REPARSE_MARKER = PROJECT_ROOT / "data" / ".reparse-in-progress"
 
 USER_AGENT = (
     "TransparencyInCareAustralia/0.1 "
@@ -514,6 +520,76 @@ def assign_record_ids(rows: list[dict], source_id: str | None = None) -> None:
         row["record_id"] = record_hash(base, str(seen[base]))
 
 
+@contextmanager
+def atomic_open(path: Path, newline: str | None = None) -> Iterator:
+    """Open a temporary file next to `path` for writing; on a clean exit flush, fsync and
+    os.replace it over `path`. On any error the temporary file is removed and `path` is left
+    exactly as it was, so no output is ever half-written (Codex round 5)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline=newline) as fh:
+            yield fh
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def atomic_write_text(path: Path, text: str, newline: str | None = None) -> None:
+    with atomic_open(path, newline=newline) as fh:
+        fh.write(text)
+
+
+def atomic_write_bytes(path: Path, data: bytes) -> None:
+    path = Path(path)
+    fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def reparse_recovery_message() -> str | None:
+    """Recovery instructions when an interrupted reparse_offline run left its marker, else None."""
+    if not REPARSE_MARKER.exists():
+        return None
+    try:
+        detail = REPARSE_MARKER.read_text(encoding="utf-8").strip()
+    except OSError:
+        detail = "(marker unreadable)"
+    return (
+        f"An earlier scrapers/reparse_offline.py run did not finish ({REPARSE_MARKER}: {detail}). "
+        "data/processed may be partly replaced. Recover first: either copy the files back from "
+        "the backup directory named above into data/processed, or run "
+        "`git checkout -- data/processed`. Then delete the marker file and run again."
+    )
+
+
+def refuse_if_reparse_incomplete() -> bool:
+    """True (and print why) when an interrupted reparse left data/processed in doubt."""
+    message = reparse_recovery_message()
+    if message is None:
+        return False
+    log.error("refusing to run: %s", message)
+    print(message)
+    return True
+
+
 def write_processed(
     name: str,
     rows: list[dict],
@@ -526,7 +602,7 @@ def write_processed(
     """Write data/processed/<name>.csv and <name>.provenance.json listing the raw inputs used."""
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     out = PROCESSED_DIR / f"{name}.csv"
-    with out.open("w", newline="", encoding="utf-8") as fh:
+    with atomic_open(out, newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         for row in rows:
@@ -539,6 +615,8 @@ def write_processed(
         "raw_inputs": [p.relative_to(PROJECT_ROOT).as_posix() for p in raw_inputs],
         "notes": notes,
     }
-    (PROCESSED_DIR / f"{name}.provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
+    atomic_write_text(
+        PROCESSED_DIR / f"{name}.provenance.json", json.dumps(provenance, indent=2) + "\n"
+    )
     log.info("processed %s (%d rows)", out.relative_to(PROJECT_ROOT), len(rows))
     return out

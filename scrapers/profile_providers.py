@@ -29,12 +29,26 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 try:
-    from scrapers.common import PROCESSED_DIR, PROJECT_ROOT, log, utc_now, write_processed
+    from scrapers.common import (
+        PROCESSED_DIR,
+        PROJECT_ROOT,
+        atomic_write_text,
+        log,
+        utc_now,
+        write_processed,
+    )
 except ImportError:  # run as a plain script: python3 scrapers/profile_providers.py
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-    from scrapers.common import PROCESSED_DIR, PROJECT_ROOT, log, utc_now, write_processed
+    from scrapers.common import (
+        PROCESSED_DIR,
+        PROJECT_ROOT,
+        atomic_write_text,
+        log,
+        utc_now,
+        write_processed,
+    )
 
 PROVIDERS_CSV = PROCESSED_DIR / "acecqa-providers-latest.csv"
 SERVICES_CSV = PROCESSED_DIR / "acecqa-services-latest.csv"
@@ -842,9 +856,7 @@ def build_profile() -> dict:
         "row_level_logs": dict(null_log),
         "caveat": "entity_form is heuristic. Absence of a flag is not evidence of safety.",
     }
-    SUMMARY_JSON.write_text(
-        json.dumps(summary, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
+    atomic_write_text(SUMMARY_JSON, json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
     log.info("summary %s", SUMMARY_JSON.relative_to(PROJECT_ROOT))
     log.info("entity_form counts: %s", summary["entity_form_counts"])
     return summary

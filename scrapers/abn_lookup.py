@@ -54,6 +54,7 @@ try:
         RAW_DIR,
         Fetched,
         RobotsDisallowed,
+        atomic_write_text,
         fetch,
         log,
         utc_now,
@@ -72,6 +73,7 @@ except ImportError:  # run as a plain script: python3 scrapers/abn_lookup.py
         RAW_DIR,
         Fetched,
         RobotsDisallowed,
+        atomic_write_text,
         fetch,
         log,
         utc_now,
@@ -681,7 +683,7 @@ def add_abr_provenance(name: str, extra: dict) -> None:
     path = PROCESSED_DIR / f"{name}.provenance.json"
     prov = json.loads(path.read_text(encoding="utf-8"))
     prov.update(extra)
-    path.write_text(json.dumps(prov, indent=2) + "\n", encoding="utf-8")
+    atomic_write_text(path, json.dumps(prov, indent=2) + "\n")
 
 
 ABR_PROVENANCE = {

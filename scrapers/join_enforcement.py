@@ -93,6 +93,7 @@ try:
     from scrapers.common import (
         PROCESSED_DIR,
         PROJECT_ROOT,
+        atomic_write_text,
         log,
         normalise_pr,
         normalise_se,
@@ -107,6 +108,7 @@ except ImportError:  # run as a plain script: python3 scrapers/join_enforcement.
     from scrapers.common import (
         PROCESSED_DIR,
         PROJECT_ROOT,
+        atomic_write_text,
         log,
         normalise_pr,
         normalise_se,
@@ -1701,7 +1703,7 @@ def main() -> None:
         )
     ]
     report["joined_before_unlisted_stage"] = matched_before
-    REPORT_JSON.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    atomic_write_text(REPORT_JSON, json.dumps(report, indent=2) + "\n")
     log.info("wrote %s", REPORT_JSON.relative_to(PROJECT_ROOT))
     for j, s in report["per_jurisdiction"].items():
         log.info(

@@ -12,9 +12,11 @@ register or in any enforcement register. The set is built in two passes in one p
 All or nothing (Codex round 4, finding 2). A parser that exits non-zero or raises in the capture
 pass stops the run before anything is written. In the real pass every parser's writes are held
 back in memory until all parsers have succeeded. Then the current processed outputs are copied to
-a temporary backup, the held writes are made and the join runs; if anything fails, every file in
-data/processed is restored from the backup (files the run created are removed) and the exit
-code is non-zero. On success the backup is deleted.
+a persistent backup (data/.reparse-backup/<timestamp>), a marker (data/.reparse-in-progress) is
+set, the held writes are made atomically and the join runs. If anything fails, data/processed is
+restored from the backup (files the run created are removed), the exit code is non-zero, and the
+backup and the marker are kept: until the marker is removed every later run refuses to start and
+prints recovery instructions. Only a fully successful run removes the marker and the backup.
 
 The set exists only in memory. It is never written, logged or printed; only counts are logged.
 
@@ -25,7 +27,6 @@ from __future__ import annotations
 
 import shutil
 import sys
-import tempfile
 from pathlib import Path
 
 if __package__ in (None, ""):
@@ -42,10 +43,12 @@ from scrapers import parse_sa_enforcement as sa  # noqa: E402
 from scrapers import parse_tas_enforcement as tas  # noqa: E402
 from scrapers import parse_vecra_enforcement as vecra  # noqa: E402
 from scrapers import parse_wa_enforcement as wa  # noqa: E402
-from scrapers.common import PROCESSED_DIR, log  # noqa: E402
+from scrapers.common import PROCESSED_DIR, PROJECT_ROOT, log  # noqa: E402
 from scrapers.profile_providers import PersonNames, acecqa_person_names  # noqa: E402
 
 PARSERS = [qld, vecra, sa, tas, cth, wa, nsw]
+# Persistent backups of data/processed, one directory per run (gitignored).
+BACKUP_ROOT = PROJECT_ROOT / "data" / ".reparse-backup"
 _WRITERS = ("write_processed", "write_counts")
 ARGV = ["--skip-fetch"]
 
@@ -128,7 +131,7 @@ def _restore(directory: Path, backup: Path, names: list[str]) -> None:
         if path.is_file() and path.name not in names:
             path.unlink()
     for name in names:
-        shutil.copy2(backup / name, directory / name)
+        common.atomic_write_bytes(directory / name, (backup / name).read_bytes())
 
 
 def collect_person_names() -> PersonNames:
@@ -152,6 +155,8 @@ def collect_person_names() -> PersonNames:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if common.refuse_if_reparse_incomplete():
+        return 3
     try:
         names = collect_person_names()
     except ParserFailed as exc:
@@ -165,17 +170,39 @@ def main(argv: list[str] | None = None) -> int:
     except ParserFailed as exc:
         log.error("real pass failed (%s); nothing written", exc)
         return 1
-    with tempfile.TemporaryDirectory(prefix="reparse-backup-") as tmp:
-        backup = Path(tmp)
-        names_before = _backup(PROCESSED_DIR, backup)
+    # Codex round 5: a persistent backup and a marker. The marker is removed and the backup
+    # deleted only after a fully successful run; otherwise both stay for recovery.
+    backup = BACKUP_ROOT / common.utc_now().strftime("%Y-%m-%dT%H%M%S%fZ")
+    backup.mkdir(parents=True)
+    common.atomic_write_text(common.REPARSE_MARKER, f"backup: {backup}\n")
+    names_before = _backup(PROCESSED_DIR, backup)
+    try:
+        for fn, args, kwargs in held:
+            fn(*args, **kwargs)
+        run_join()
+    except BaseException as exc:  # includes SystemExit from the join
+        log.error("writing or join failed (%r)", exc)
         try:
-            for fn, args, kwargs in held:
-                fn(*args, **kwargs)
-            run_join()
-        except BaseException as exc:  # includes SystemExit from the join
             _restore(PROCESSED_DIR, backup, names_before)
-            log.error("writing or join failed (%r); data/processed restored unchanged", exc)
+        except BaseException as restore_exc:
+            message = (
+                f"Restore FAILED ({restore_exc!r}). The backup is kept at {backup}. Copy its files "
+                "back into data/processed, or run `git checkout -- data/processed`, then delete "
+                f"{common.REPARSE_MARKER}."
+            )
+            log.error(message)
+            print(message)
             return 1
+        message = (
+            f"data/processed was restored from the backup at {backup}. The backup and the marker "
+            f"{common.REPARSE_MARKER} are kept: check `git status`, then delete both (or run "
+            "`git checkout -- data/processed`) before running again."
+        )
+        log.error(message)
+        print(message)
+        return 1
+    common.REPARSE_MARKER.unlink()
+    shutil.rmtree(backup)
     return 0
 
 

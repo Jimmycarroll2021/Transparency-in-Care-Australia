@@ -44,6 +44,8 @@ from scrapers.common import (
     Fetched,
     RobotsDisallowed,
     assign_record_ids,
+    atomic_open,
+    atomic_write_text,
     ensure_person_names,
     fetch,
     known_hashes,
@@ -53,6 +55,7 @@ from scrapers.common import (
     note_withheld_subject,
     printed_fingerprint,
     record_hash,
+    refuse_if_reparse_incomplete,
     utc_stamp,
     withhold_free_text,
     withhold_prose_naming_people,
@@ -1016,7 +1019,7 @@ def mark_duplicates(rows: list[dict]) -> int:
 def write_counts(rows: list[dict], raw_inputs: list[Path]) -> Path:
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     out = PROCESSED_DIR / f"{COUNTS_NAME}.csv"
-    with out.open("w", newline="", encoding="utf-8") as fh:
+    with atomic_open(out, newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=COUNT_FIELDNAMES, extrasaction="ignore")
         writer.writeheader()
         for row in rows:
@@ -1037,8 +1040,8 @@ def write_counts(rows: list[dict], raw_inputs: list[Path]) -> Path:
             "with that caveat. Absence of an entry is not evidence of safety."
         ),
     }
-    (PROCESSED_DIR / f"{COUNTS_NAME}.provenance.json").write_text(
-        json.dumps(provenance, indent=2) + "\n"
+    atomic_write_text(
+        PROCESSED_DIR / f"{COUNTS_NAME}.provenance.json", json.dumps(provenance, indent=2) + "\n"
     )
     log.info("processed %s (%d rows)", out.relative_to(PROJECT_ROOT), len(rows))
     return out
@@ -1076,6 +1079,8 @@ def parse_all() -> tuple[list[dict], list[dict], list[Path]]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if refuse_if_reparse_incomplete():  # an interrupted reparse_offline run (Codex round 5)
+        return 3
     ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--force", action="store_true", help="write new snapshots even if unchanged")

@@ -47,7 +47,14 @@ from pathlib import Path
 
 try:
     from scrapers import abn_lookup as al
-    from scrapers.common import PROCESSED_DIR, log, normalise_pr, utc_now, write_processed
+    from scrapers.common import (
+        PROCESSED_DIR,
+        atomic_write_text,
+        log,
+        normalise_pr,
+        utc_now,
+        write_processed,
+    )
     from scrapers.join_enforcement import normalise_provider_name
     from scrapers.profile_providers import name_is_withheld
 except ImportError:  # run as a plain script
@@ -55,7 +62,14 @@ except ImportError:  # run as a plain script
 
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from scrapers import abn_lookup as al
-    from scrapers.common import PROCESSED_DIR, log, normalise_pr, utc_now, write_processed
+    from scrapers.common import (
+        PROCESSED_DIR,
+        atomic_write_text,
+        log,
+        normalise_pr,
+        utc_now,
+        write_processed,
+    )
     from scrapers.join_enforcement import normalise_provider_name
     from scrapers.profile_providers import name_is_withheld
 
@@ -652,7 +666,7 @@ def main(argv: list[str] | None = None) -> None:
         f"data/processed/{GROUPS_NAME}.csv",
         "data/processed/enforcement-by-provider.csv",
     ]
-    SUMMARY_JSON.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    atomic_write_text(SUMMARY_JSON, json.dumps(summary, indent=2) + "\n")
     log.info(
         "stage C: %d entity groups (%d providers), %d business-name overlap flags",
         summary["entity_groups"],
