@@ -408,42 +408,50 @@ def test_only_the_newest_snapshot_of_each_url_is_parsed(tmp_path):
     ]
 
 
-def test_snapshot_without_meta_falls_back_to_its_file_slug(tmp_path):
+def test_snapshots_without_meta_are_not_identified_from_their_file_names(tmp_path):
+    # The file name is not an identity: without a sidecar URL a snapshot is neither kept nor
+    # superseded, and parse_all reports it as unidentified.
     src = tmp_path / SOURCE
     src.mkdir()
-    _write_pdf_snapshot(src, "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf", None)
-    _write_pdf_snapshot(src, "2026-11-02T0718Z-q1-cancellations-providers-2025-2026.pdf", None)
-    _write_pdf_snapshot(src, "2026-11-02T0718Z-q2-cancellations-providers-2025-2026.pdf", None)
-
-    kept, superseded = pdf_snapshots(base_dir=tmp_path)
-
-    assert [p.name for p in kept] == [
+    names = [
+        "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf",
         "2026-11-02T0718Z-q1-cancellations-providers-2025-2026.pdf",
         "2026-11-02T0718Z-q2-cancellations-providers-2025-2026.pdf",
     ]
-    assert [p.name for p in superseded] == [
-        "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf"
-    ]
+    for name in names:
+        _write_pdf_snapshot(src, name, None)
+
+    kept, superseded = pdf_snapshots(base_dir=tmp_path)
+    rows, parsed, summary = parse_all(base_dir=tmp_path, root=tmp_path)
+
+    assert kept == []
+    assert superseded == []
+    assert parsed == []
+    assert summary["unidentified_snapshots"] == names
+    assert summary["complete"] is False
 
 
-def test_a_document_has_one_identity_with_or_without_a_meta_sidecar(tmp_path):
+def test_a_newer_copy_without_a_sidecar_is_not_counted_as_a_second_document(tmp_path):
     # The same quarterly PDF, once with a sidecar and once without, must not be counted as two
-    # documents: only the newest copy is kept.
+    # documents: the copy with the sidecar is the document, the other is reported unidentified.
     src = tmp_path / SOURCE
     src.mkdir()
     q1 = "https://education.nsw.gov.au/x/Q1_Cancellations_Providers_2025_2026.pdf"
-    _write_pdf_snapshot(src, "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf", q1)
-    _write_pdf_snapshot(src, "2026-11-02T0718Z-q1-cancellations-providers-2025-2026.pdf", None)
+    old = "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf"
+    new = "2026-11-02T0718Z-q1-cancellations-providers-2025-2026.pdf"
+    _write_pdf_snapshot(src, old, q1)
+    _write_pdf_snapshot(src, new, None)
 
     kept, superseded = pdf_snapshots(base_dir=tmp_path)
 
-    assert [p.name for p in kept] == ["2026-11-02T0718Z-q1-cancellations-providers-2025-2026.pdf"]
-    assert [p.name for p in superseded] == [
-        "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf"
-    ]
+    assert [p.name for p in kept] == [old]
+    assert superseded == []
+    rows, parsed, summary = parse_all(base_dir=tmp_path, root=tmp_path)
+    assert summary["unidentified_snapshots"] == [new]
+    assert new not in summary["by_file"]
 
 
-def test_sidecar_identity_is_unified_when_the_newer_copy_has_the_sidecar(tmp_path):
+def test_an_older_copy_without_a_sidecar_is_not_counted_as_a_second_document(tmp_path):
     src = tmp_path / SOURCE
     src.mkdir()
     q1 = "https://education.nsw.gov.au/x/Q1_Cancellations_Providers_2025_2026.pdf"
@@ -453,7 +461,7 @@ def test_sidecar_identity_is_unified_when_the_newer_copy_has_the_sidecar(tmp_pat
     kept, superseded = pdf_snapshots(base_dir=tmp_path)
 
     assert [p.name for p in kept] == ["2026-11-02T0718Z-q1-cancellations-providers-2025-2026.pdf"]
-    assert len(superseded) == 1
+    assert superseded == []  # the older copy has no sidecar: unidentified, not superseded
 
 
 def _fake_reader(bad: set[str]):
@@ -496,9 +504,7 @@ def test_a_corrupt_newer_snapshot_falls_back_to_the_older_copy(tmp_path, monkeyp
     assert rows[0]["source_snapshot"] == f"{SOURCE}/{old}"
     assert summary["pdfs_parsed"] == 1
     assert "error" in summary["by_file"][new]
-    assert summary["fallbacks"] == [
-        {"document": "q1-cancellations-services-2025-2026", "used": old, "failed": [new]}
-    ]
+    assert summary["fallbacks"] == [{"document": q1, "used": old, "failed": [new]}]
     assert summary["failed_documents"] == []
     assert summary["complete"] is True
 
@@ -523,9 +529,7 @@ def test_a_document_whose_snapshots_all_fail_is_reported_not_silently_dropped(
     rows, parsed, summary = parse_all(base_dir=tmp_path, root=tmp_path)
 
     assert [p.name for p in parsed] == [ok]
-    assert summary["failed_documents"] == [
-        {"document": "q1-cancellations-services-2025-2026", "snapshots": [new, old]}
-    ]
+    assert summary["failed_documents"] == [{"document": q1, "snapshots": [new, old]}]
     assert summary["complete"] is False
 
 
@@ -549,6 +553,96 @@ def test_a_snapshot_with_no_rows_counts_as_a_failed_parse(tmp_path, monkeypatch)
 
     assert [p.name for p in parsed] == [old]
     assert summary["fallbacks"][0]["failed"] == [new]
+
+
+# --- document identity is the exact source URL ---------------------------------
+
+
+def test_two_urls_with_the_same_basename_are_two_documents(tmp_path, monkeypatch):
+    # Different folders on the site can publish files with the same name. Both are register
+    # documents; treating them as one would silently drop one document's actions.
+    from scrapers import parse_nsw_enforcement as nsw
+
+    src = tmp_path / SOURCE
+    src.mkdir()
+    a = "https://education.nsw.gov.au/a/Q1_Cancellations_Services_2025_2026.pdf"
+    b = "https://education.nsw.gov.au/b/Q1_Cancellations_Services_2025_2026.pdf"
+    first = "2026-10-29T0718Z-q1-cancellations-services-2025-2026.pdf"
+    second = "2026-10-29T0718Z-q1-cancellations-services-2025-202630.pdf"  # same-minute collision
+    _write_pdf_snapshot(src, first, a)
+    _write_pdf_snapshot(src, second, b)
+    monkeypatch.setattr(nsw, "read_pdf_records", _fake_reader(set()))
+
+    rows, parsed, summary = parse_all(base_dir=tmp_path, root=tmp_path)
+
+    assert [p.name for p in parsed] == [first, second]
+    assert len(rows) == 2
+    assert summary["superseded_snapshots"] == []
+    assert summary["complete"] is True
+
+
+def test_a_snapshot_without_a_usable_sidecar_is_reported_not_parsed(tmp_path, monkeypatch):
+    # No sidecar, a sidecar with no URL, or an unreadable sidecar: the document cannot be
+    # identified, so the snapshot is listed and not parsed, and the run is marked incomplete.
+    from scrapers import parse_nsw_enforcement as nsw
+
+    src = tmp_path / SOURCE
+    src.mkdir()
+    q2 = "https://education.nsw.gov.au/x/Q2_Cancellations_Services_2025_2026.pdf"
+    ok = "2026-10-29T0718Z-q2-cancellations-services-2025-2026.pdf"
+    no_meta = "2026-11-02T0718Z-q1-cancellations-services-2025-2026.pdf"
+    no_url = "2026-11-02T0718Z-q3-cancellations-services-2025-2026.pdf"
+    bad_json = "2026-11-02T0718Z-q4-cancellations-services-2025-2026.pdf"
+    _write_pdf_snapshot(src, ok, q2)
+    _write_pdf_snapshot(src, no_meta, None)
+    _write_pdf_snapshot(src, no_url, None)
+    (src / f"{no_url}.meta.json").write_text(json.dumps({"url": "  ", "final_url": None}))
+    _write_pdf_snapshot(src, bad_json, None)
+    (src / f"{bad_json}.meta.json").write_text("{not json")
+    monkeypatch.setattr(nsw, "read_pdf_records", _fake_reader(set()))
+
+    rows, parsed, summary = parse_all(base_dir=tmp_path, root=tmp_path)
+
+    assert [p.name for p in parsed] == [ok]
+    assert len(rows) == 1
+    assert summary["unidentified_snapshots"] == [no_meta, no_url, bad_json]
+    assert set(summary["by_file"]) == {ok}
+    assert summary["complete"] is False
+    kept, superseded = pdf_snapshots(base_dir=tmp_path)
+    assert [p.name for p in kept] == [ok]
+    assert superseded == []
+    notes = nsw.provenance_notes(summary)
+    for name in (no_meta, no_url, bad_json):
+        assert name in notes
+
+
+def test_a_collision_suffixed_copy_of_the_same_url_is_the_same_document(tmp_path, monkeypatch):
+    # A same-minute re-fetch is written as '<stamp>-<slug><seconds>.pdf'. With a sidecar for the
+    # same URL it is the newer copy of the same document: it wins, the older copy is the fallback.
+    from scrapers import parse_nsw_enforcement as nsw
+
+    src = tmp_path / SOURCE
+    src.mkdir()
+    q1 = "https://education.nsw.gov.au/x/Q1_Cancellations_Services_2025_2026.pdf"
+    old = "2026-10-29T0718Z-q1-cancellations-services-2025-2026.pdf"
+    new = "2026-10-29T0718Z-q1-cancellations-services-2025-202630.pdf"
+    _write_pdf_snapshot(src, old, q1)
+    _write_pdf_snapshot(src, new, q1)
+    monkeypatch.setattr(nsw, "read_pdf_records", _fake_reader(set()))
+
+    rows, parsed, summary = parse_all(base_dir=tmp_path, root=tmp_path)
+
+    assert [p.name for p in parsed] == [new]
+    assert len(rows) == 1
+    assert rows[0]["period_label"] == "2025-26 Q1"
+    assert summary["superseded_snapshots"] == [old]
+
+    monkeypatch.setattr(nsw, "read_pdf_records", _fake_reader({new}))
+    rows, parsed, summary = parse_all(base_dir=tmp_path, root=tmp_path)
+
+    assert [p.name for p in parsed] == [old]
+    assert summary["fallbacks"] == [{"document": q1, "used": old, "failed": [new]}]
+    assert summary["complete"] is True
 
 
 # --- paths in outputs ---------------------------------------------------------

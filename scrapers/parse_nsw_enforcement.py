@@ -651,27 +651,37 @@ def mark_duplicates(rows: list[dict]) -> int:
     return count
 
 
-def document_key(path: Path) -> str:
-    """One identity per register document, whether or not the snapshot has a meta sidecar.
+def document_key(path: Path) -> str | None:
+    """The exact source URL of a snapshot, from its meta sidecar ('url', then 'final_url').
 
-    Snapshots are written as '<stamp>-<slug_from_url(url)>.pdf', so the URL's slug and the file's
-    slug are the same thing. With a sidecar the slug is derived from its 'url' (then 'final_url'),
-    which is the value the file name was built from; without one it is read from the file name.
-    Keying on the URL itself would give a sidecar copy and a sidecar-less copy of the same
-    document two identities, and both would be parsed.
+    The URL string is compared exactly (surrounding whitespace stripped, nothing else): two
+    documents whose URLs share a file name stay two documents, and a same-minute copy whose file
+    name carries a collision suffix is still the same document. None when there is no readable
+    sidecar or it holds no URL; such a snapshot cannot be identified and is not parsed.
     """
     meta = read_meta(path)
-    url = meta.get("url") or meta.get("final_url")
-    return slug_from_url(url) if url else slug_of_snapshot(path)
+    for field in ("url", "final_url"):
+        value = meta.get(field)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
 
 
-def pdf_documents(base_dir: Path = RAW_DIR) -> dict[str, list[Path]]:
-    """PDF snapshots grouped by document_key, newest first within each document."""
+def pdf_documents(base_dir: Path = RAW_DIR) -> tuple[dict[str, list[Path]], list[Path]]:
+    """(documents, unidentified). Documents maps document_key to its snapshots, newest first.
+
+    Unidentified snapshots (no usable sidecar URL) are returned separately, oldest first.
+    """
     pdfs = [p for p in list_snapshots(SOURCE, base_dir=base_dir) if p.suffix.lower() == ".pdf"]
     docs: dict[str, list[Path]] = {}
+    unidentified: list[Path] = []
     for path in pdfs:  # listed oldest first
-        docs.setdefault(document_key(path), []).insert(0, path)
-    return docs
+        key = document_key(path)
+        if key is None:
+            unidentified.append(path)
+        else:
+            docs.setdefault(key, []).insert(0, path)
+    return docs, unidentified
 
 
 def pdf_snapshots(base_dir: Path = RAW_DIR) -> tuple[list[Path], list[Path]]:
@@ -680,10 +690,13 @@ def pdf_snapshots(base_dir: Path = RAW_DIR) -> tuple[list[Path], list[Path]]:
     A re-issued quarterly PDF is fetched again from the same URL and archived next to the old
     copy; parsing both would count every action in that quarter twice. Documents are identified
     by document_key. parse_all falls back to an older copy if the newest cannot be parsed.
+    Unidentified snapshots are in neither list.
     """
     pdfs = [p for p in list_snapshots(SOURCE, base_dir=base_dir) if p.suffix.lower() == ".pdf"]
-    keep = {versions[0] for versions in pdf_documents(base_dir).values()}
-    return [p for p in pdfs if p in keep], [p for p in pdfs if p not in keep]
+    docs, unidentified = pdf_documents(base_dir)
+    keep = {versions[0] for versions in docs.values()}
+    superseded = {p for versions in docs.values() for p in versions[1:]}
+    return [p for p in pdfs if p in keep], [p for p in pdfs if p in superseded]
 
 
 def snapshot_rel_path(path: Path, root: Path = PROJECT_ROOT) -> str:
@@ -740,7 +753,8 @@ def parse_all(
     rows, is a failed parse; the next older copy is then tried and the fallback is recorded in
     summary["fallbacks"]. A document with no parsable copy is listed in
     summary["failed_documents"] and summary["complete"] is False; the other documents are still
-    parsed, as before.
+    parsed, as before. A snapshot with no usable sidecar URL is not parsed and not guessed: it is
+    listed in summary["unidentified_snapshots"] and summary["complete"] is False.
     """
     rows: list[dict] = []
     parsed: list[Path] = []
@@ -754,12 +768,18 @@ def parse_all(
         "superseded_snapshots": [],
         "fallbacks": [],
         "failed_documents": [],
+        "unidentified_snapshots": [],
         "complete": True,
         "by_file": {},
     }
     used: dict[Path, list[dict]] = {}
     superseded: list[Path] = []
-    for doc, versions in pdf_documents(base_dir).items():
+    docs, unidentified = pdf_documents(base_dir)
+    for path in unidentified:
+        log.error("no source URL in the meta sidecar of %s; not parsed", path.name)
+        summary["unidentified_snapshots"].append(path.name)
+        summary["complete"] = False
+    for doc, versions in docs.items():
         failed: list[str] = []
         for i, path in enumerate(versions):
             file_rows = _parse_snapshot(path, root, summary)
@@ -794,6 +814,22 @@ def parse_all(
     return rows, parsed, summary
 
 
+def provenance_notes(summary: dict) -> str:
+    """Provenance notes for the processed output, including any document not fully parsed."""
+    notes = (
+        "NSW Department of Education register of published enforcement actions, CC BY 4.0, "
+        "(c) State of New South Wales (Department of Education). legal_references joined with '; '. "
+        "Personal provider names withheld; nominated supervisor data not stored."
+    )
+    for fb in summary["fallbacks"]:
+        notes += f" Fallback: {fb['document']} parsed from {fb['used']}; failed: {', '.join(fb['failed'])}."
+    for fd in summary["failed_documents"]:
+        notes += f" Not parsed: {fd['document']}; no snapshot could be read ({', '.join(fd['snapshots'])})."
+    for name in summary["unidentified_snapshots"]:
+        notes += f" Not parsed: {name}; no source URL in its meta sidecar, document not identified."
+    return notes
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--force", action="store_true", help="re-snapshot PDFs already held")
@@ -814,15 +850,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     for row in rows:
         row.pop("_details", None)
-    notes = (
-        "NSW Department of Education register of published enforcement actions, CC BY 4.0, "
-        "(c) State of New South Wales (Department of Education). legal_references joined with '; '. "
-        "Personal provider names withheld; nominated supervisor data not stored."
-    )
-    for fb in summary["fallbacks"]:
-        notes += f" Fallback: {fb['document']} parsed from {fb['used']}; failed: {', '.join(fb['failed'])}."
-    for fd in summary["failed_documents"]:
-        notes += f" Not parsed: {fd['document']}; no snapshot could be read ({', '.join(fd['snapshots'])})."
+    notes = provenance_notes(summary)
     write_processed(
         OUTPUT_NAME,
         rows,
