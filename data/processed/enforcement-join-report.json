@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T21:21:13.098846+00:00",
+  "generated_at": "2026-10-30T21:24:02.318329+00:00",
   "window": {
     "months": 24,
     "start": "2024-10-29",
@@ -103,8 +103,8 @@
     "unlisted_provider_keys": 402,
     "unmatched": 301,
     "unmatched_residual": {
-      "no_key_and_name_withheld": 116,
-      "no_key_no_name_match": 183,
+      "no_key_and_name_withheld": 130,
+      "no_key_no_name_match": 169,
       "ambiguous_name": 0,
       "other": 2
     },
@@ -144,8 +144,8 @@
       "joined_by_unlisted_key_provider": 0,
       "unmatched": 167,
       "unmatched_residual": {
-        "no_key_and_name_withheld": 64,
-        "no_key_no_name_match": 103,
+        "no_key_and_name_withheld": 69,
+        "no_key_no_name_match": 98,
         "ambiguous_name": 0,
         "other": 0
       },
@@ -153,16 +153,16 @@
       "unmatched_ambiguous_provider_name": 0,
       "duplicate_rows_not_counted": 7,
       "unmatched_reasons": {
-        "no service or provider key printed": 64,
+        "no service or provider key printed": 69,
         "no service or provider key printed; provider name: no provider in QLD with this normalised name": 6,
         "no service or provider key printed; provider name: no provider in VIC with this normalised name": 18,
-        "no service or provider key printed; provider name: no provider in NSW with this normalised name": 18,
+        "no service or provider key printed; provider name: no provider in NSW with this normalised name": 16,
         "no service or provider key printed; provider name: no provider in ACT with this normalised name": 2,
-        "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in QLD with this normalised name": 5,
         "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in VIC with this normalised name": 12,
         "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in NSW with this normalised name": 35,
         "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in SA with this normalised name": 3,
         "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in NT with this normalised name": 2,
+        "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in QLD with this normalised name": 2,
         "no service or provider key printed; provider name: no provider in SA with this normalised name": 2
       },
       "unmatched_examples": [
@@ -348,8 +348,8 @@
       "joined_by_unlisted_key_provider": 7,
       "unmatched": 66,
       "unmatched_residual": {
-        "no_key_and_name_withheld": 7,
-        "no_key_no_name_match": 59,
+        "no_key_and_name_withheld": 16,
+        "no_key_no_name_match": 50,
         "ambiguous_name": 0,
         "other": 0
       },
@@ -357,8 +357,8 @@
       "unmatched_ambiguous_provider_name": 0,
       "duplicate_rows_not_counted": 0,
       "unmatched_reasons": {
-        "no service or provider key printed; provider name: no provider in SA with this normalised name": 58,
-        "no service or provider key printed": 8
+        "no service or provider key printed; provider name: no provider in SA with this normalised name": 49,
+        "no service or provider key printed": 17
       },
       "unmatched_examples": [
         {

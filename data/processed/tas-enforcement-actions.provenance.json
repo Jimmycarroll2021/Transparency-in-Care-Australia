@@ -1,6 +1,6 @@
 {
   "output": "data/processed/tas-enforcement-actions.csv",
-  "written_at": "2026-10-30T11:51:31.584843+00:00",
+  "written_at": "2026-10-30T21:23:24.232025+00:00",
   "rows": 1,
   "schema": "data/schemas/enforcement-action.schema.json",
   "raw_inputs": [

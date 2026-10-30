@@ -1,6 +1,6 @@
 {
   "output": "data/processed/cth-ccs-enforcement-actions.csv",
-  "written_at": "2026-10-29T07:55:41.872109+00:00",
+  "written_at": "2026-10-30T21:23:49.233535+00:00",
   "rows": 236,
   "schema": "data/schemas/enforcement-action.schema.json",
   "raw_inputs": [
