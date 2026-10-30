@@ -284,6 +284,83 @@ def record_hash(*parts: str | None) -> str:
     return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:16]
 
 
+# ---------------------------------------------------------------------------
+# Withheld rows and record ids (CLAUDE.md rule 2)
+# ---------------------------------------------------------------------------
+
+DUPLICATE_NOTE = "duplicate row in source"
+FREE_TEXT_WITHHELD_NOTE = "free text withheld: subject may be an individual"
+# Columns that copy source prose. On a row whose subject or provider name is withheld they are
+# blanked whole: redacting a name word by word leaks (initials, short names, spelling variants).
+# action_type_raw is required and non-empty in the schema, so it becomes a fixed placeholder.
+FREE_TEXT_COLUMNS = ("action_type_raw", "reason", "address", "linked_documents", "details")
+ACTION_TYPE_RAW_WITHHELD = "(withheld)"
+
+
+def withhold_free_text(row: dict, markers: tuple[str, ...] = ()) -> dict:
+    """Blank every free-text column of a withheld row, in place, and set the fixed note.
+
+    Structured columns stay: jurisdiction, dates, the normalised action type, SE-/PR- numbers
+    (normalised and as printed), suburb, state, postcode, period label, and the source register,
+    document and snapshot. legal_references becomes empty (a list stays a list, a JSON array
+    string becomes "[]"). The notes become the parser's fixed markers (constant strings such as
+    "provider name withheld", never source text), then the fixed FREE_TEXT_WITHHELD_NOTE, plus
+    DUPLICATE_NOTE when the row had it, so duplicate counting still works.
+    """
+    had_duplicate = DUPLICATE_NOTE in (row.get("notes") or "")
+    for col in FREE_TEXT_COLUMNS:
+        if col in row:
+            row[col] = ACTION_TYPE_RAW_WITHHELD if col == "action_type_raw" else None
+    if "legal_references" in row:
+        refs = row["legal_references"]
+        if isinstance(refs, list):
+            row["legal_references"] = []
+        else:
+            row["legal_references"] = "[]" if str(refs or "").startswith("[") else ""
+    notes = [*markers, FREE_TEXT_WITHHELD_NOTE] + ([DUPLICATE_NOTE] if had_duplicate else [])
+    row["notes"] = "; ".join(dict.fromkeys(notes))
+    return row
+
+
+_NAME_STOPWORDS = frozenset(
+    "and the of for pty ltd limited inc trust trustee trustees atf family mrs miss".split()
+)
+
+
+def name_words(name: str | None) -> set[str]:
+    """Lower-case words of three or more letters in a withheld name, any alphabet."""
+    words = re.findall(r"[^\W\d_][^\W\d_'’-]*", (name or "").lower())
+    return {w for w in words if len(w) >= 3 and w not in _NAME_STOPWORDS}
+
+
+def shares_name_word(text: str | None, name: str | None) -> bool:
+    """True when text repeats a word of a withheld name. Used to withhold a whole field (a service
+    name, say), never to redact inside it."""
+    return bool(text) and bool(name_words(text) & name_words(name))
+
+
+def assign_record_ids(rows: list[dict]) -> None:
+    """Give each row a record_id from non-name source facts only, in place.
+
+    The id hashes the jurisdiction, source document, printed date, printed SE-/PR- numbers and
+    normalised action type, plus the ordinal of that combination within the rows given (source
+    order). It never uses a name, a placeholder or free text, so withholding a name cannot make
+    two actions collide, and two actions printed in one document always get different ids.
+    """
+    seen: dict[tuple, int] = {}
+    for row in rows:
+        base = (
+            row.get("jurisdiction"),
+            row.get("source_document"),
+            row.get("date_issued_raw"),
+            row.get("service_approval_number_raw"),
+            row.get("provider_approval_number_raw"),
+            row.get("action_type"),
+        )
+        seen[base] = seen.get(base, 0) + 1
+        row["record_id"] = record_hash(*base, str(seen[base]))
+
+
 def write_processed(
     name: str,
     rows: list[dict],
