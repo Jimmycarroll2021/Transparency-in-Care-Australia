@@ -751,3 +751,29 @@ def test_a_sidecar_that_is_not_a_json_object_is_reported_as_unidentified(tmp_pat
     assert [p.name for p in parsed] == [ok]
     assert summary["unidentified_snapshots"] == [as_list, as_string]
     assert summary["complete"] is False
+
+
+def test_individual_trustee_and_estate_names_are_withheld():
+    # Synthetic names. A trust or company word must not let a person's name through.
+    for printed in (
+        "Jane Example ATF Jane Example Unit Trust",
+        "Jane Example & John Example as trustees for the Example Family Trust",
+        "Jane Example - executor of the estate of John Example",
+        "Example Holdings Pty Ltd ATF the Jane Example Family Trust",
+    ):
+        name, note = provider_name_if_entity(printed)
+        assert name is None, printed
+        assert note and "withheld" in note
+    row = make_row(
+        make_raw(
+            id="PR-40006858", name="Jane Example ATF Jane Example Unit Trust", date="4/07/2025"
+        ),
+        label="2025-26 Q1",
+    )
+    assert row["provider_name"] is None
+    assert "Jane" not in str(row)
+
+
+def test_organisation_trustee_name_is_kept():
+    name, note = provider_name_if_entity("Example Holdings Pty Ltd ATF Smith Family Trust")
+    assert name == "Example Holdings Pty Ltd ATF Smith Family Trust" and note is None

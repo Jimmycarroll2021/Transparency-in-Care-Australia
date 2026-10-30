@@ -39,6 +39,7 @@ from scrapers.common import (
     write_processed,
     write_snapshot,
 )
+from scrapers.profile_providers import name_is_withheld
 
 SOURCE = "nsw-enforcement"
 JURISDICTION = "NSW"
@@ -299,11 +300,13 @@ _TRADING_AS = re.compile(r"\b(t/a|trading as|trading)\b", re.IGNORECASE)
 
 def provider_name_if_entity(name: str | None) -> tuple[str | None, str | None]:
     """Return (name, note). The register lists sole-trader providers by personal name, and a
-    personal name must never be stored, so a name is kept only when it reads as an organisation."""
+    personal name must never be stored, so a name is kept only when it reads as an organisation.
+    The shared fail-closed rule (profile_providers.name_is_withheld) also applies, so an entity
+    word such as 'trust' cannot carry an individual trustee, an estate or an executor through."""
     text = clean_text(name)
     if not text:
         return None, None
-    if _ENTITY_WORDS.search(text) and not _TRADING_AS.search(text):
+    if _ENTITY_WORDS.search(text) and not _TRADING_AS.search(text) and not name_is_withheld(text):
         return text, None
     return (
         None,
