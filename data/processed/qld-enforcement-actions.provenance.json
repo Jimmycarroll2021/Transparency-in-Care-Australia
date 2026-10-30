@@ -1,6 +1,6 @@
 {
   "output": "data/processed/qld-enforcement-actions.csv",
-  "written_at": "2026-10-30T22:48:46.532819+00:00",
+  "written_at": "2026-10-30T23:13:46.771219+00:00",
   "rows": 69,
   "schema": "data/schemas/enforcement-action.schema.json",
   "raw_inputs": [
