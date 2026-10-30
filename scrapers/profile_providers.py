@@ -525,7 +525,10 @@ class PersonNames:
             if not words or len(words) > 5:
                 continue
             keys = [w.lower() for w in words]
-            if any(k in _BUSINESS_WORDS or k in _PROSE_STOPWORDS for k in keys):
+            # Codex round 4: a month may be a given name ('April Example') when a surname follows.
+            month_given = len(keys) >= 2 and keys[0] in _MONTH_WORDS and keys[1] not in _MONTH_WORDS
+            checked = keys[1:] if month_given else keys
+            if any(k in _BUSINESS_WORDS or k in _PROSE_STOPWORDS for k in checked):
                 continue
             if len(keys) >= 2:
                 self._full.add(tuple(keys))

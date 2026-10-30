@@ -170,3 +170,34 @@ def test_reparse_collects_names_without_writing(monkeypatch):
     assert names.found_in("jane example")
     assert Fake.writes == 0
     assert Fake.write_processed is not None
+
+
+# --- Codex round 4, finding 3: a month as a given name enters the name set -----------------
+
+
+def test_month_named_person_enters_the_name_set():
+    names = _names("April Example")
+    assert names.found_in("notice given to april example on site")
+    assert pp.prose_may_name_person("notice given to april example on site", person_names=names)
+    assert not names.found_in("compliance notice issued in april 2025")
+    assert not pp.prose_may_name_person("issued in april 2025", person_names=names)
+
+
+def test_withheld_month_named_subject_nulls_lowercase_prose():
+    withheld = {"notes": common.FREE_TEXT_WITHHELD_NOTE, "_subject_raw": "April Example"}
+    org = {
+        "provider_name": "Example Kids Pty Ltd",
+        "action_type_raw": "Compliance notice",
+        "reason": "the educator april example left children unsupervised in april 2025",
+        "notes": None,
+    }
+    common.withhold_prose_naming_people([withheld, org])
+    assert org["reason"] is None
+    dated = {"action_type_raw": "Notice", "reason": "issued in april 2025", "notes": None}
+    common.withhold_prose_naming_people([withheld, dated])
+    assert dated["reason"] == "issued in april 2025"
+
+
+def test_month_alone_or_month_with_stopword_is_not_a_name():
+    names = _names("April", "May Regulation")
+    assert len(names) == 0
