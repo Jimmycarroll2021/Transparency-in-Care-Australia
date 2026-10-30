@@ -9,6 +9,13 @@ register or in any enforcement register. The set is built in two passes in one p
    parser drops are noted in memory (common.note_withheld_subject) and go into the set.
 2. The set is handed to scrapers.common and every parser runs again for real.
 
+All or nothing (Codex round 4, finding 2). A parser that exits non-zero or raises in the capture
+pass stops the run before anything is written. In the real pass every parser's writes are held
+back in memory until all parsers have succeeded. Then the current processed outputs are copied to
+a temporary backup, the held writes are made and the join runs; if anything fails, every file in
+data/processed is restored from the backup (files the run created are removed) and the exit
+code is non-zero. On success the backup is deleted.
+
 The set exists only in memory. It is never written, logged or printed; only counts are logged.
 
 Usage: python scrapers/reparse_offline.py   (no network; the same as each parser's --skip-fetch)
@@ -16,13 +23,18 @@ Usage: python scrapers/reparse_offline.py   (no network; the same as each parser
 
 from __future__ import annotations
 
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from scrapers import common  # noqa: E402
+from scrapers import (
+    common,  # noqa: E402
+    join_enforcement,  # noqa: E402
+)
 from scrapers import parse_cth_ccs_enforcement as cth  # noqa: E402
 from scrapers import parse_nsw_enforcement as nsw  # noqa: E402
 from scrapers import parse_qld_enforcement as qld  # noqa: E402
@@ -30,12 +42,28 @@ from scrapers import parse_sa_enforcement as sa  # noqa: E402
 from scrapers import parse_tas_enforcement as tas  # noqa: E402
 from scrapers import parse_vecra_enforcement as vecra  # noqa: E402
 from scrapers import parse_wa_enforcement as wa  # noqa: E402
-from scrapers.common import log  # noqa: E402
+from scrapers.common import PROCESSED_DIR, log  # noqa: E402
 from scrapers.profile_providers import PersonNames, acecqa_person_names  # noqa: E402
 
 PARSERS = [qld, vecra, sa, tas, cth, wa, nsw]
 _WRITERS = ("write_processed", "write_counts")
 ARGV = ["--skip-fetch"]
+
+
+class ParserFailed(RuntimeError):
+    pass
+
+
+def _run_parser(module) -> None:
+    name = module.__name__.rsplit(".", 1)[-1]
+    try:
+        code = module.main(list(ARGV))
+    except SystemExit as exc:  # argparse or an explicit exit
+        code = exc.code
+    except Exception as exc:
+        raise ParserFailed(f"{name} raised {type(exc).__name__}") from exc
+    if code:
+        raise ParserFailed(f"{name} exited {code}")
 
 
 def _capture(module) -> list[dict]:
@@ -54,11 +82,53 @@ def _capture(module) -> list[dict]:
             saved[attr] = getattr(module, attr)
             setattr(module, attr, capture_processed if attr == "write_processed" else ignore)
     try:
-        module.main(list(ARGV))
+        _run_parser(module)
     finally:
         for attr, fn in saved.items():
             setattr(module, attr, fn)
     return captured
+
+
+def _held_writes(module) -> list:
+    """Run one parser with its writes held back in memory. Returns the held calls."""
+    held: list = []
+    saved = {}
+    for attr in _WRITERS:
+        if hasattr(module, attr):
+            original = getattr(module, attr)
+            saved[attr] = original
+
+            def hold(*args, _fn=original, **kwargs):
+                held.append((_fn, args, kwargs))
+
+            setattr(module, attr, hold)
+    try:
+        _run_parser(module)
+    finally:
+        for attr, fn in saved.items():
+            setattr(module, attr, fn)
+    return held
+
+
+def run_join() -> None:
+    join_enforcement.main()
+
+
+def _backup(directory: Path, to: Path) -> list[str]:
+    names = []
+    for path in directory.iterdir():
+        if path.is_file():
+            shutil.copy2(path, to / path.name)
+            names.append(path.name)
+    return names
+
+
+def _restore(directory: Path, backup: Path, names: list[str]) -> None:
+    for path in directory.iterdir():
+        if path.is_file() and path.name not in names:
+            path.unlink()
+    for name in names:
+        shutil.copy2(backup / name, directory / name)
 
 
 def collect_person_names() -> PersonNames:
@@ -82,15 +152,30 @@ def collect_person_names() -> PersonNames:
 
 
 def main(argv: list[str] | None = None) -> int:
-    common.set_person_names(collect_person_names())
-    failed = []
-    for module in PARSERS:
-        code = module.main(list(ARGV))
-        if code:
-            failed.append(module.__name__)
-    if failed:
-        log.error("parsers failed: %s", ", ".join(failed))
+    try:
+        names = collect_person_names()
+    except ParserFailed as exc:
+        log.error("capture pass failed (%s); nothing written", exc)
+        return 2
+    common.set_person_names(names)
+    held: list = []
+    try:
+        for module in PARSERS:
+            held.extend(_held_writes(module))
+    except ParserFailed as exc:
+        log.error("real pass failed (%s); nothing written", exc)
         return 1
+    with tempfile.TemporaryDirectory(prefix="reparse-backup-") as tmp:
+        backup = Path(tmp)
+        names_before = _backup(PROCESSED_DIR, backup)
+        try:
+            for fn, args, kwargs in held:
+                fn(*args, **kwargs)
+            run_join()
+        except BaseException as exc:  # includes SystemExit from the join
+            _restore(PROCESSED_DIR, backup, names_before)
+            log.error("writing or join failed (%r); data/processed restored unchanged", exc)
+            return 1
     return 0
 
 
