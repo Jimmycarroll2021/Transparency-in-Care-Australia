@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T11:51:37.790986+00:00",
+  "generated_at": "2026-10-30T21:05:21.914230+00:00",
   "inputs": {
     "providers_file": "data/processed/acecqa-providers-latest.csv",
     "services_file": "data/processed/acecqa-services-latest.csv",
@@ -9,11 +9,11 @@
     "snapshot_last_modified_services": "Wed, 28 Oct 2026 19:28:15 GMT",
     "raw_inputs": [
       "data/processed/acecqa-providers-latest.csv",
-      "data/raw/acecqa-providers/2026-10-29T2316Z.csv.gz",
-      "data/raw/acecqa-providers/2026-10-29T2316Z.csv.gz.meta.json",
+      "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz",
+      "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz.meta.json",
       "data/processed/acecqa-services-latest.csv",
-      "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz",
-      "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz.meta.json"
+      "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
+      "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json"
     ]
   },
   "window_note": "Point-in-time counts from the ACECQA register snapshot named above, not a time series. Denominator for every share: providers in the providers file, or services in the services file.",
@@ -26,42 +26,43 @@
     "incorporated_association": 2107,
     "cooperative": 61,
     "government": 571,
-    "trust_or_trustee": 1236,
+    "trust_or_trustee": 1206,
     "church_or_religious": 129,
-    "likely_individual": 751,
-    "unknown": 349
+    "likely_individual": 756,
+    "unknown": 374
   },
   "entity_form_share_of_providers": {
     "company": 0.4834,
     "incorporated_association": 0.2092,
     "cooperative": 0.0061,
     "government": 0.0567,
-    "trust_or_trustee": 0.1227,
+    "trust_or_trustee": 0.1197,
     "church_or_religious": 0.0128,
-    "likely_individual": 0.0746,
-    "unknown": 0.0346
+    "likely_individual": 0.0751,
+    "unknown": 0.0371
   },
   "entity_form_service_counts": {
     "company": 9838,
     "incorporated_association": 3028,
     "cooperative": 66,
     "government": 1604,
-    "trust_or_trustee": 1486,
+    "trust_or_trustee": 1451,
     "church_or_religious": 1079,
-    "likely_individual": 501,
-    "unknown": 584
+    "likely_individual": 510,
+    "unknown": 610
   },
   "entity_form_share_of_services": {
     "company": 0.541,
     "incorporated_association": 0.1665,
     "cooperative": 0.0036,
     "government": 0.0882,
-    "trust_or_trustee": 0.0817,
+    "trust_or_trustee": 0.0798,
     "church_or_religious": 0.0593,
-    "likely_individual": 0.0275,
-    "unknown": 0.0321
+    "likely_individual": 0.028,
+    "unknown": 0.0335
   },
-  "likely_individual_providers_names_withheld": 751,
+  "likely_individual_providers_names_withheld": 756,
+  "providers_names_withheld_total": 953,
   "providers_with_no_services_in_services_table": 2871,
   "providers_by_service_count_band": {
     "0": 2871,
@@ -184,14 +185,6 @@
       "entity_form": "government",
       "service_count": 124,
       "states_operated_in": "NSW"
-    },
-    {
-      "provider_approval_number": "PR-00004547",
-      "legal_name": "KU Children's Services",
-      "trading_name": "KU Children's Services",
-      "entity_form": "unknown",
-      "service_count": 116,
-      "states_operated_in": "ACT|NSW|VIC"
     },
     {
       "provider_approval_number": "PR-00001030",
@@ -320,9 +313,17 @@
       "entity_form": "government",
       "service_count": 57,
       "states_operated_in": "QLD"
+    },
+    {
+      "provider_approval_number": "PR-00001946",
+      "legal_name": "Victorian YMCA Community Programming Pty Ltd",
+      "trading_name": null,
+      "entity_form": "company",
+      "service_count": 56,
+      "states_operated_in": "VIC"
     }
   ],
-  "top_30_note": "likely_individual providers are excluded from this list by design. Service count is approved services on the register on the snapshot date, out of the services_total above. A large count does not by itself indicate any compliance concern.",
+  "top_30_note": "Providers whose names are withheld are excluded from this list by design. Service count is approved services on the register on the snapshot date, out of the services_total above. A large count does not by itself indicate any compliance concern.",
   "row_level_logs": {
     "provider_with_no_services_in_services_table": 2871
   },

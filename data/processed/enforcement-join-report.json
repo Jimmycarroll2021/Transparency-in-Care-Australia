@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T11:51:51.468134+00:00",
+  "generated_at": "2026-10-30T21:05:45.726498+00:00",
   "window": {
     "months": 24,
     "start": "2024-10-29",
@@ -31,6 +31,10 @@
     "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz.meta.json",
     "data/raw/acecqa-providers/2026-10-29T2316Z.csv.gz",
     "data/raw/acecqa-providers/2026-10-29T2316Z.csv.gz.meta.json",
+    "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz",
+    "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz.meta.json",
+    "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
+    "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json",
     "data/raw/cth-ccs-enforcement/2026-10-29T0749Z-current.html",
     "data/raw/cth-ccs-enforcement/2026-10-29T0749Z-past.html",
     "data/raw/nsw-enforcement/2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf",
@@ -78,11 +82,7 @@
     "data/raw/vecra-enforcement/2026-10-29T0721Z-summary-table.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-index.html",
     "data/raw/wa-enforcement/2026-10-29T0842Z.html",
-    "data/processed/enforcement-actions-all.csv",
-    "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz",
-    "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz.meta.json",
-    "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
-    "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json"
+    "data/processed/enforcement-actions-all.csv"
   ],
   "coverage": {
     "NSW": "NSW register: Jan 2025 onward (quarterly PDFs)",
@@ -122,7 +122,7 @@
     "services_with_action_last_24_months": 76,
     "providers_with_action_last_24_months": 371,
     "stubs_with_name_variants": 5,
-    "stubs_with_name_withheld": 127,
+    "stubs_with_name_withheld": 129,
     "note": "Stub entities are reported separately and are never added to the live denominators below."
   },
   "per_jurisdiction": {
@@ -550,7 +550,7 @@
   },
   "providers_with_action_last_24_months": {
     "count": 835,
-    "of_which_name_not_withheld": 785,
+    "of_which_name_not_withheld": 774,
     "denominator_providers": 10073
   },
   "top_20_providers_by_actions_last_24_months": [
