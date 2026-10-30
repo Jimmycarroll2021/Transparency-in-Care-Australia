@@ -61,7 +61,7 @@ try:
         write_snapshot,
     )
     from scrapers.join_enforcement import normalise_provider_name
-    from scrapers.profile_providers import classify_entity_form
+    from scrapers.profile_providers import classify_entity_form, name_is_withheld
 except ImportError:  # run as a plain script: python3 scrapers/abn_lookup.py
     import sys
 
@@ -79,7 +79,7 @@ except ImportError:  # run as a plain script: python3 scrapers/abn_lookup.py
         write_snapshot,
     )
     from scrapers.join_enforcement import normalise_provider_name
-    from scrapers.profile_providers import classify_entity_form
+    from scrapers.profile_providers import classify_entity_form, name_is_withheld
 
 SOURCE = "abr-lookup"
 BASE_URL = "https://abr.business.gov.au/json/"
@@ -116,6 +116,7 @@ ABN_DETAILS_COLUMNS = [
     "entity_type_name",
     "business_names",
     "business_names_withheld",
+    "name_withheld",
     "address_state",
     "address_postcode",
     "query_endpoint",
@@ -257,13 +258,22 @@ def is_individual_candidate(candidate: dict) -> bool:
     return bool(name) and classify_entity_form(name) == "likely_individual"
 
 
+def name_is_safe(name: str | None, known_org_names: set[str] | None = None) -> bool:
+    """True when a name may be stored: an ACECQA organisation name already shown, or a name the
+    shared fail-closed rule (profile_providers.name_is_withheld) treats as an organisation."""
+    if not name:
+        return True
+    return normalise_provider_name(name) in (known_org_names or set()) or not name_is_withheld(name)
+
+
 def safe_business_names(
     names: list[str] | None, known_org_names: set[str] | None = None
 ) -> tuple[list[str], int]:
     """Business names safe to store, and the number withheld.
 
-    A business name that reads as a person's name is withheld unless its normalised form is
-    already an ACECQA organisation name (known_org_names), which is public organisation data.
+    A business name is withheld unless it is positively an organisation under the shared
+    fail-closed rule, or its normalised form is already an ACECQA organisation name
+    (known_org_names), which is public organisation data.
     """
     kept: list[str] = []
     withheld = 0
@@ -271,9 +281,7 @@ def safe_business_names(
         name = (name or "").strip()
         if not name:
             continue
-        if classify_entity_form(name) == "likely_individual" and (
-            normalise_provider_name(name) not in (known_org_names or set())
-        ):
+        if not name_is_safe(name, known_org_names):
             withheld += 1
             continue
         if name not in kept:
@@ -320,17 +328,57 @@ def details_row(abn: str, data: dict | None, result: LookupResult | None, known=
     )
     if is_individual_entity(data):
         row["lookup_status"] = "excluded_individual"
+        row["name_withheld"] = "true"
         row["note"] = "ABR record is or may be an individual; names not recorded (CLAUDE.md rule 2)"
         return row
     row["lookup_status"] = "ok"
     row["acn"] = re.sub(r"\D", "", data.get("Acn") or "") or None
     row["entity_name"] = (data.get("EntityName") or "").strip() or None
-    kept, withheld = safe_business_names(data.get("BusinessName") or [], known)
-    row["business_names"] = BUSINESS_NAME_SEPARATOR.join(kept) or None
-    row["business_names_withheld"] = withheld
-    if withheld:
-        row["note"] = f"{withheld} business name(s) withheld: read as a person's name"
+    row["business_names"] = BUSINESS_NAME_SEPARATOR.join(data.get("BusinessName") or []) or None
+    row["business_names_withheld"] = 0
+    return filter_details_names(row, known)
+
+
+ENTITY_NAME_WITHHELD_NOTE = (
+    "entity and business names withheld: entity name is not positively an organisation "
+    "(CLAUDE.md rule 2)"
+)
+
+
+def filter_details_names(row: dict, known: set[str] | None = None) -> dict:
+    """Apply the fail-closed name rule to an ok abn-details row, in place. The ABN, ACN and
+    status stay. A withheld entity name nulls every name column; otherwise each business name
+    is kept only when it is safe."""
+    if row.get("lookup_status") != "ok":
+        return row
+    notes = [n for n in (row.get("note") or "").split("; ") if n]
+    notes = [n for n in notes if "withheld" not in n]
+    if not name_is_safe(row.get("entity_name"), known):
+        row.update(entity_name=None, business_names=None, business_names_withheld=None)
+        row["name_withheld"] = "true"
+        notes.append(ENTITY_NAME_WITHHELD_NOTE)
+    else:
+        names = [n for n in (row.get("business_names") or "").split(BUSINESS_NAME_SEPARATOR) if n]
+        kept, withheld = safe_business_names(names, known)
+        withheld += int(row.get("business_names_withheld") or 0)
+        row["business_names"] = BUSINESS_NAME_SEPARATOR.join(kept) or None
+        row["business_names_withheld"] = withheld
+        row["name_withheld"] = "false"
+        if withheld:
+            notes.append(f"{withheld} business name(s) withheld: not positively an organisation")
+    row["note"] = "; ".join(notes) or None
     return row
+
+
+def refilter_details_rows(rows: list[dict], known: set[str] | None = None) -> list[dict]:
+    """Re-apply the name rule to committed abn-details rows without any ABN Lookup call."""
+    out = []
+    for r in rows:
+        row = {k: (v if v != "" else None) for k, v in r.items()}
+        if row.get("lookup_status") == "excluded_individual":
+            row["name_withheld"] = "true"
+        out.append(filter_details_names(row, known))
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -649,6 +697,48 @@ ABR_PROVENANCE = {
 }
 
 
+_PROVENANCE_CORE = {"output", "written_at", "rows", "schema", "raw_inputs", "notes"}
+
+
+def rewrite_processed(name: str, rows: list[dict], columns: list[str], note: str) -> None:
+    """Rewrite data/processed/<name>.csv after an offline re-filter, keeping its provenance
+    (raw inputs, ABR source, run statistics) and adding the note once."""
+    path = PROCESSED_DIR / f"{name}.provenance.json"
+    old = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    notes = old.get("notes") or ""
+    if note not in notes:
+        notes = f"{notes} {note}".strip()
+    write_processed(
+        name,
+        rows,
+        columns,
+        raw_inputs=[PROJECT_ROOT / p for p in old.get("raw_inputs", [])],
+        notes=notes,
+    )
+    extra = {k: v for k, v in old.items() if k not in _PROVENANCE_CORE}
+    if extra:
+        add_abr_provenance(name, extra)
+
+
+REFILTER_NOTE = (
+    "Name filter re-applied offline (no ABN Lookup calls) with the shared fail-closed rule "
+    "(profile_providers.name_is_withheld); name_withheld marks rows whose names were nulled."
+)
+
+
+def main_refilter() -> None:
+    path = PROCESSED_DIR / f"{ABN_DETAILS_NAME}.csv"
+    if not path.exists():
+        raise SystemExit(f"no {path.name}: run stage A first")
+    rows = refilter_details_rows(load_csv(path), known_org_names())
+    rewrite_processed(ABN_DETAILS_NAME, rows, ABN_DETAILS_COLUMNS, REFILTER_NOTE)
+    log.info(
+        "refilter: %d rows, %d with names withheld",
+        len(rows),
+        sum(1 for r in rows if r.get("name_withheld") == "true"),
+    )
+
+
 def main_stage_a(args: argparse.Namespace) -> None:
     guid = None if args.offline else load_guid()
     client = AbnLookupClient(guid, max_calls=args.max_calls, offline=args.offline)
@@ -700,6 +790,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_name = sub.add_parser("name", help="search one organisation name")
     p_name.add_argument("value")
     p_name.add_argument("--state")
+    sub.add_parser(
+        "refilter", help="re-apply the name filter to abn-details.csv offline (no API calls)"
+    )
     return parser
 
 
@@ -708,6 +801,8 @@ def main(argv: list[str] | None = None) -> None:
     try:
         if args.command in ("abn", "name"):
             main_single(args)
+        elif args.command == "refilter":
+            main_refilter()
         else:
             main_stage_a(args)
     except AbnLookupError as exc:

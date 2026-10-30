@@ -494,3 +494,105 @@ def test_groups_by_shared_abn_acn_and_business_name_overlap():
     assert top["total_services"] == 7 and top["actions_last_24_months"] == 2 + 1
     assert summary["window"]["end"] == "2026-10-28"
     assert any("NOT derivable" in c for c in summary["caveats"])
+
+
+# ---------------------------------------------------------------------------
+# Fail-closed name filter on ABN outputs (CLAUDE.md rule 2). Synthetic names only.
+# ---------------------------------------------------------------------------
+
+DETAILS_PERSON_TRUST = {
+    **DETAILS_COMPANY,
+    "EntityName": "Example Holdings Pty Ltd ATF the Jane Example Family Trust",
+    "EntityTypeCode": "DTT",
+    "EntityTypeName": "Discretionary Trading Trust",
+    "BusinessName": ["Sunny Days Childcare Centre"],
+}
+
+
+def test_details_row_withholds_a_person_named_trust_but_keeps_the_abn():
+    row = al.details_row(ABN, DETAILS_PERSON_TRUST, None, known=set())
+    assert row["abn"] == ABN and row["acn"] == "603236353"
+    assert row["entity_name"] is None and row["business_names"] is None
+    assert row["name_withheld"] == "true"
+    assert "JANE" not in json.dumps(row).upper()
+
+
+def test_details_row_keeps_a_company_name():
+    row = al.details_row(ABN, DETAILS_COMPANY, None, known=set())
+    assert row["entity_name"] == "BRIGHT START PTY LTD"
+    assert row["name_withheld"] == "false"
+
+
+def test_refilter_details_rows_applies_the_rule_to_committed_rows():
+    rows = [
+        {
+            "abn": ABN,
+            "lookup_status": "ok",
+            "entity_name": "Example Holdings Pty Ltd ATF the Jane Example Family Trust",
+            "business_names": "Sunny Days Childcare Centre",
+            "business_names_withheld": "0",
+            "note": "",
+        },
+        {
+            "abn": "22222222222",
+            "lookup_status": "ok",
+            "entity_name": "BRIGHT START PTY LTD",
+            "business_names": "Bright Start Kindy; Jane Example",
+            "business_names_withheld": "0",
+            "note": "",
+        },
+    ]
+    out = al.refilter_details_rows(rows, known=set())
+    assert out[0]["abn"] == ABN
+    assert out[0]["entity_name"] is None and out[0]["business_names"] is None
+    assert out[0]["name_withheld"] == "true"
+    assert out[1]["entity_name"] == "BRIGHT START PTY LTD"
+    assert out[1]["business_names"] == "Bright Start Kindy"
+    assert out[1]["business_names_withheld"] == 1
+    assert out[1]["name_withheld"] == "false"
+    assert "JANE" not in json.dumps(out).upper()
+
+
+def test_provider_abn_filter_nulls_names_of_withheld_providers():
+    rows = [
+        {
+            **abn_row("PR-00000011", "11111111111", business="Sunny Days Childcare Centre"),
+            "legal_name": "Jane Example ATF Example Family Trust",
+            "abr_entity_name": "Jane Example ATF Example Family Trust",
+        },
+        {
+            **abn_row("PR-00000012", "22222222222"),
+            "legal_name": "Example Holdings Pty Ltd ATF Jane Example Family Trust",
+        },
+        {**abn_row("PR-00000013", "33333333333"), "legal_name": "Sunny Days Pty Ltd"},
+    ]
+    profiles = {
+        "PR-00000011": profile("PR-00000011", None, form="likely_individual", withheld="true"),
+        "PR-00000012": profile(
+            "PR-00000012", "Example Holdings Pty Ltd ATF Jane Example Family Trust"
+        ),
+        "PR-00000013": profile("PR-00000013", "Sunny Days Pty Ltd"),
+    }
+    changed = bpg.apply_name_filter(rows, profiles, known=set())
+    assert changed == 2
+    for r in rows[:2]:
+        assert r["abn"] and r["provider_approval_number"]
+        assert r["legal_name"] is None and r["abr_entity_name"] is None
+        assert r["business_names"] is None
+        assert r["name_withheld"] == "true"
+    assert rows[2]["legal_name"] == "Sunny Days Pty Ltd" and rows[2]["name_withheld"] == "false"
+    assert "JANE" not in json.dumps(rows).upper()
+    assert "name_withheld" in bpg.PROVIDER_ABN_COLUMNS
+
+
+def test_groups_mark_withheld_names():
+    rows = [
+        {**abn_row("PR-00000021", "11111111111"), "legal_name": None, "name_withheld": "true"},
+        abn_row("PR-00000022", "11111111111"),
+    ]
+    groups = bpg.build_groups(rows, {}, {})
+    by_pr = {g["provider_approval_number"]: g for g in groups}
+    assert by_pr["PR-00000021"]["legal_name"] is None
+    assert by_pr["PR-00000021"]["name_withheld"] == "true"
+    assert by_pr["PR-00000022"]["name_withheld"] == "false"
+    assert "name_withheld" in bpg.GROUP_COLUMNS
