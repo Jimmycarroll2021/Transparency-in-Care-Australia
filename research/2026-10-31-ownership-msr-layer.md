@@ -21,8 +21,10 @@ The only name in any MSR output, and in this note, is the ACECQA provider legal 
 (`provider_legal_name`, keyed by `provider_approval_number`), and only for providers that pass
 screening. No group name is written: a group is identified by the reporting entity's ABN on the
 statement, or by `MSR-<statement page id>` when the statement gives no ABN. No name read from the
-register is published. Review, co-reported and summary rows carry statement ids, URLs, ABNs and
-provider approval numbers only. The ABN Lookup API was not called for this layer.
+register is published. Edge, group-head and co-reported rows carry the screened provider's
+ACECQA legal name with its approval number. Review and summary rows carry statement ids, URLs,
+ABNs and provider approval numbers only, with no names. The ABN Lookup API was not called for this
+layer.
 
 ## Screening
 
@@ -175,24 +177,34 @@ The run exits 2 and leaves every output unchanged when any of these happens:
   labels all fail;
 - an ABN link's text is not a valid ABN (11 digits passing the ABN checksum), with one listed
   exception below;
+- the all-statements CSV lacks a column that selection or reconciliation reads (IDX,
+  PeriodStart, PeriodEnd, Type, ReportingEntities, IncludedEntities, ABN, Link), whether missing
+  or renamed, or a row is shorter or longer than the header. No column defaults to empty;
 - the CSV IncludedEntities field is non-empty but the page has no included-entity section, or the
   reverse;
 - the number of ABNs in brackets in the CSV IncludedEntities field differs from the number of
-  included entities with an ABN link on the page.
+  included entities with an ABN link on the page;
+- either entity section does not reconcile by identity with its CSV field (ReportingEntities or
+  IncludedEntities). After folding case and whitespace: the set of 11-digit values in brackets in
+  the CSV field must equal the set of the page's ABN links; every page entity name must appear in
+  the CSV field as a whole entry; and once every page name and bracketed ABN is removed from the
+  CSV field, only separators may remain.
 
-The two cross-checks use signals that held on every candidate: 38 statements list included
-entities in both the CSV and the page and 98 in neither, and the bracketed ABN count equals the
-page's ABN-link count on all 136. The earlier comma-based lower bound was unreliable and has been
-removed. The run exits 1 if nothing is usable. If `acecqa-services-latest.csv` is missing, service
-counts are null (unknown), not zero.
+On the current snapshots all 136 candidates reconcile in both sections. 38 statements list
+included entities in both the CSV and the page and 98 in neither. The earlier comma-based lower
+bound was unreliable and has been removed; the identity check covers omissions instead. The run
+exits 1 if nothing is usable. If `acecqa-services-latest.csv` is missing, service counts are null
+(unknown), not zero.
 
 Exception: one page (statement 2022-3013, https://modernslaveryregister.gov.au/statements/11943/)
 shows its reporting entity's ABN as "00 649 711 026": 00 followed by the 9-digit ARBN the same
-entity gives on a later statement. An ABN's first two digits are check digits from 10 to 99, so a
-00 prefix is never an ABN. The script reads this exact form (00 then 9 digits) as "no ABN" and lists
-every occurrence in the summary (`abn_placeholders_read_as_no_abn`, 1 this run). Any other invalid
-ABN text still stops the run. This exception was added to complete the round 4 rebuild and needs the
-owner's confirmation.
+entity gives on another statement. The value fails the ABN checksum. The checksum runs first: a
+value that passes it is an ABN, even with a 00 prefix (00000000019 passes). Only a value that fails
+the checksum and has exactly the form 00 then 9 digits is read as "no ABN", and every occurrence is
+listed in the summary (`abn_placeholders_read_as_no_abn`, 1 this run). The CSV gives the same value
+in brackets, so the reconciliation compares it like an ABN. Any other invalid ABN text still stops
+the run. This exception was added to complete the round 4 rebuild and needs the owner's
+confirmation.
 
 ## Review queue (125 rows)
 
