@@ -37,7 +37,7 @@ SAMPLE_TABLE_HTML = """
   <tr>
     <td>Year of action: 2015</td>
     <td>Date of action: 30/11/2015</td>
-    <td>Provider (provider number): Mary Maker (PR-00008204)</td>
+    <td>Provider (provider number): Mara Sample (PR-00008204)</td>
     <td>Service name: Nyier Family Day Care (SE-00014349)</td>
     <td>Compliance action type: Suspension of Provider Approval</td>
     <td>Post code: 6090</td>
@@ -53,7 +53,7 @@ SAMPLE_TABLE_HTML = """
   <tr>
     <td>Year of action: 2015</td>
     <td>Date of action: 18/12/2015</td>
-    <td>Provider (provider number): Raima-Leigh ZAHRA (CS-00051586)</td>
+    <td>Provider (provider number): Rae-Lee EXAMPLE (CS-00051586)</td>
     <td>Service name:</td>
     <td>Compliance action type: Prosecution</td>
     <td>Post code: 6000</td>
@@ -94,7 +94,7 @@ def test_extract_provider_info_company():
 
 
 def test_extract_provider_info_individual_withheld():
-    name, pr, cs, notes = extract_provider_info("Mary Maker (PR-00008204)")
+    name, pr, cs, notes = extract_provider_info("Mara Sample (PR-00008204)")
     assert name is None  # Withheld
     assert pr == "PR-00008204"
     assert cs is None
@@ -102,7 +102,7 @@ def test_extract_provider_info_individual_withheld():
 
 
 def test_extract_provider_info_certified_supervisor_withheld():
-    name, pr, cs, notes = extract_provider_info("Raima-Leigh ZAHRA (CS-00051586)")
+    name, pr, cs, notes = extract_provider_info("Rae-Lee EXAMPLE (CS-00051586)")
     assert name is None  # Withheld
     assert pr is None
     assert cs == "CS-00051586"
@@ -199,9 +199,9 @@ def test_person_named_with_an_educator_role_is_withheld():
     # Rule 2. The role in brackets contains business words ('Family Day Care'), which made the
     # entity heuristic read the whole cell as an organisation.
     for cell in (
-        "Mary Maker (Family Day Care Educator)",
-        "Mary MAKER (FDC Educator)",
-        "Mary Maker (Former Family Day Care Educator)",
+        "Mara Sample (Family Day Care Educator)",
+        "Mara SAMPLE (FDC Educator)",
+        "Mara Sample (Former Family Day Care Educator)",
     ):
         name, _, _, notes = extract_provider_info(cell)
         assert name is None, cell
@@ -209,7 +209,7 @@ def test_person_named_with_an_educator_role_is_withheld():
 
 
 def test_person_with_an_unbracketed_key_is_still_withheld():
-    name, pr, _, notes = extract_provider_info("Mary Maker PR-00008204")
+    name, pr, _, notes = extract_provider_info("Mara Sample PR-00008204")
     assert name is None
     assert pr == "PR-00008204"
     assert INDIVIDUAL_NOTE in notes

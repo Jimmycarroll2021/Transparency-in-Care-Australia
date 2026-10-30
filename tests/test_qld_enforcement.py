@@ -31,9 +31,9 @@ FIXTURE = f"""
 <tr><td>​​Inspired Kids Family Day Care Pty Ltd</td><td>​25/9/2026</td>
   <td><a href="/ececRegulation/Documents/cancellation-inspired-kids.pdf">Cancellation of provider approval</a></td>
   <td>N/A​</td></tr>
-<tr><td><p>Lynnette Olwyn Boulton</p><p>Kidspace Caloundra</p></td><td>22/09/2026</td>
+<tr><td><p>Janet Olive Sample</p><p>Kidspace Caloundra</p></td><td>22/09/2026</td>
   <td><p>Approved provider fined $8,000 for missing child</p>
-   <p><a href="/ececRegulation/Documents/prosecution-lynnette-olwyn-boulton.pdf">Prosecution</a><br/>
+   <p><a href="/ececRegulation/Documents/prosecution-janet-olive-sample.pdf">Prosecution</a><br/>
    <a href="/sector-news/approved-provider-fined">Further information</a></p></td>
   <td><p>NL s.165\u2014Offence relating to inadequately supervise children</p>
       <p>NR r.99\u2014Children leaving the education and care premises</p></td></tr>
@@ -44,8 +44,8 @@ FIXTURE = f"""
    <a href="/docs/prosecution-east-coast.pdf">Prosecution</a><br/>
    <a href="/news/east-coast-fined">Further information</a></p></td>
   <td><p>NL s.165\u2014Offence relating to inadequately supervise children</p></td></tr>
-<tr><td>Reena Kapoor</td><td>07/09/2026</td>
-  <td><a href="/docs/cancellation-reena-kapoor.pdf">Cancellation of provider approval</a></td><td>N/A</td></tr>
+<tr><td>Rina Sampleton</td><td>07/09/2026</td>
+  <td><a href="/docs/cancellation-rina-sampleton.pdf">Cancellation of provider approval</a></td><td>N/A</td></tr>
 <tr><td>Nova Star Childcare Pty Ltd</td><td>17/04/2026</td>
   <td><a href="/docs/nova.pdf">Suspension of service approval\u2014lifted</a></td><td>N/A</td></tr>
 </table>
@@ -63,11 +63,11 @@ FIXTURE = f"""
 <tr><td>Educator\u2014centre-based service</td><td>23/12/2022</td>
   <td><a href="/docs/eu-educator.pdf">Enforceable undertaking</a></td>
   <td><p>NL s.166\u2014Offence to use inappropriate discipline</p></td></tr>
-<tr><td><p>Fardowsa Labaale</p><p>Labaale Family Day Care</p></td><td>04/11/2022</td>
-  <td><a href="/docs/fardowsa-labaale-cancellation.pdf">Cancellation of provider approval</a></td>
+<tr><td><p>Farah Testerly</p><p>Testerly Family Day Care</p></td><td>04/11/2022</td>
+  <td><a href="/docs/farah-testerly-cancellation.pdf">Cancellation of provider approval</a></td>
   <td>N/A</td></tr>
-<tr><td>Damon and Kylie Ferguson</td><td>24/01/2022</td>
-  <td><a href="/docs/ferguson.pdf">Compliance notice</a></td><td>N/A</td></tr>
+<tr><td>Dan and Kim Mockford</td><td>24/01/2022</td>
+  <td><a href="/docs/mockford.pdf">Compliance notice</a></td><td>N/A</td></tr>
 </table>
 <table><tr><th>Unrelated</th></tr><tr><td>ignore me</td></tr></table>
 </body></html>
@@ -135,14 +135,14 @@ def test_named_individual_is_withheld_everywhere():
     assert r["action_type"] == "prosecution"
     assert len(r["legal_references"]) == 2
     blob = json.dumps(r).lower()
-    assert "boulton" not in blob and "lynnette" not in blob
+    assert "sample" not in blob and "janet" not in blob
 
 
 def test_sole_trader_without_marker_is_individual():
     r = by_date("07/09/2026")
     assert r["provider_name"] is None
     assert INDIVIDUAL_NOTE in r["notes"]
-    assert "kapoor" not in json.dumps(r).lower()
+    assert "sampleton" not in json.dumps(r).lower()
 
 
 def test_service_name_repeating_the_individuals_name_is_withheld():
@@ -150,14 +150,14 @@ def test_service_name_repeating_the_individuals_name_is_withheld():
     assert r["provider_name"] is None
     assert r["service_name"] is None
     assert "service name withheld" in r["notes"]
-    assert "labaale" not in json.dumps(r).lower()
+    assert "testerly" not in json.dumps(r).lower()
 
 
 def test_two_named_individuals():
     r = by_date("24/01/2022")
     assert r["provider_name"] is None
     assert INDIVIDUAL_NOTE in r["notes"]
-    assert "ferguson" not in json.dumps(r).lower()
+    assert "mockford" not in json.dumps(r).lower()
     assert r["action_type"] == "compliance_notice"
 
 

@@ -67,11 +67,11 @@ COMPANY = entry(
 )
 INDIVIDUAL = entry(
     "Zanzibar Family Day Care",
-    "Ms Quillon Farnsby and Ms Odalys Farnsby – ABN: 55666777888",
+    "Ms Quinn Sampleby and Ms Olive Sampleby – ABN: 55666777888",
     "Meadow Heights, victoria",
     "Family Day Care",
     "Sanction under section 197L – Cancellation of Provider Approval",
-    "Farnsby breached s 194C and section 195A. Cancelled under 197L.",
+    "Sampleby breached s 194C and section 195A. Cancelled under 197L.",
     "19 December 2024",
 )
 REPEAT = entry(
@@ -142,8 +142,8 @@ def test_individual_provider_is_withheld_everywhere():
     assert r["provider_name"] is None
     assert "provider name withheld; subject is an individual" in r["notes"]
     assert "ccs_identifier" not in r["notes"] and "55666777888" not in json.dumps(r)
-    assert "farnsby" not in json.dumps(r).lower()
-    assert "quillon" not in json.dumps(r).lower()
+    assert "sampleby" not in json.dumps(r).lower()
+    assert "quinn" not in json.dumps(r).lower()
     assert r["state"] == "VIC" and r["suburb"] == "Meadow Heights"
     assert r["legal_references"] == ["section 197L", "section 194C", "section 195A"]
     assert r["service_name"] == "Zanzibar Family Day Care"
@@ -153,8 +153,8 @@ def test_individual_provider_is_withheld_everywhere():
 def test_service_name_withheld_when_it_is_the_individuals_name():
     html = page(
         entry(
-            "Farnsby Family Day Care",
-            "Ms Quillon Farnsby",
+            "Sampleby Family Day Care",
+            "Ms Quinn Sampleby",
             "Perth, WA",
             "Family Day Care",
             "Sanction under section 197L - Cancellation of Provider Approval",
@@ -165,7 +165,7 @@ def test_service_name_withheld_when_it_is_the_individuals_name():
     r = rows(html)[0]
     assert r["service_name"] is None
     assert "service name withheld" in r["notes"]
-    assert "farnsby" not in json.dumps(r).lower()
+    assert "sampleby" not in json.dumps(r).lower()
 
 
 def test_repeated_service_kept_and_second_marked_duplicate():
@@ -217,7 +217,7 @@ def test_split_abn_variants():
 
 
 def test_is_individual():
-    assert is_individual("Ms Yier Makuet and Ms Natalina Makuet")
+    assert is_individual("Ms Yara Example and Ms Nina Example")
     assert is_individual("Partnership Of Ann Example and Bob Example")
     assert is_individual("Pat Example")
     assert is_individual("L.V Example & N Sample")
