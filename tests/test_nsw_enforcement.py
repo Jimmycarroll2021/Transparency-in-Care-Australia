@@ -15,6 +15,7 @@ from scrapers.parse_nsw_enforcement import (
     is_id_cell,
     map_action_type,
     mark_duplicates,
+    parse_all,
     parse_date,
     pdf_snapshots,
     period_label_from_slug,
@@ -423,6 +424,131 @@ def test_snapshot_without_meta_falls_back_to_its_file_slug(tmp_path):
     assert [p.name for p in superseded] == [
         "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf"
     ]
+
+
+def test_a_document_has_one_identity_with_or_without_a_meta_sidecar(tmp_path):
+    # The same quarterly PDF, once with a sidecar and once without, must not be counted as two
+    # documents: only the newest copy is kept.
+    src = tmp_path / SOURCE
+    src.mkdir()
+    q1 = "https://education.nsw.gov.au/x/Q1_Cancellations_Providers_2025_2026.pdf"
+    _write_pdf_snapshot(src, "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf", q1)
+    _write_pdf_snapshot(src, "2026-11-02T0718Z-q1-cancellations-providers-2025-2026.pdf", None)
+
+    kept, superseded = pdf_snapshots(base_dir=tmp_path)
+
+    assert [p.name for p in kept] == ["2026-11-02T0718Z-q1-cancellations-providers-2025-2026.pdf"]
+    assert [p.name for p in superseded] == [
+        "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf"
+    ]
+
+
+def test_sidecar_identity_is_unified_when_the_newer_copy_has_the_sidecar(tmp_path):
+    src = tmp_path / SOURCE
+    src.mkdir()
+    q1 = "https://education.nsw.gov.au/x/Q1_Cancellations_Providers_2025_2026.pdf"
+    _write_pdf_snapshot(src, "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf", None)
+    _write_pdf_snapshot(src, "2026-11-02T0718Z-q1-cancellations-providers-2025-2026.pdf", q1)
+
+    kept, superseded = pdf_snapshots(base_dir=tmp_path)
+
+    assert [p.name for p in kept] == ["2026-11-02T0718Z-q1-cancellations-providers-2025-2026.pdf"]
+    assert len(superseded) == 1
+
+
+def _fake_reader(bad: set[str]):
+    """Stand-in for read_pdf_records: raises for names in `bad`, else returns one service row."""
+    from scrapers.parse_nsw_enforcement import RawRecord
+
+    def read(path):
+        if path.name in bad:
+            raise ValueError("No /Root object! - Is this really a PDF?")
+        raw = RawRecord(page=1)
+        raw.fields.update(
+            {
+                "id": "SE-00012345",
+                "name": "Example Early Learning Centre",
+                "nature": "Cancellation of service approval",
+                "date": "1/7/2025",
+            }
+        )
+        return [raw], {"pages": 1}
+
+    return read
+
+
+def test_a_corrupt_newer_snapshot_falls_back_to_the_older_copy(tmp_path, monkeypatch):
+    from scrapers import parse_nsw_enforcement as nsw
+
+    src = tmp_path / SOURCE
+    src.mkdir()
+    q1 = "https://education.nsw.gov.au/x/Q1_Cancellations_Services_2025_2026.pdf"
+    old = "2026-10-29T0718Z-q1-cancellations-services-2025-2026.pdf"
+    new = "2026-11-02T0718Z-q1-cancellations-services-2025-2026.pdf"
+    _write_pdf_snapshot(src, old, q1)
+    _write_pdf_snapshot(src, new, q1)
+    monkeypatch.setattr(nsw, "read_pdf_records", _fake_reader({new}))
+
+    rows, parsed, summary = parse_all(base_dir=tmp_path, root=tmp_path)
+
+    assert [p.name for p in parsed] == [old]
+    assert len(rows) == 1
+    assert rows[0]["source_snapshot"] == f"{SOURCE}/{old}"
+    assert summary["pdfs_parsed"] == 1
+    assert "error" in summary["by_file"][new]
+    assert summary["fallbacks"] == [
+        {"document": "q1-cancellations-services-2025-2026", "used": old, "failed": [new]}
+    ]
+    assert summary["failed_documents"] == []
+    assert summary["complete"] is True
+
+
+def test_a_document_whose_snapshots_all_fail_is_reported_not_silently_dropped(
+    tmp_path, monkeypatch
+):
+    from scrapers import parse_nsw_enforcement as nsw
+
+    src = tmp_path / SOURCE
+    src.mkdir()
+    q1 = "https://education.nsw.gov.au/x/Q1_Cancellations_Services_2025_2026.pdf"
+    q2 = "https://education.nsw.gov.au/x/Q2_Cancellations_Services_2025_2026.pdf"
+    old = "2026-10-29T0718Z-q1-cancellations-services-2025-2026.pdf"
+    new = "2026-11-02T0718Z-q1-cancellations-services-2025-2026.pdf"
+    ok = "2026-10-29T0718Z-q2-cancellations-services-2025-2026.pdf"
+    _write_pdf_snapshot(src, old, q1)
+    _write_pdf_snapshot(src, new, q1)
+    _write_pdf_snapshot(src, ok, q2)
+    monkeypatch.setattr(nsw, "read_pdf_records", _fake_reader({old, new}))
+
+    rows, parsed, summary = parse_all(base_dir=tmp_path, root=tmp_path)
+
+    assert [p.name for p in parsed] == [ok]
+    assert summary["failed_documents"] == [
+        {"document": "q1-cancellations-services-2025-2026", "snapshots": [new, old]}
+    ]
+    assert summary["complete"] is False
+
+
+def test_a_snapshot_with_no_rows_counts_as_a_failed_parse(tmp_path, monkeypatch):
+    # A register PDF that opens but yields no rows is not a valid copy of the document.
+    from scrapers import parse_nsw_enforcement as nsw
+
+    src = tmp_path / SOURCE
+    src.mkdir()
+    q1 = "https://education.nsw.gov.au/x/Q1_Cancellations_Services_2025_2026.pdf"
+    old = "2026-10-29T0718Z-q1-cancellations-services-2025-2026.pdf"
+    new = "2026-11-02T0718Z-q1-cancellations-services-2025-2026.pdf"
+    _write_pdf_snapshot(src, old, q1)
+    _write_pdf_snapshot(src, new, q1)
+    good = _fake_reader(set())
+    monkeypatch.setattr(
+        nsw, "read_pdf_records", lambda p: ([], {"pages": 1}) if p.name == new else good(p)
+    )
+
+    rows, parsed, summary = parse_all(base_dir=tmp_path, root=tmp_path)
+
+    assert [p.name for p in parsed] == [old]
+    assert summary["fallbacks"][0]["failed"] == [new]
 
 
 # --- paths in outputs ---------------------------------------------------------
