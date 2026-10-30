@@ -144,6 +144,11 @@ _PAGE_ID = re.compile(r"/statements/(\d+)/?$")
 _SUFFIX_TAIL = re.compile(r"\s+(?:PTY LTD|LTD|INC)$")
 # An ABN in brackets in the CSV IncludedEntities field, as the register writes it.
 _CSV_BRACKET_ABN = re.compile(r"\(\s*((?:\d\s?){11})\)")
+_CSV_TRAILING_ABN = re.compile(r"\s*\(\s*((?:\d\s?){11})\)\s*$")
+# Most candidate entries the grouping search may try for one entity field before it gives up and
+# marks the page unparseable. On the 2026-10-30 snapshots the most any field needed was under
+# 100 (272 fields, the largest 79 comma pieces), so this leaves about 1,000 times headroom.
+MAX_GROUPING_STEPS = 100_000
 # Columns the candidate selection and the page reconciliation read. A missing or renamed column
 # stops the run; no column is ever defaulted to empty.
 REQUIRED_CSV_COLUMNS = (
@@ -326,24 +331,43 @@ def find_all_statements_link(resources_html: str) -> str | None:
     return None
 
 
+class CsvSchemaError(ValueError):
+    """The all-statements CSV lacks a required column, or a row does not match the header."""
+
+
+def _rows_matching_header(text: str) -> tuple[list[str], list[list[str]]]:
+    """Header (BOM stripped) and rows. Raises CsvSchemaError when any row's field count
+    differs from the header's. Nothing is padded or cut."""
+    rows = list(csv.reader(io.StringIO(text.lstrip("\ufeff"))))
+    if not rows:
+        raise CsvSchemaError("all-statements CSV is empty")
+    header = [h.lstrip("\ufeff") for h in rows[0]]
+    for n, row in enumerate(rows[1:], start=2):
+        if len(row) != len(header):
+            raise CsvSchemaError(
+                f"all-statements CSV record {n} has {len(row)} fields, the header {len(header)}"
+            )
+    return header, rows[1:]
+
+
 def privacy_filter_csv(text: str) -> tuple[str, list[str], list[str]]:
     """Drop columns that could hold an individual's name. Returns (text, kept, dropped).
 
-    The text is returned unchanged when nothing is dropped, so its hash equals the source's.
+    Every row's length is checked against the header first (CsvSchemaError otherwise); no row is
+    ever padded. The text is returned unchanged when nothing is dropped, so its hash equals the
+    source's.
     """
-    reader = csv.reader(io.StringIO(text))
-    header = next(reader, [])
-    clean = [h.lstrip("﻿") for h in header]
-    dropped = [h for h in clean if _PERSON_COLUMN.search(h)]
-    kept = [h for h in clean if h not in dropped]
+    header, rows = _rows_matching_header(text)
+    dropped = [h for h in header if _PERSON_COLUMN.search(h)]
+    kept = [h for h in header if h not in dropped]
     if not dropped:
         return text, kept, dropped
-    keep_idx = [i for i, h in enumerate(clean) if h in kept]
+    keep_idx = [i for i, h in enumerate(header) if h in kept]
     buf = io.StringIO()
     writer = csv.writer(buf, lineterminator="\n")
     writer.writerow(kept)
-    for row in reader:
-        writer.writerow([row[i] if i < len(row) else "" for i in keep_idx])
+    for row in rows:
+        writer.writerow([row[i] for i in keep_idx])
     return buf.getvalue(), kept, dropped
 
 
@@ -370,19 +394,15 @@ def _abns(value: str | None) -> list[str]:
     return out
 
 
-class CsvSchemaError(ValueError):
-    """The all-statements CSV lacks a required column, or a row lacks a value for one."""
-
-
 def parse_statements_csv(text: str) -> list[dict]:
     """One dict per statement row. page_id comes from the statement URL (IDX is not unique).
 
-    Raises CsvSchemaError when a column in REQUIRED_CSV_COLUMNS is missing (or renamed), or a
-    row is shorter or longer than the header. The ReportingEntities and IncludedEntities text is
-    kept for the page reconciliation (reconcile_entities); it is never written out.
+    Raises CsvSchemaError when a column in REQUIRED_CSV_COLUMNS is missing (or renamed), or any
+    row is shorter or longer than the header, whichever column it lacks. The ReportingEntities
+    and IncludedEntities text is kept for the page reconciliation (reconcile_entities); it is
+    never written out.
     """
-    reader = csv.DictReader(io.StringIO(text.lstrip("﻿")))
-    header = [h.lstrip("﻿") for h in (reader.fieldnames or [])]
+    header, records = _rows_matching_header(text)
     missing = [c for c in REQUIRED_CSV_COLUMNS if c not in header]
     if missing:
         raise CsvSchemaError(
@@ -391,9 +411,8 @@ def parse_statements_csv(text: str) -> list[dict]:
             + f"; header has {len(header)} columns"
         )
     out = []
-    for n, row in enumerate(reader, start=2):
-        if None in row or any(row[c] is None for c in REQUIRED_CSV_COLUMNS):
-            raise CsvSchemaError(f"all-statements CSV line {n} does not match the header length")
+    for values in records:
+        row = dict(zip(header, values, strict=True))
         link = row["Link"].strip()
         m = _PAGE_ID.search(link)
         start, end = row["PeriodStart"].strip(), row["PeriodEnd"].strip()
@@ -422,37 +441,73 @@ def _fold(text: str | None) -> str:
     return " ".join((text or "").split()).casefold()
 
 
-def reconcile_entities(csv_field: str, entities: list[dict]) -> dict[str, int]:
-    """Differences between a CSV entities field and the page's entities, as counts only.
+def _entry_pair(text: str) -> tuple[str, str | None]:
+    """(folded name, ABN digits or None) of one CSV entry; a trailing bracketed ABN is its ABN."""
+    m = _CSV_TRAILING_ABN.search(text)
+    if not m:
+        return _fold(text), None
+    return _fold(text[: m.start()]), re.sub(r"\D", "", m.group(1))
 
-    The page and the CSV must name the same entities:
-    - abn_set_differs: the 11-digit values in brackets in the CSV field differ from the page's
-      ABN links (valid ABNs and listed placeholders). The count is the size of the difference.
-    - page_names_not_in_csv: page entity names (case and whitespace folded) that do not appear
-      in the CSV field as a whole entry, bounded by the field's start or a comma and followed by
-      its end, a comma or an ABN in brackets.
-    - csv_text_not_on_page: comma-separated pieces left in the CSV field once every page name
-      and every bracketed ABN is removed. Only separators may remain.
+
+def reconcile_entities(csv_field: str, entities: list[dict]) -> dict[str, int]:
+    """Problems reconciling a CSV entities field with the page's entities, as counts only.
+
+    The page gives a multiset of (folded name, ABN or placeholder or None) pairs, duplicates
+    counted. The CSV field is split on commas into pieces, and the pieces are grouped into
+    entries (a name can contain commas); an entry's trailing bracketed ABN is its ABN. A comma
+    directly after a bracketed ABN always separates entries. The field reconciles only when
+    exactly one grouping gives the page's multiset:
+    - no_grouping_matches_page: no grouping does (abn_multiset_differs is added, with the size
+      of the difference, when even the bracketed ABNs disagree);
+    - several_groupings_match_page: more than one does, so the split is ambiguous;
+    - grouping_search_limit_exceeded: the search tried MAX_GROUPING_STEPS entries, or the field
+      has too many pieces to search, without finishing.
     An empty dict means the two agree. No name is returned.
     """
-    text = _fold(csv_field)
-    problems: dict[str, int] = {}
-    csv_ids = {re.sub(r"\D", "", v) for v in _CSV_BRACKET_ABN.findall(text)}
-    page_ids = {e["abn"] or e.get("abn_placeholder") for e in entities} - {None}
-    if csv_ids != page_ids:
-        problems["abn_set_differs"] = len(csv_ids ^ page_ids)
-    rest = text
-    not_found = 0
-    for name in sorted({_fold(e["name"]) for e in entities}, key=len, reverse=True):
-        pattern = re.compile(r"(?:^|(?<=,)|(?<=, ))" + re.escape(name) + r"(?=$|,| \()")
-        if not pattern.search(rest):
-            not_found += 1
-        rest = pattern.sub(" ", rest)
-    if not_found:
-        problems["page_names_not_in_csv"] = not_found
-    leftover = [piece for piece in _CSV_BRACKET_ABN.sub(" ", rest).split(",") if piece.strip()]
-    if leftover:
-        problems["csv_text_not_on_page"] = len(leftover)
+    target = Counter((_fold(e["name"]), e["abn"] or e.get("abn_placeholder")) for e in entities)
+    pieces = csv_field.split(",") if csv_field.strip() else []
+    # A piece ending in a bracketed ABN ends its entry: the comma after it always separates.
+    closes = [bool(_CSV_TRAILING_ABN.search(piece)) for piece in pieces]
+    max_span = 1 + max((name.count(",") for name, _ in target), default=0)
+    found = steps = 0
+    used: Counter = Counter()
+
+    def search(i: int) -> None:
+        nonlocal found, steps
+        if found > 1 or steps > MAX_GROUPING_STEPS:
+            return
+        if i == len(pieces):
+            found += used == target
+            return
+        for j in range(i + 1, min(len(pieces), i + max_span) + 1):
+            steps += 1
+            if steps > MAX_GROUPING_STEPS:
+                return
+            pair = _entry_pair(",".join(pieces[i:j]))
+            if used[pair] < target[pair]:
+                used[pair] += 1
+                search(j)
+                used[pair] -= 1
+            if closes[j - 1]:
+                break
+
+    try:
+        search(0)
+    except RecursionError:  # a field too long to search: fail closed like the step limit
+        steps = MAX_GROUPING_STEPS + 1
+    if steps > MAX_GROUPING_STEPS:
+        return {"grouping_search_limit_exceeded": MAX_GROUPING_STEPS}
+    if found == 1:
+        return {}
+    if found > 1:
+        return {"several_groupings_match_page": found}
+    problems = {"no_grouping_matches_page": 1}
+    csv_abns = Counter(re.sub(r"\D", "", v) for v in _CSV_BRACKET_ABN.findall(csv_field))
+    page_abns = Counter(abn for (_, abn), n in target.items() for _ in range(n) if abn)
+    if csv_abns != page_abns:
+        problems["abn_multiset_differs"] = sum(
+            ((csv_abns - page_abns) + (page_abns - csv_abns)).values()
+        )
     return problems
 
 
@@ -1250,9 +1305,9 @@ def _parse_page(path: Path, statement: dict) -> dict | None:
 
     The page must agree with its CSV row: the IncludedEntities field is non-empty exactly when
     the page has an included-entity section, the number of bracketed ABNs equals the number of
-    included entities with an ABN link, and both entity sections reconcile by identity with the
-    ReportingEntities and IncludedEntities fields (reconcile_entities: same ABNs, every page name
-    in the CSV, nothing else left in the CSV).
+    included entities with an ABN link, and both entity sections reconcile with the
+    ReportingEntities and IncludedEntities fields as multisets of (name, ABN) pairs, through
+    exactly one grouping of the CSV text (reconcile_entities).
     """
     try:
         parsed = parse_statement_page(path.read_text(encoding="utf-8"))
@@ -1303,7 +1358,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    got_csv = acquire_csv(args.no_fetch)
+    try:
+        got_csv = acquire_csv(args.no_fetch)
+    except CsvSchemaError as exc:
+        log.error("fetched all-statements CSV not stored: %s; outputs left unchanged", exc)
+        return 2
     if got_csv is None:
         log.error("no MSR CSV snapshot in data/raw/msr/all-statements/: nothing to build")
         return 1

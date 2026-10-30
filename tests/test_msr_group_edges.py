@@ -92,7 +92,8 @@ def csv_row(idx, page_id, reporting, abns, included="", type_="Single", start="2
 
 def csv_text(rows, header=CSV_HEADER):
     buf = io.StringIO()
-    writer = csv.DictWriter(buf, fieldnames=header)
+    # "\n" so that a text-mode write on Windows does not leave blank records behind.
+    writer = csv.DictWriter(buf, fieldnames=header, lineterminator="\n")
     writer.writeheader()
     for r in rows:
         writer.writerow({k: r.get(k, "") for k in header})
@@ -240,6 +241,39 @@ def test_privacy_filter_is_identity_when_nothing_to_drop():
     text = csv_text([csv_row("2024-1", "100", "X LTD", KOOK_ABN)])
     out, kept, dropped = msr.privacy_filter_csv(text)
     assert (out, kept, dropped) == (text, CSV_HEADER, [])
+
+
+def _raw_csv(header, rows):
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(header)
+    writer.writerows(rows)
+    return buf.getvalue()
+
+
+def _row_values(header):
+    row = csv_row("2024-1", "100", "X LTD", KOOK_ABN)
+    return [row.get(h, "x") for h in header]
+
+
+@pytest.mark.parametrize("extra", [[], ["SignatoryName"]])
+@pytest.mark.parametrize("shape", ["short", "long"])
+def test_privacy_filter_rejects_rows_that_do_not_match_the_header(extra, shape):
+    # Codex round 6: row length is checked before any filtering, and nothing is padded.
+    header = CSV_HEADER + extra
+    good = _row_values(header)
+    bad = good[:-1] if shape == "short" else good + ["surplus"]
+    with pytest.raises(msr.CsvSchemaError):
+        msr.privacy_filter_csv(_raw_csv(header, [good, bad]))
+
+
+@pytest.mark.parametrize("shape", ["short", "long"])
+def test_parse_statements_rejects_a_row_of_the_wrong_length(shape):
+    # A short row lacks the trailing non-required RelatedStatements field.
+    good = _row_values(CSV_HEADER)
+    bad = good[:-1] if shape == "short" else good + ["surplus"]
+    with pytest.raises(msr.CsvSchemaError):
+        msr.parse_statements_csv(_raw_csv(CSV_HEADER, [good, bad]))
 
 
 def test_parse_statements_reads_abns_page_id_and_included_abn_count():
@@ -471,32 +505,88 @@ def test_reconcile_empty_field_and_no_entities_passes():
 
 
 @pytest.mark.parametrize(
-    "text,problem",
+    "text,abn_differs",
     [
         # a different ABN on the page than in the CSV, with equal counts
-        (f"Wattle Kids Pty Ltd ({spaced(BANKSIA_ABN)}), Gumnut Care Pty Ltd", "abn_set_differs"),
+        (f"Wattle Kids Pty Ltd ({spaced(BANKSIA_ABN)}), Gumnut Care Pty Ltd", True),
         # the CSV lists a name-only entity the page omits
-        (
-            f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)}), Gumnut Care Pty Ltd, Waratah Ltd",
-            "csv_text_not_on_page",
-        ),
+        (f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)}), Gumnut Care Pty Ltd, Waratah Ltd", False),
         # the page lists a name-only entity the CSV lacks
-        (f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)})", "page_names_not_in_csv"),
+        (f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)})", False),
         # a page name that is only part of a longer CSV name
-        (
-            f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)}), Gumnut Care Pty Ltd Holdings",
-            "page_names_not_in_csv",
-        ),
+        (f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)}), Gumnut Care Pty Ltd Holdings", False),
         # an ABN in the CSV that the page does not give
         (
             f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)}), Gumnut Care Pty Ltd "
             f"({spaced(LILLY_ABN)})",
-            "abn_set_differs",
+            True,
         ),
     ],
 )
-def test_reconcile_reports_each_difference(text, problem):
-    assert problem in msr.reconcile_entities(text, RECONCILE_ENTITIES)
+def test_reconcile_reports_each_difference(text, abn_differs):
+    out = msr.reconcile_entities(text, RECONCILE_ENTITIES)
+    assert out.get("no_grouping_matches_page") == 1
+    assert ("abn_multiset_differs" in out) is abn_differs
+
+
+def test_reconcile_swapped_name_abn_pairs_fail():
+    # Codex round 6: the ABN set and the name set both agree, but the pairs do not.
+    entities = [
+        {"name": "Wattle Kids Pty Ltd", "abn": WATTLE_ABN},
+        {"name": "Banksia Early Years Pty Ltd", "abn": BANKSIA_ABN},
+    ]
+    text = (
+        f"Wattle Kids Pty Ltd ({spaced(BANKSIA_ABN)}), "
+        f"Banksia Early Years Pty Ltd ({spaced(WATTLE_ABN)})"
+    )
+    assert msr.reconcile_entities(text, entities) == {"no_grouping_matches_page": 1}
+
+
+def test_reconcile_counts_duplicates_and_does_not_deduplicate():
+    entities = [{"name": "Gumnut Care Pty Ltd", "abn": None}]
+    twice = "Gumnut Care Pty Ltd, Gumnut Care Pty Ltd"
+    assert msr.reconcile_entities(twice, entities) == {"no_grouping_matches_page": 1}
+    assert msr.reconcile_entities(twice, entities * 2) == {}
+
+
+def test_reconcile_name_with_a_comma_passes_when_exactly_one_grouping_fits():
+    entities = [
+        {"name": "Numbat College, Suburb", "abn": None},
+        {"name": "Wattle Kids Pty Ltd", "abn": WATTLE_ABN},
+    ]
+    text = f"Numbat College, Suburb, Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)})"
+    assert msr.reconcile_entities(text, entities) == {}
+
+
+def test_reconcile_two_valid_groupings_fail():
+    # "Acacia, Acacia, Acacia" fits the page's two entities as (2 + 1) or (1 + 2) pieces.
+    entities = [{"name": "Acacia, Acacia", "abn": None}, {"name": "Acacia", "abn": None}]
+    out = msr.reconcile_entities("Acacia, Acacia, Acacia", entities)
+    assert out == {"several_groupings_match_page": 2}
+
+
+def test_reconcile_comma_after_a_bracketed_abn_always_separates():
+    # Joining across "(ABN)," would make one entry that equals this page name; it is not allowed.
+    entities = [{"name": f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)}), Gumnut", "abn": None}]
+    text = f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)}), Gumnut"
+    assert msr.reconcile_entities(text, entities).get("no_grouping_matches_page") == 1
+
+
+def test_reconcile_search_is_bounded_and_fails_closed(monkeypatch):
+    monkeypatch.setattr(msr, "MAX_GROUPING_STEPS", 5)
+    entities = [{"name": "Acacia", "abn": None}] * 20
+    out = msr.reconcile_entities(", ".join(["Acacia"] * 20), entities)
+    assert out == {"grouping_search_limit_exceeded": 5}
+
+
+def test_reconcile_fails_closed_on_a_field_too_long_to_search():
+    entities = [{"name": "Acacia", "abn": None}] * 3000
+    out = msr.reconcile_entities(", ".join(["Acacia"] * 3000), entities)
+    assert out == {"grouping_search_limit_exceeded": msr.MAX_GROUPING_STEPS}
+
+
+def test_grouping_limit_is_set():
+    assert msr.MAX_GROUPING_STEPS == 100_000
 
 
 def test_reconcile_counts_hold_no_names():
@@ -1328,6 +1418,115 @@ def test_main_exit_2_on_a_bad_csv_header(env, change):
             r["Entities"] = r.pop("IncludedEntities")
     snap.write_text(csv_text(rows, header), encoding="utf-8")
     assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+
+
+def test_main_exit_2_when_page_swaps_name_abn_pairs(env):
+    add_statement(
+        env,
+        "2024-516",
+        "516",
+        KOOK_REP_TEXT,
+        KOOK_ABN,
+        statement_page(
+            [("KOOKABURRA LEARNING GROUP LIMITED", KOOK_ABN)],
+            [("Wattle Kids Pty Ltd", WATTLE_ABN), ("Banksia Early Years Pty Ltd", BANKSIA_ABN)],
+        ),
+        included_text=f"Wattle Kids Pty Ltd ({spaced(BANKSIA_ABN)}), "
+        f"Banksia Early Years Pty Ltd ({spaced(WATTLE_ABN)})",
+    )
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+
+
+def test_main_exit_2_when_page_omits_a_duplicated_name_only_entity(env):
+    add_statement(
+        env,
+        "2024-517",
+        "517",
+        KOOK_REP_TEXT,
+        KOOK_ABN,
+        statement_page(
+            [("KOOKABURRA LEARNING GROUP LIMITED", KOOK_ABN)],
+            [("x", WATTLE_ABN), "Gumnut Care Pty Ltd"],
+        ),
+        included_text=f"x ({spaced(WATTLE_ABN)}), Gumnut Care Pty Ltd, Gumnut Care Pty Ltd",
+    )
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+
+
+def _former_name_page():
+    page = statement_page(
+        [("KOOKABURRA LEARNING GROUP LIMITED", KOOK_ABN)], [("Wattle Kids Pty Ltd", WATTLE_ABN)]
+    )
+    return page.replace(
+        'target="_blank">Wattle Kids Pty Ltd </a>',
+        'target="_blank">Wattle Kids Pty Ltd (<small>Old Wattle Pty Ltd</small>)</a>',
+    )
+
+
+def test_main_former_name_page_reconciles_on_the_current_name(env):
+    page = _former_name_page()
+    assert "<small>Old Wattle Pty Ltd</small>" in page
+    add_statement(
+        env,
+        "2024-518",
+        "518",
+        KOOK_REP_TEXT,
+        KOOK_ABN,
+        page,
+        included_text=f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)})",
+    )
+    assert msr.main(["--no-fetch"]) == 0
+
+
+def test_main_exit_2_when_csv_lists_the_former_name_as_an_entry(env):
+    add_statement(
+        env,
+        "2024-519",
+        "519",
+        KOOK_REP_TEXT,
+        KOOK_ABN,
+        _former_name_page(),
+        included_text=f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)}), Old Wattle Pty Ltd",
+    )
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+
+
+def test_main_exit_2_when_a_snapshot_row_is_short(env):
+    snap = env["raw"] / "msr" / "all-statements" / "2026-01-01T0000Z.csv"
+    lines = snap.read_text(encoding="utf-8").splitlines()
+    lines[-1] = lines[-1].rsplit(",", 1)[0]  # drop the trailing RelatedStatements field
+    snap.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+
+
+def test_main_exit_2_when_a_fetched_csv_row_is_short_and_nothing_is_stored(env, monkeypatch):
+    from scrapers.common import Fetched
+
+    good = _row_values(CSV_HEADER)
+    body = _raw_csv(CSV_HEADER, [good, good[:-1]]).encode("utf-8")
+
+    def fake_fetch(url, **kwargs):
+        content = RESOURCES_HTML.encode("utf-8") if url == msr.RESOURCES_URL else body
+        return Fetched(
+            url=url,
+            final_url=url,
+            status=200,
+            content=content,
+            content_type="text/html",
+            last_modified=None,
+            etag=None,
+            fetched_at="2026-10-31T01:00:00+00:00",
+        )
+
+    monkeypatch.setattr(msr, "fetch", fake_fetch)
+    before = sorted((env["raw"] / "msr" / "all-statements").iterdir())
+    assert msr.main([]) == 2
+    assert sorted((env["raw"] / "msr" / "all-statements").iterdir()) == before
     assert env["written"] == {}
 
 
