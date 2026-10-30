@@ -249,3 +249,90 @@ def test_location_is_populated_only_when_the_register_prints_it():
     </table></body></html>"""
     (row,) = parse_register(html)
     assert (row["suburb"], row["state"], row["address"]) == (None, None, None)
+
+
+# ---------------------------------------------------------------------------
+# A withheld subject's name must not survive in any text column. Names are synthetic.
+# ---------------------------------------------------------------------------
+
+PRIVACY_FIXTURE = f"""
+<html><body>
+<h2>2026</h2>
+<table>{HEADER}
+<tr><td>Jane Example</td><td>01/02/2026</td>
+  <td><p>Jane Example fined $5,000 for missing child</p>
+   <p><a href="/docs/prosecution-jane-example.pdf">Prosecution</a><br/>
+   <a href="/docs/jane-example-notice.pdf">Notice to Jane Example</a></p></td>
+  <td><p>NL s.165 Offence by Jane Example</p></td></tr>
+<tr><td>Jane Example</td><td>02/02/2026</td>
+  <td><a href="/docs/x.pdf">Compliance notice issued to Jane Example</a></td>
+  <td>Breach admitted by Jane Example</td></tr>
+<tr><td><p>Jane Example ATF Example Family Trust</p><p>Sunny Days Early Learning</p></td>
+  <td>03/02/2026</td>
+  <td><a href="/docs/y.pdf">Compliance notice</a></td><td>N/A</td></tr>
+<tr><td>Zoë Exämple</td><td>04/02/2026</td>
+  <td><p>Zoë Exämple fined $2,000</p><p><a href="/docs/z.pdf">Prosecution</a></p></td>
+  <td>N/A</td></tr>
+<tr><td>Jane Example - executor of the estate of John Example</td><td>05/02/2026</td>
+  <td><a href="/docs/w.pdf">Compliance notice</a></td><td>N/A</td></tr>
+<tr><td><p>Example Holdings Pty Ltd ATF Smith Family Trust</p><p>Sunny Days</p></td>
+  <td>06/02/2026</td>
+  <td><a href="/docs/v.pdf">Compliance notice</a></td><td>N/A</td></tr>
+</table>
+</body></html>
+"""
+
+
+def privacy_rows():
+    return {
+        r["date_issued_raw"]: r
+        for r in parse_register(
+            PRIVACY_FIXTURE,
+            page_url=INDEX_URL,
+            captured_at="2026-10-29T07:00:00+00:00",
+            source_snapshot="x",
+        )
+    }
+
+
+def _text_blob(row):
+    return json.dumps(row, ensure_ascii=False).lower()
+
+
+def test_withheld_name_is_scrubbed_from_every_text_column():
+    for date_raw in ("01/02/2026", "02/02/2026"):
+        r = privacy_rows()[date_raw]
+        assert r["provider_name"] is None
+        assert INDIVIDUAL_NOTE in r["notes"]
+        blob = _text_blob(r)
+        assert "jane" not in blob and "example" not in blob, date_raw
+    r = privacy_rows()["01/02/2026"]
+    assert r["action_type"] == "prosecution"
+    assert len(r["legal_references"]) == 1 and r["legal_references"][0].startswith("NL s.165")
+
+
+def test_individual_trustee_is_withheld():
+    r = privacy_rows()["03/02/2026"]
+    assert r["provider_name"] is None
+    assert INDIVIDUAL_NOTE in r["notes"]
+    assert "jane" not in _text_blob(r)
+
+
+def test_accented_individual_name_is_withheld_and_scrubbed():
+    r = privacy_rows()["04/02/2026"]
+    assert r["provider_name"] is None
+    blob = _text_blob(r)
+    assert "zoë" not in blob and "exämple" not in blob
+
+
+def test_estate_or_executor_subject_is_withheld():
+    r = privacy_rows()["05/02/2026"]
+    assert r["provider_name"] is None
+    blob = _text_blob(r)
+    assert "jane" not in blob and "john" not in blob
+
+
+def test_organisation_trustee_is_still_shown():
+    r = privacy_rows()["06/02/2026"]
+    assert r["provider_name"] == "Example Holdings Pty Ltd ATF Smith Family Trust"
+    assert r["service_name"] == "Sunny Days"

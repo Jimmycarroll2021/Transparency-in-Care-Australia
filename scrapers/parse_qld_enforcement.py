@@ -14,9 +14,13 @@ must be made by name and location.
 Privacy: the first column can name natural persons (fined educators, sole-trader providers).
 Individual names are never stored. For such rows provider_name is null, the linked document
 URLs (whose file names usually embed the person's name) are withheld, and a service name is
-kept only when it shares no word with the withheld name. Because the page gives no explicit
-flag, a printed name with no legal-entity or business word in it is treated as an individual.
-That errs towards withholding; it can wrongly withhold an entity with an unusual name.
+kept only when it shares no word with the withheld name. Every other text column of a withheld
+row (action text, reason, legal references, notes) has each word of the name redacted. Because
+the page gives no explicit flag, a printed name with no legal-entity or business word in it is
+treated as an individual, and so is any name profile_providers.classify_entity_form classes as
+likely_individual (an individual trustee, a deceased estate or executor, an accented personal
+name) even when it carries a word such as 'trust'. That errs towards withholding; it can wrongly
+withhold an entity with an unusual name.
 
 Linked documents are NOT downloaded in this version.
 
@@ -50,6 +54,7 @@ from scrapers.common import (
     write_processed,
     write_snapshot,
 )
+from scrapers.profile_providers import classify_entity_form
 
 SOURCE = "qld-enforcement"
 JURISDICTION = "QLD"
@@ -168,6 +173,10 @@ def classify_subject(first: str, *, has_service_line: bool) -> str:
     """
     if _ROLE_PREFIX.match(first):
         return "role"
+    # Person signals beat legal and business words: '<person> ATF <trust>', a deceased estate
+    # or its executors, and accented personal names are individuals.
+    if classify_entity_form(first) == "likely_individual":
+        return "individual"
     if _LEGAL.search(first):
         return "entity"
     if _BUSINESS.search(first):
@@ -175,21 +184,52 @@ def classify_subject(first: str, *, has_service_line: bool) -> str:
     return "individual"
 
 
+# A word of any letters, accented ones included ('Zoë' must not split into 'Zo' and 'e').
+_WORD = re.compile(r"[^\W\d_](?:[^\W\d_]|['’\-])+")
+
+
 def name_tokens(name: str) -> set[str]:
-    words = re.findall(r"[A-Za-z][A-Za-z'\-]+", name.lower())
-    return {w.strip("'-") for w in words if len(w) >= 3 and w not in _STOPWORDS}
+    words = _WORD.findall(name.lower())
+    return {w.strip("'’-") for w in words if len(w) >= 3 and w not in _STOPWORDS}
 
 
 def contains_token(text: str, tokens: set[str]) -> bool:
-    found = {w.strip("'-") for w in re.findall(r"[A-Za-z][A-Za-z'\-]+", text.lower())}
+    found = {w.strip("'’-") for w in _WORD.findall(text.lower())}
     return bool(found & tokens)
 
 
 def redact_tokens(text: str, tokens: set[str]) -> str:
     def repl(m: re.Match) -> str:
-        return "[name withheld]" if m.group(0).lower().strip("'-") in tokens else m.group(0)
+        return "[name withheld]" if m.group(0).lower().strip("'’-") in tokens else m.group(0)
 
-    return re.sub(r"[A-Za-z][A-Za-z'\-]+", repl, text)
+    return _WORD.sub(repl, text)
+
+
+# Columns that never carry printed register text, so never need scrubbing.
+_FIXED_COLUMNS = frozenset(
+    {"record_id", "jurisdiction", "source_register", "source_document", "date_issued"}
+)
+
+
+def scrub_row(row: dict, tokens: set[str]) -> list[str]:
+    """Redact every word of a withheld name from every text column of a row, in place.
+
+    Returns the names of the columns that were changed.
+    """
+    changed = []
+    for key, value in row.items():
+        if key in _FIXED_COLUMNS or value is None:
+            continue
+        if isinstance(value, str):
+            new = redact_tokens(value, tokens)
+        elif isinstance(value, list):
+            new = [redact_tokens(v, tokens) if isinstance(v, str) else v for v in value]
+        else:
+            continue
+        if new != value:
+            row[key] = new
+            changed.append(key)
+    return changed
 
 
 # ---------------------------------------------------------------------------
@@ -347,7 +387,7 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         legal_references = []
 
     se_raw = pr_raw = None
-    return {
+    row = {
         "record_id": record_hash(
             JURISDICTION, provider_name, service_name, action_type_raw, date_raw
         ),
@@ -374,6 +414,14 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         "notes": "; ".join(notes),
         "linked_documents": " ".join(u for u in hrefs if u != primary) or None,
     }
+    if tokens:
+        # A withheld name must not survive in any text column (action text, breaches, notes).
+        changed = [c for c in scrub_row(row, tokens) if c not in {"reason", "notes"}]
+        if changed:
+            row["notes"] += (
+                f"; {', '.join(changed)} redacted: it repeated a word from the individual's name"
+            )
+    return row
 
 
 def parse_register(

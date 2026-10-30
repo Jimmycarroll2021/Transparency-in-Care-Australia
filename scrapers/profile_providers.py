@@ -6,9 +6,12 @@ acecqa-services-latest.csv, rebuilt from the raw snapshot by snapshot_acecqa_reg
 - data/processed/provider-profile.csv           one row per provider
 - data/processed/provider-profile-summary.json  aggregate counts and top providers by service count
 
-Privacy (CLAUDE.md rule 2, applied at ingest): providers classed as likely_individual keep a row
-in the CSV, but Legal Name and Trading Name are null and name_withheld is true. Their names never
-appear in the summary, in log lines or in any printed list. Street addresses are not carried over.
+Privacy (CLAUDE.md rule 2, applied at ingest, fail closed): a provider's Legal Name and Trading
+Name are published only when the legal name is positively an organisation (see name_is_withheld).
+Every other provider keeps a row in the CSV, but both names are null and name_withheld is true:
+likely individuals, individual trustees, deceased estates and executors, trusts named after a
+person, and unknown names with no organisation marker. Withheld names never appear in the summary,
+in log lines or in any printed list. Street addresses are not carried over.
 
 ACECQA content is not openly licensed: outputs are for internal use only.
 
@@ -127,15 +130,31 @@ _BUSINESS_WORDS = frozenset(
     australian foundation club society community college academy montessori nursery playgroup
     daycare ymca ymcas council shire department ministry health hospital university
     institute association trust network enterprises investments management
-    partners partnership operations solutions
+    partners partnership operations solutions school college grammar university tafe
+    corporation corp aboriginal islander committee board mission oshc church kindy
     """.split()
 )
 _PERSON_PARTICLES = frozenset(
     {"de", "del", "della", "van", "von", "der", "den", "bin", "al", "el", "le", "la", "di"}
 )
-_PERSON_TOKEN = re.compile(r"^[A-Za-z][A-Za-z.'\u2019\-]*$")
+# Any letter, including accented ones (a name such as 'Zo\u00eb' must not fall through to unknown).
+_PERSON_TOKEN = re.compile(r"^[^\W\d_](?:[^\W\d_]|[.'\u2019\-])*$")
 _TRADING_AS = re.compile(r"\s+(?:t/as?|trading\s+as)\s+", _I)
-_PARTNER_SPLIT = re.compile(r"\s*(?:&|\+|;|\band\b)\s*", _I)
+_PARTNER_SPLIT = re.compile(r"\s*(?:&|\+|;|/|\band\b)\s*", _I)
+
+# A deceased estate or its executors always names a person.
+_ESTATE = re.compile(
+    r"\b(?:estate\s+of|executors?|executrix|executrices|deceased|the\s+late)\b", _I
+)
+# An honorific in front of a word names a person.
+_TITLE = re.compile(r"(?:^|[\s&,;/(+-])(?:mr|mrs|ms|miss|mx|dr)\.?\s+[^\W\d_]", _I)
+# Splits '<trustee> as trustee(s) for <trust>' and '<trustee> ATF <trust>'. Broader than _TRUSTEE,
+# which is kept as is so that entity_form labels do not move for organisation trustees.
+_TRUSTEE_SPLIT = re.compile(
+    r"\b(?:as\s+(?:the\s+)?trustees?(?:\s+(?:for|of))?|(?:the\s+)?trustees?\s+(?:for|of)|"
+    r"a\.?t\.?f\.?)(?=\W|$)",
+    _I,
+)
 
 
 def _person_segment(tokens: list[str]) -> bool:
@@ -144,7 +163,9 @@ def _person_segment(tokens: list[str]) -> bool:
         return False
     if not all(_PERSON_TOKEN.match(t) for t in tokens):
         return False
-    if {t.lower().strip(".") for t in tokens} & _BUSINESS_WORDS:
+    keys = {t.lower().strip(".") for t in tokens}
+    keys |= {part for k in keys for part in k.split("-")}  # 'Pre-School' is a business word
+    if keys & _BUSINESS_WORDS:
         return False
     if all(t.islower() for t in tokens):  # carelessly typed all-lowercase names
         return True
@@ -169,10 +190,22 @@ def _looks_like_person(name: str) -> bool:
 
 
 def classify_entity_form(legal_name: str | None) -> str:
-    """Conservative classification of a provider legal name. Order of the checks matters."""
+    """Conservative classification of a provider legal name. Order of the checks matters.
+
+    Person signals come first: a deceased estate or executor, or a trustee who is a person
+    ('<person> ATF <trust>', '<person> as trustee for <trust>'), is likely_individual whatever
+    the rest of the name says.
+    """
     if not legal_name or not legal_name.strip():
         return "unknown"
     name = legal_name.strip()
+    if _ESTATE.search(name):
+        return "likely_individual"
+    split = _TRUSTEE_SPLIT.search(name)
+    if split:
+        trustee = _strip_leading_the(name[: split.start()])
+        if trustee and classify_entity_form(trustee) == "likely_individual":
+            return "likely_individual"
     has_company = bool(_COMPANY.search(name))
     has_inc = bool(_INC.search(name))
     has_assoc = bool(_ASSOC.search(name))
@@ -195,9 +228,136 @@ def classify_entity_form(legal_name: str | None) -> str:
         return "incorporated_association"
     if _TRUST_WORD.search(name):
         return "trust_or_trustee"
-    if _looks_like_person(name):
+    if _looks_like_person(name) or _TITLE.search(name):
         return "likely_individual"
     return "unknown"
+
+
+# ---------------------------------------------------------------------------
+# Fail-closed name withholding
+# ---------------------------------------------------------------------------
+
+# Forms that are positively an organisation on their own.
+_ORGANISATION_FORMS = frozenset(
+    {"company", "incorporated_association", "cooperative", "government", "church_or_religious"}
+)
+# Words dropped from a trust's name before asking whether what is left is a person's name.
+_TRUST_FILLER = frozenset(
+    """
+    the a for of as trust trusts trustee trustees family unit discretionary fixed hybrid
+    investment investments superannuation super fund settlement no number
+    """.split()
+)
+# Words that mark an organisation in a name the classifier left as unknown.
+_ORGANISATION_WORDS = _BUSINESS_WORDS | frozenset({"early"})
+# Words a sole trader or family day care educator puts after their own name ('Jane Example
+# Family Day Care'). When one of these is the first organisation word, the words in front of it
+# must not be person-shaped. In front of any other organisation word ('Exampleton North Primary
+# School', 'Exampleton Regional Community Services') a run of capitalised words is a place.
+_SOLE_TRADER_WORDS = frozenset(
+    """
+    child children childcare care kids kid daycare nursery early learning education educational
+    services service group holdings enterprises investments management partners partnership
+    operations solutions
+    """.split()
+)
+# Institutional words: anywhere in an unknown-form name they mark an organisation.
+_INSTITUTION_WORDS = frozenset(
+    """
+    school schools college grammar university tafe institute corporation corp aboriginal
+    islander hospital council shire mission church committee board society foundation
+    association ymca
+    """.split()
+)
+# 'J Example ...' or 'J & K Example ...': initials then a capitalised word lead a person's name.
+_INITIALS_LEAD = re.compile(r"^\s*(?:[A-Z]{1,2}\.?\s*(?:&|and|\+)\s*)*[A-Z]{1,2}\.?\s+[A-Z][a-z]")
+
+
+def _strip_leading_the(text: str) -> str:
+    return re.sub(r"^(?:the\s+)", "", text.strip(" ,;:-()"), flags=re.I).strip(" ,;:-()")
+
+
+def _word_key(token: str) -> str:
+    """Lower case, possessive and punctuation removed: "Children's" -> 'children'."""
+    key = token.lower().strip("()[]\"'.,;:’")
+    return re.sub(r"['’]s$", "", key)
+
+
+def _trust_names_a_person(trust: str, trustee: str = "") -> bool:
+    """True when a trust's name, once its filler words are dropped, reads as a person's name.
+
+    A trust named with the same words as its organisation trustee ('Example Kids Pty Ltd ATF
+    Example Kids Trust') adds nothing to the trustee's own name and is not treated as a person.
+    """
+    trust = _TRADING_AS.split(trust, maxsplit=1)[0]
+    if _TITLE.search(trust) or _ESTATE.search(trust):
+        return True
+    words = [
+        w
+        for w in re.split(r"[\s,()]+", trust)
+        if w and _word_key(w) not in _TRUST_FILLER and not re.fullmatch(r"[\d.#]+", w)
+    ]
+    rest = " ".join(words).strip(" &+;/-")
+    if not rest:
+        return False
+    trustee_keys = {_word_key(w) for w in re.split(r"[\s,()&+/]+", trustee) if w}
+    if trustee_keys and all(_word_key(w) in trustee_keys for w in words if w not in "&+/;-"):
+        return False
+    return _looks_like_person(rest)
+
+
+def _unknown_name_is_organisation(name: str) -> bool:
+    """An unknown-form name is shown only with an organisation word and no person-shaped lead."""
+    left = _TRADING_AS.split(name.strip(), maxsplit=1)[0]
+    if _INITIALS_LEAD.match(left):
+        return False
+    tokens = left.replace(",", " ").split()
+    token_keys = [
+        {_word_key(token), *(_word_key(part) for part in token.split("-"))} for token in tokens
+    ]
+    if any(keys & _INSTITUTION_WORDS for keys in token_keys):
+        return True
+    for i, keys in enumerate(token_keys):
+        found = keys & _ORGANISATION_WORDS
+        if not found:
+            continue
+        if not found <= _SOLE_TRADER_WORDS:
+            return True
+        prefix = " ".join(tokens[:i]).strip(" &+;/-")
+        return not (prefix and _looks_like_person(prefix))
+    return False
+
+
+def name_is_withheld(legal_name: str | None, form: str | None = None) -> bool:
+    """Fail closed: True unless the legal name is positively an organisation.
+
+    Shown: company, incorporated association, cooperative, government and church or religious
+    bodies; a trust whose trustee is such an organisation (or is not named) and whose own name
+    is not a person's; and an unknown-form name carrying an organisation word (school, college,
+    corporation, childcare and similar) with no person-shaped words in front of it. Withheld:
+    everything else, including likely individuals, individual trustees, deceased estates,
+    executors, honorifics and names the classifier cannot place. A blank name has nothing to
+    withhold and returns False.
+    """
+    if not legal_name or not legal_name.strip():
+        return False
+    name = legal_name.strip()
+    form = form or classify_entity_form(name)
+    if form == "likely_individual" or _ESTATE.search(name):
+        return True
+    split = _TRUSTEE_SPLIT.search(name)
+    if split:
+        trustee = _strip_leading_the(name[: split.start()])
+        if trustee:
+            trustee_form = classify_entity_form(trustee)
+            if trustee_form not in _ORGANISATION_FORMS and name_is_withheld(trustee, trustee_form):
+                return True
+        return _trust_names_a_person(name[split.end() :], trustee)
+    if form in _ORGANISATION_FORMS:
+        return False
+    if form == "trust_or_trustee":
+        return _trust_names_a_person(name)
+    return not _unknown_name_is_organisation(name)
 
 
 # ---------------------------------------------------------------------------
@@ -272,7 +432,7 @@ def build_profile() -> dict:
             continue
         seen.add(pr)
         form = classify_entity_form(p.get("Legal Name"))
-        withheld = form == "likely_individual"
+        withheld = name_is_withheld(p.get("Legal Name"), form)
         svcs = by_provider.get(pr, [])
         states = sorted({s["State"] for s in svcs if s.get("State")})
         places = [_to_int(s.get("NumberOfApprovedPlaces")) for s in svcs]
@@ -329,15 +489,18 @@ def build_profile() -> dict:
         notes=(
             "One row per provider (provider_approval_number). entity_form is a conservative "
             "classification of Legal Name by suffix and keyword; it is a heuristic, not a legal "
-            "determination. likely_individual rows have legal_name and trading_name null and "
-            "name_withheld true (CLAUDE.md rule 2). Addresses are not carried over. "
+            "determination. Names are withheld fail closed (CLAUDE.md rule 2): legal_name and "
+            "trading_name are null and name_withheld is true unless the legal name is positively "
+            "an organisation (company, incorporated association, cooperative, government, church, "
+            "an organisation trustee of a trust not named after a person, or an unknown-form name "
+            "with an organisation word). Addresses are not carried over. "
             "service_count joins on provider_approval_number in the services table; providers "
             "with no services in that table have service_count 0, which is not evidence that "
             "they operate none. ACECQA content is not openly licensed: internal use only."
         ),
     )
 
-    # ---- summary (never includes names of likely_individual providers) ----
+    # ---- summary (never includes withheld names) ----
     form_counts = Counter(r["entity_form"] for r in rows)
     form_services: Counter[str] = Counter()
     for r in rows:
@@ -398,6 +561,7 @@ def build_profile() -> dict:
             for f in ENTITY_FORMS
         },
         "likely_individual_providers_names_withheld": form_counts.get("likely_individual", 0),
+        "providers_names_withheld_total": sum(1 for r in rows if r["name_withheld"] == "true"),
         "providers_with_no_services_in_services_table": null_log[
             "provider_with_no_services_in_services_table"
         ],
@@ -426,7 +590,7 @@ def build_profile() -> dict:
         ),
         "top_30_providers_by_service_count": top_out,
         "top_30_note": (
-            "likely_individual providers are excluded from this list by design. Service count is "
+            "Providers whose names are withheld are excluded from this list by design. Service count is "
             "approved services on the register on the snapshot date, out of the services_total above. "
             "A large count does not by itself indicate any compliance concern."
         ),

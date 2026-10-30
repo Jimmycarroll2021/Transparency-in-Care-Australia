@@ -186,3 +186,148 @@ def test_summary_records_posix_paths_on_every_platform(tmp_path, monkeypatch):
         "data/raw/acecqa/2026-10-29T0700Z-providers.csv.gz",
         "data/processed/acecqa-services-latest.csv",
     ]
+
+
+# ---------------------------------------------------------------------------
+# Fail-closed name withholding (CLAUDE.md rule 2). Every name below is synthetic.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Jane Example & John Example ATF Example Family Trust",
+        "Jane Example and John Example as Trustees for The Example Family Trust",
+        "Jane Example as trustee for the Sunny Days Trust",
+        "Jane Q Example ATF Sunny Days Unit Trust",
+    ],
+)
+def test_individual_trustee_is_classed_individual_and_withheld(name):
+    assert pp.classify_entity_form(name) == "likely_individual"
+    assert pp.name_is_withheld(name) is True
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Mrs Jane Example and Mr John Example - executors of the estate of Mary Example",
+        "Estate of the late John Example",
+        "The Estate of Mary Example",
+        "John Example Executor",
+        "Jane Example (deceased)",
+    ],
+)
+def test_estate_or_executor_name_is_classed_individual_and_withheld(name):
+    assert pp.classify_entity_form(name) == "likely_individual"
+    assert pp.name_is_withheld(name) is True
+
+
+@pytest.mark.parametrize(
+    "name", ["Zoë Exämple", "José Ñandú", "Ana-Lúcia Exemplo", "Renée Exampleé"]
+)
+def test_accented_personal_name_is_withheld(name):
+    assert pp.classify_entity_form(name) == "likely_individual"
+    assert pp.name_is_withheld(name) is True
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Example Holdings Pty Ltd as trustee for Jane Example",
+        "Example Holdings Pty Ltd ATF the Jane Example Family Trust",
+        "Jane Example/John Example",
+        "Mrs Jane Example",
+        "Goodstart",
+        "Kind Hearts Childcare",
+        "Jane Example Family Day Care",
+        "J & K Example Gum Tree Pre School",
+        "Jane L Example and John M Example Partnership",
+        "Jane example",
+    ],
+)
+def test_name_not_positively_an_organisation_is_withheld(name):
+    assert pp.name_is_withheld(name) is True
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Sunny Days Early Learning Pty Ltd",
+        "Jane Citizen Pty Ltd",
+        "Hillview Kindergarten Inc",
+        "Exampleton Shire Council",
+        "Example Parish Child Care",
+        "Valley Co-operative Child Care Society Ltd",
+        "ABC Services Pty Ltd as trustee for The Example Family Trust",
+        "Example Holdings Pty Ltd ATF Smith Family Trust",
+        "The Trustee for the Example Education Trust",
+        "The Example Education Trust",
+        "Exampleton Primary School",
+        "Exampleton Grammar School",
+        "Example Valley Aboriginal Corporation",
+        "MS Example Education Pty Ltd",
+        "Corporation of the Trustees of the Example Diocese - Example Services",
+        "Little Stars Exampleton Pty Ltd ATF Little Stars Exampleton Unit Trust",
+        "Exampleton Regional Community Services",
+        "Exampleton Pre-School Kindergarten",
+    ],
+)
+def test_organisation_name_is_still_shown(name):
+    assert pp.name_is_withheld(name) is False
+
+
+def test_build_profile_fails_closed_on_trustees_estates_and_accents(tmp_path, monkeypatch):
+    providers = tmp_path / "providers.csv"
+    services = tmp_path / "services.csv"
+    fixtures = [
+        ("PR-00000011", "Jane Example & John Example ATF Example Family Trust", "Example Kids"),
+        (
+            "PR-00000012",
+            "Jane Example - executor of the estate of Mary Example",
+            "Mrs Mary Example",
+        ),
+        ("PR-00000013", "Zoë Exämple", ""),
+        ("PR-00000014", "Example Holdings Pty Ltd ATF Smith Family Trust", "Sunny Days"),
+        ("PR-00000015", "Sunny Days Pty Ltd", "Sunny Days"),
+    ]
+    with providers.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        w.writerow(
+            [
+                "Legal Name",
+                "Trading Name",
+                "State",
+                "Date Approval Granted",
+                "provider_approval_number",
+            ]
+        )
+        for pr, legal, trading in fixtures:
+            w.writerow([legal, trading, "NSW", "01/01/2020", pr])
+    with services.open("w", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        w.writerow(["provider_approval_number", "State", "ServiceType", "NumberOfApprovedPlaces"])
+        for pr, _, _ in fixtures:
+            w.writerow([pr, "NSW", "Centre-Based Care", "30"])
+    out = tmp_path / "out"
+    out.mkdir()
+    monkeypatch.setattr(pp, "PROVIDERS_CSV", providers)
+    monkeypatch.setattr(pp, "SERVICES_CSV", services)
+    monkeypatch.setattr(pp, "SUMMARY_JSON", out / "summary.json")
+    monkeypatch.setattr(pp, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(pp, "PROCESSED_DIR", out)
+    written = {}
+    monkeypatch.setattr(
+        pp, "write_processed", lambda name, rows, fieldnames, **k: written.update(rows=rows)
+    )
+    pp.build_profile()
+
+    by_pr = {r["provider_approval_number"]: r for r in written["rows"]}
+    for pr in ("PR-00000011", "PR-00000012", "PR-00000013"):
+        row = by_pr[pr]
+        assert row["name_withheld"] == "true", pr
+        assert row["legal_name"] is None and row["trading_name"] is None, pr
+    for pr in ("PR-00000014", "PR-00000015"):
+        assert by_pr[pr]["name_withheld"] == "false", pr
+        assert by_pr[pr]["legal_name"], pr
+    text = (out / "summary.json").read_text(encoding="utf-8")
+    assert "Example Family" not in text and "Exämple" not in text and "executor" not in text
