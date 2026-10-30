@@ -302,11 +302,11 @@ def write_processed(
         for row in rows:
             writer.writerow({k: ("" if row.get(k) is None else row.get(k)) for k in fieldnames})
     provenance = {
-        "output": str(out.relative_to(PROJECT_ROOT)),
+        "output": out.relative_to(PROJECT_ROOT).as_posix(),
         "written_at": utc_now().isoformat(),
         "rows": len(rows),
         "schema": schema,
-        "raw_inputs": [str(p.relative_to(PROJECT_ROOT)) for p in raw_inputs],
+        "raw_inputs": [p.relative_to(PROJECT_ROOT).as_posix() for p in raw_inputs],
         "notes": notes,
     }
     (PROCESSED_DIR / f"{name}.provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")

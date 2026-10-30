@@ -1,6 +1,6 @@
 {
   "output": "data/processed/vecra-enforcement-actions.csv",
-  "written_at": "2026-10-29T07:22:30.263796+00:00",
+  "written_at": "2026-10-30T11:51:36.168815+00:00",
   "rows": 132,
   "schema": "data/schemas/enforcement-action.schema.json",
   "raw_inputs": [

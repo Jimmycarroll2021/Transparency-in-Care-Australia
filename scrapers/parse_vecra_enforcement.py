@@ -626,11 +626,11 @@ def write_counts(rows: list[dict], raw_inputs: list[Path]) -> Path:
                 {k: ("" if row.get(k) is None else row.get(k)) for k in COUNT_FIELDNAMES}
             )
     provenance = {
-        "output": str(out.relative_to(PROJECT_ROOT)),
+        "output": out.relative_to(PROJECT_ROOT).as_posix(),
         "written_at": common.utc_now().isoformat(),
         "rows": len(rows),
         "schema": None,
-        "raw_inputs": [str(p.relative_to(PROJECT_ROOT)) for p in raw_inputs],
+        "raw_inputs": [p.relative_to(PROJECT_ROOT).as_posix() for p in raw_inputs],
         "notes": (
             "Summary table counts of all compliance actions by type per period, as printed. "
             "count_raw keeps the printed cell; a printed dash is read as 0 [Verify This]. "
@@ -661,7 +661,7 @@ def parse_all() -> tuple[list[dict], list[dict], list[Path]]:
     for slug in sorted(month_snaps, key=sort_key):
         path, meta = month_snaps[slug]
         html = path.read_text(encoding="utf-8", errors="replace")
-        rel = str(path.relative_to(PROJECT_ROOT))
+        rel = path.relative_to(PROJECT_ROOT).as_posix()
         label = slug_to_label(slug)
         kwargs = {
             "source_document": meta["url"],
@@ -681,7 +681,7 @@ def parse_all() -> tuple[list[dict], list[dict], list[Path]]:
             source_document=meta["url"],
             captured_at=meta["fetched_at"],
             page_period_label="Summary table comparison",
-            source_snapshot=str(path.relative_to(PROJECT_ROOT)),
+            source_snapshot=path.relative_to(PROJECT_ROOT).as_posix(),
         )
         log.info("%s: %d count rows", SUMMARY_SLUG, len(counts))
         count_rows.extend(counts)

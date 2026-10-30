@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T04:49:54.165530+00:00",
+  "generated_at": "2026-10-30T11:51:51.468134+00:00",
   "window": {
     "months": 24,
     "start": "2024-10-29",
@@ -27,10 +27,10 @@
     "data/processed/vecra-enforcement-actions.csv",
     "data/processed/wa-enforcement-actions.csv",
     "data/processed/abn-details.csv",
-    "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
-    "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json",
-    "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz",
-    "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz.meta.json",
+    "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz",
+    "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz.meta.json",
+    "data/raw/acecqa-providers/2026-10-29T2316Z.csv.gz",
+    "data/raw/acecqa-providers/2026-10-29T2316Z.csv.gz.meta.json",
     "data/raw/cth-ccs-enforcement/2026-10-29T0749Z-current.html",
     "data/raw/cth-ccs-enforcement/2026-10-29T0749Z-past.html",
     "data/raw/nsw-enforcement/2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf",
@@ -69,7 +69,7 @@
     "data/raw/sa-enforcement/2026-10-29T0819Z-historical-compliance-action-2022-23.html",
     "data/raw/sa-enforcement/2026-10-29T0819Z-copyright-disclaimer.html",
     "data/raw/sa-enforcement/2026-10-29T0819Z-historical-index.html",
-    "data\\raw\\tas-enforcement\\2026-10-29T0819Z.html",
+    "data/raw/tas-enforcement/2026-10-29T0819Z.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-january-march-2026.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-april-may-2026.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-june-2026.html",
@@ -78,7 +78,11 @@
     "data/raw/vecra-enforcement/2026-10-29T0721Z-summary-table.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-index.html",
     "data/raw/wa-enforcement/2026-10-29T0842Z.html",
-    "data/processed/enforcement-actions-all.csv"
+    "data/processed/enforcement-actions-all.csv",
+    "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz",
+    "data/raw/acecqa-providers/2026-10-29T0718Z.csv.gz.meta.json",
+    "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz",
+    "data/raw/acecqa-services/2026-10-29T0718Z.csv.gz.meta.json"
   ],
   "coverage": {
     "NSW": "NSW register: Jan 2025 onward (quarterly PDFs)",
@@ -99,8 +103,8 @@
     "unlisted_provider_keys": 402,
     "unmatched": 301,
     "unmatched_residual": {
-      "no_key_and_name_withheld": 105,
-      "no_key_no_name_match": 194,
+      "no_key_and_name_withheld": 116,
+      "no_key_no_name_match": 183,
       "ambiguous_name": 0,
       "other": 2
     },
@@ -117,7 +121,7 @@
     "rows_joined": 554,
     "services_with_action_last_24_months": 76,
     "providers_with_action_last_24_months": 371,
-    "stubs_with_name_variants": 12,
+    "stubs_with_name_variants": 5,
     "stubs_with_name_withheld": 127,
     "note": "Stub entities are reported separately and are never added to the live denominators below."
   },
@@ -481,8 +485,8 @@
       "joined_by_unlisted_key_provider": 2,
       "unmatched": 30,
       "unmatched_residual": {
-        "no_key_and_name_withheld": 14,
-        "no_key_no_name_match": 16,
+        "no_key_and_name_withheld": 25,
+        "no_key_no_name_match": 5,
         "ambiguous_name": 0,
         "other": 0
       },
@@ -490,8 +494,8 @@
       "unmatched_ambiguous_provider_name": 0,
       "duplicate_rows_not_counted": 0,
       "unmatched_reasons": {
-        "no service or provider key printed": 14,
-        "no service or provider key printed; provider name: no provider in WA with this normalised name": 16
+        "no service or provider key printed": 25,
+        "no service or provider key printed; provider name: no provider in WA with this normalised name": 5
       },
       "unmatched_examples": [
         {

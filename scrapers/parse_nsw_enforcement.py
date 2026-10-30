@@ -4,6 +4,11 @@ Source: NSW Department of Education, CC BY 4.0 (see research/2026-10-29-register
 Attribution: (c) State of New South Wales (Department of Education).
 
 Run: python3 scrapers/parse_nsw_enforcement.py [--force] [--skip-fetch]
+
+Exit status: 0 when every document was identified and parsed and the outputs were written; 1 when
+no snapshot was parsed; 2 when the run was incomplete (an unidentified snapshot or a document
+with no parsable copy). On 1 or 2 data/processed/nsw-enforcement-actions.* are left unchanged and the
+run summary is printed to stdout only.
 """
 
 from __future__ import annotations
@@ -345,7 +350,15 @@ def split_address(address: str | None) -> tuple[str | None, str | None, str | No
 # PDF table parsing
 # ---------------------------------------------------------------------------
 
-_ID_CELL = re.compile(r"^\s*(SE|PR)-\d+\w*\s*$")
+_KEY_SEP = r"\s*[-\u2013\u2014:]?\s*"  # hyphen, the two long dash characters or colon; any spacing
+_ID_CELL = re.compile(rf"^\s*(SE|PR){_KEY_SEP}\d+\w*\s*$", re.IGNORECASE)
+
+
+def is_id_cell(text: str | None) -> bool:
+    """True if a cell holds a printed SE-/PR- key (well formed or not), which starts a record."""
+    return bool(text) and _ID_CELL.match(text) is not None
+
+
 _HEADER_WORDS = re.compile(
     r"^(service|provider|date|issued|details|of|action|taken|enforcement|nature|reason|grounds|"
     r"for|decision|to|cancel|involuntary|suspension|address|name|id|\(provision|under|which|"
@@ -434,7 +447,7 @@ def read_pdf_records(path: Path) -> tuple[list[RawRecord], dict]:
                 continue
             roles = roles_by_width.get(width)
             idx = [i for i, c in enumerate(row) if clean_text(c)]
-            if roles and len(idx) == len(roles) and any(_ID_CELL.match(row[i] or "") for i in idx):
+            if roles and len(idx) == len(roles) and any(is_id_cell(row[i]) for i in idx):
                 maps.setdefault((width, tuple(map(str, roles))), dict(zip(idx, roles, strict=True)))
 
     # Pass 2: assign.
@@ -470,7 +483,7 @@ def read_pdf_records(path: Path) -> tuple[list[RawRecord], dict]:
                         current.warnings.append(f"row of width {width} could not be mapped")
                     continue
             raw_map = maps.get((width, tuple(map(str, roles))))
-            has_id = any(_ID_CELL.match(row[i] or "") for i in populated)
+            has_id = any(is_id_cell(row[i]) for i in populated)
             if raw_map is None:  # no complete row to learn from: fall back to reading order
                 raw_map = dict(zip(populated, roles, strict=False))
             if has_id:
@@ -499,6 +512,38 @@ def read_pdf_records(path: Path) -> tuple[list[RawRecord], dict]:
 # ---------------------------------------------------------------------------
 
 
+_KEY_PARTS = re.compile(rf"^(SE|PR){_KEY_SEP}(\d+)(.*)$", re.IGNORECASE)
+
+
+def printed_key(id_raw: str | None) -> tuple[str | None, str | None]:
+    """(key, note) for a printed approval number. key is 'SE-' or 'PR-' plus 8 digits, or None.
+
+    Only differences that carry no meaning are corrected: letter case, spacing and the dash
+    character between prefix and digits. A number with too few or too many digits, or with
+    characters after the digits, is never padded, trimmed or guessed; the key is null and the
+    note says why, so the join's fallbacks decide what happens to the row.
+    """
+    text = clean_text(id_raw)
+    if not text:
+        return None, None
+    m = _KEY_PARTS.match(text)
+    if m and len(m.group(2)) == 8 and not m.group(3).strip():
+        return f"{m.group(1).upper()}-{m.group(2)}", None
+    if m is None:
+        reason = "it does not start with SE- or PR- and digits"
+    elif m.group(3).strip():
+        reason = (
+            f"it has {len(m.group(2))} digits then trailing '{m.group(3).strip()}', "
+            "whose meaning is not printed"
+        )
+    else:
+        reason = f"it has {len(m.group(2))} digits and the digit at fault cannot be located"
+    return None, (
+        f"approval number '{text}' is not SE-/PR- plus 8 digits ({reason}); "
+        "normalised value left null"
+    )
+
+
 def build_row(
     raw: RawRecord,
     *,
@@ -511,15 +556,11 @@ def build_row(
     notes: list[str] = list(dict.fromkeys(raw.warnings))
     id_raw = f.get("id")
     is_provider_row = bool(id_raw) and id_raw.upper().startswith("PR")
-    # Only a number printed as SE-/PR- plus exactly 8 digits is normalised. A short or suffixed
-    # number is not padded or trimmed, because that would guess which digits are missing.
-    well_formed = bool(id_raw) and re.fullmatch(r"(SE|PR)-\d{8}", id_raw.strip()) is not None
-    se = normalise_se(id_raw) if well_formed and id_raw.upper().startswith("SE") else None
-    pr = normalise_pr(id_raw) if well_formed and id_raw.upper().startswith("PR") else None
-    if id_raw and not well_formed:
-        notes.append(
-            f"approval number '{id_raw}' is not SE-/PR- plus 8 digits; normalised value left null"
-        )
+    key, key_note = printed_key(id_raw)
+    se = normalise_se(key) if key and key.startswith("SE") else None
+    pr = normalise_pr(key) if key and key.startswith("PR") else None
+    if key_note:
+        notes.append(key_note)
     if not id_raw:
         notes.append("approval number missing in source")
 
@@ -615,17 +656,70 @@ def mark_duplicates(rows: list[dict]) -> int:
     return count
 
 
-def pdf_snapshots() -> list[Path]:
-    return [p for p in list_snapshots(SOURCE) if p.suffix.lower() == ".pdf"]
+def document_key(path: Path) -> str | None:
+    """The exact source URL of a snapshot, from its meta sidecar ('url', then 'final_url').
+
+    The URL string is compared exactly (surrounding whitespace stripped, nothing else): two
+    documents whose URLs share a file name stay two documents, and a same-minute copy whose file
+    name carries a collision suffix is still the same document. None when there is no readable
+    sidecar or it holds no URL; such a snapshot cannot be identified and is not parsed.
+    """
+    meta = read_meta(path)
+    for field in ("url", "final_url"):
+        value = meta.get(field)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def pdf_documents(base_dir: Path = RAW_DIR) -> tuple[dict[str, list[Path]], list[Path]]:
+    """(documents, unidentified). Documents maps document_key to its snapshots, newest first.
+
+    Unidentified snapshots (no usable sidecar URL) are returned separately, oldest first.
+    """
+    pdfs = [p for p in list_snapshots(SOURCE, base_dir=base_dir) if p.suffix.lower() == ".pdf"]
+    docs: dict[str, list[Path]] = {}
+    unidentified: list[Path] = []
+    for path in pdfs:  # listed oldest first
+        key = document_key(path)
+        if key is None:
+            unidentified.append(path)
+        else:
+            docs.setdefault(key, []).insert(0, path)
+    return docs, unidentified
+
+
+def pdf_snapshots(base_dir: Path = RAW_DIR) -> tuple[list[Path], list[Path]]:
+    """(kept, superseded) PDF snapshots. Only the newest snapshot of each document is kept.
+
+    A re-issued quarterly PDF is fetched again from the same URL and archived next to the old
+    copy; parsing both would count every action in that quarter twice. Documents are identified
+    by document_key. parse_all falls back to an older copy if the newest cannot be parsed.
+    Unidentified snapshots are in neither list.
+    """
+    pdfs = [p for p in list_snapshots(SOURCE, base_dir=base_dir) if p.suffix.lower() == ".pdf"]
+    docs, unidentified = pdf_documents(base_dir)
+    keep = {versions[0] for versions in docs.values()}
+    superseded = {p for versions in docs.values() for p in versions[1:]}
+    return [p for p in pdfs if p in keep], [p for p in pdfs if p in superseded]
+
+
+def snapshot_rel_path(path: Path, root: Path = PROJECT_ROOT) -> str:
+    """Project-relative path with forward slashes, so outputs are the same on every platform."""
+    return path.relative_to(root).as_posix()
 
 
 def read_meta(path: Path) -> dict:
+    """The snapshot's meta sidecar, or {} when it is missing, unreadable or not a JSON object."""
     meta_path = Path(f"{path}.meta.json")
     if meta_path.exists():
         try:
-            return json.loads(meta_path.read_text())
+            meta = json.loads(meta_path.read_text())
         except json.JSONDecodeError:
-            pass
+            return {}
+        if isinstance(meta, dict):
+            return meta
+        log.warning("meta sidecar of %s is not a JSON object; ignored", path.name)
     return {}
 
 
@@ -634,7 +728,43 @@ def slug_of_snapshot(path: Path) -> str:
     return re.sub(r"^\d{4}-\d{2}-\d{2}T\d{4,6}Z(?:-\d+)?-?", "", path.stem)
 
 
-def parse_all() -> tuple[list[dict], list[Path], dict]:
+def _parse_snapshot(path: Path, root: Path, summary: dict) -> list[dict] | None:
+    """Rows of one snapshot, or None if it raised or yielded no rows. Records it in by_file."""
+    meta = read_meta(path)
+    slug = slug_of_snapshot(path)
+    label = period_label_from_slug(slug)
+    if label is None:
+        log.warning("no period label derivable from %s", path.name)
+    try:
+        raws, stats = read_pdf_records(path)
+    except Exception as exc:  # a corrupt PDF must not stop the other files
+        log.error("could not parse %s: %s", path.name, exc)
+        summary["by_file"][path.name] = {"error": str(exc)}
+        return None
+    if not raws:
+        log.error("no rows read from %s", path.name)
+        summary["by_file"][path.name] = {"error": "no rows read", **stats}
+        return None
+    rel = snapshot_rel_path(path, root=root)
+    file_rows = [build_row(r, meta=meta, snapshot_rel=rel, period_label=label) for r in raws]
+    summary["duplicates"] += mark_duplicates(file_rows)
+    summary["by_file"][path.name] = {"rows": len(file_rows), **stats}
+    log.info("parsed %s: %d rows %s", path.name, len(file_rows), stats)
+    return file_rows
+
+
+def parse_all(
+    base_dir: Path = RAW_DIR, root: Path = PROJECT_ROOT
+) -> tuple[list[dict], list[Path], dict]:
+    """Parse the newest usable snapshot of every document.
+
+    Each document's snapshots are tried newest first. A snapshot that raises, or that yields no
+    rows, is a failed parse; the next older copy is then tried and the fallback is recorded in
+    summary["fallbacks"]. A document with no parsable copy is listed in
+    summary["failed_documents"] and summary["complete"] is False; the other documents are still
+    parsed, as before. A snapshot with no usable sidecar URL is not parsed and not guessed: it is
+    listed in summary["unidentified_snapshots"] and summary["complete"] is False.
+    """
     rows: list[dict] = []
     parsed: list[Path] = []
     summary = {
@@ -644,28 +774,44 @@ def parse_all() -> tuple[list[dict], list[Path], dict]:
         "null_provider_approval_number_on_provider_rows": 0,
         "duplicates": 0,
         "withheld_provider_names": 0,
+        "superseded_snapshots": [],
+        "fallbacks": [],
+        "failed_documents": [],
+        "unidentified_snapshots": [],
+        "complete": True,
         "by_file": {},
     }
-    for path in pdf_snapshots():
-        meta = read_meta(path)
-        rel = str(path.relative_to(PROJECT_ROOT))
-        slug = slug_of_snapshot(path)
-        label = period_label_from_slug(slug)
-        if label is None:
-            log.warning("no period label derivable from %s", path.name)
-        try:
-            raws, stats = read_pdf_records(path)
-        except Exception as exc:  # a corrupt PDF must not stop the other files
-            log.error("could not parse %s: %s", path.name, exc)
-            summary["by_file"][path.name] = {"error": str(exc)}
-            continue
-        file_rows = [build_row(r, meta=meta, snapshot_rel=rel, period_label=label) for r in raws]
-        summary["duplicates"] += mark_duplicates(file_rows)
-        rows.extend(file_rows)
+    used: dict[Path, list[dict]] = {}
+    superseded: list[Path] = []
+    docs, unidentified = pdf_documents(base_dir)
+    for path in unidentified:
+        log.error("no source URL in the meta sidecar of %s; not parsed", path.name)
+        summary["unidentified_snapshots"].append(path.name)
+        summary["complete"] = False
+    for doc, versions in docs.items():
+        failed: list[str] = []
+        for i, path in enumerate(versions):
+            file_rows = _parse_snapshot(path, root, summary)
+            if file_rows is None:
+                failed.append(path.name)
+                continue
+            used[path] = file_rows
+            superseded.extend(versions[i + 1 :])
+            if failed:
+                log.warning("%s: newer snapshot(s) %s failed, used %s", doc, failed, path.name)
+                summary["fallbacks"].append({"document": doc, "used": path.name, "failed": failed})
+            break
+        else:
+            log.error("%s: no snapshot could be parsed (%s)", doc, ", ".join(failed))
+            summary["failed_documents"].append({"document": doc, "snapshots": failed})
+            summary["complete"] = False
+    for path in sorted(superseded):
+        log.info("superseded by a newer snapshot of the same document, not parsed: %s", path.name)
+        summary["superseded_snapshots"].append(path.name)
+    for path in sorted(used):  # oldest first, the order outputs were always written in
+        rows.extend(used[path])
         parsed.append(path)
         summary["pdfs_parsed"] += 1
-        summary["by_file"][path.name] = {"rows": len(file_rows), **stats}
-        log.info("parsed %s: %d rows %s", path.name, len(file_rows), stats)
     for r in rows:
         if r["service_approval_number"] is None and r["provider_approval_number_raw"] is None:
             summary["null_service_approval_number"] += 1
@@ -675,6 +821,22 @@ def parse_all() -> tuple[list[dict], list[Path], dict]:
             summary["withheld_provider_names"] += 1
     summary["rows"] = len(rows)
     return rows, parsed, summary
+
+
+def provenance_notes(summary: dict) -> str:
+    """Provenance notes for the processed output, including any document not fully parsed."""
+    notes = (
+        "NSW Department of Education register of published enforcement actions, CC BY 4.0, "
+        "(c) State of New South Wales (Department of Education). legal_references joined with '; '. "
+        "Personal provider names withheld; nominated supervisor data not stored."
+    )
+    for fb in summary["fallbacks"]:
+        notes += f" Fallback: {fb['document']} parsed from {fb['used']}; failed: {', '.join(fb['failed'])}."
+    for fd in summary["failed_documents"]:
+        notes += f" Not parsed: {fd['document']}; no snapshot could be read ({', '.join(fd['snapshots'])})."
+    for name in summary["unidentified_snapshots"]:
+        notes += f" Not parsed: {name}; no source URL in its meta sidecar, document not identified."
+    return notes
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -695,19 +857,31 @@ def main(argv: list[str] | None = None) -> int:
         log.error("no PDF snapshots to parse")
         print(json.dumps({"fetch": fetch_summary, "parse": summary}, indent=2))
         return 1
+    if not summary["complete"]:
+        # A partial run must not replace the last good outputs: the join would silently lose the
+        # missing documents' actions. The summary is printed to stdout instead; no file is written.
+        log.error(
+            "run incomplete; %s left unchanged. Unidentified snapshots: %s. Failed documents: %s",
+            f"data/processed/{OUTPUT_NAME}.*",
+            ", ".join(summary["unidentified_snapshots"]) or "none",
+            "; ".join(
+                f"{fd['document']} ({', '.join(fd['snapshots'])})"
+                for fd in summary["failed_documents"]
+            )
+            or "none",
+        )
+        print(json.dumps({"fetch": fetch_summary, "parse": summary}, indent=2))
+        return 2
     for row in rows:
         row.pop("_details", None)
+    notes = provenance_notes(summary)
     write_processed(
         OUTPUT_NAME,
         rows,
         FIELDNAMES,
         raw_inputs=parsed,
         schema=SCHEMA_PATH,
-        notes=(
-            "NSW Department of Education register of published enforcement actions, CC BY 4.0, "
-            "(c) State of New South Wales (Department of Education). legal_references joined with '; '. "
-            "Personal provider names withheld; nominated supervisor data not stored."
-        ),
+        notes=notes,
     )
     print(json.dumps({"fetch": fetch_summary, "parse": summary}, indent=2))
     return 0
