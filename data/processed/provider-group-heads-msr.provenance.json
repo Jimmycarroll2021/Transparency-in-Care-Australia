@@ -1,6 +1,6 @@
 {
   "output": "data/processed/provider-group-heads-msr.csv",
-  "written_at": "2026-10-30T20:02:00.957776+00:00",
+  "written_at": "2026-10-30T20:50:43.957847+00:00",
   "rows": 2,
   "schema": null,
   "raw_inputs": [
@@ -144,5 +144,5 @@
     "data/processed/provider-abn.csv",
     "data/processed/provider-profile.csv"
   ],
-  "notes": "group_parent_self: the provider is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider. Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: licence unclear)."
+  "notes": "group_parent_self: the provider is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider. Names in MSR outputs: provider_legal_name is the ACECQA legal name, keyed by provider_approval_number, for providers not classed as individuals by ACECQA or the ABR. group_name is the ABR entity name of the reporting entity's ABN, shown only when the ABR entity type for that ABN is known locally and is not an individual or sole trader; otherwise it is blank and group_name_status says why. No name is taken from the register itself. Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: licence unclear)."
 }
