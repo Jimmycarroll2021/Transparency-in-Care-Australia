@@ -32,7 +32,7 @@ A provider can appear in any output only if all of these hold. Anything missing,
 or conflicting excludes it, and each excluded provider is counted once, under the first reason in
 this order:
 
-| Rule | Excluded this run |
+| Rule | Excluded this run (of 10,073 providers considered) |
 |---|---|
 | Exactly one row in `provider-profile.csv` (missing) | 0 |
 | Exactly one row in `provider-profile.csv` (duplicated) | 0 |
@@ -90,18 +90,18 @@ latest). All statements behind the edges, older ones included, cover four report
 |---|---|---|
 | Candidate statements (pages parsed) | 136 | 18,869 statement rows |
 | Included entities parsed | 530 (350 with an ABN) | 136 pages |
-| Provider-statement relations (ABN matches) | 85 | |
+| Provider-statement relations (ABN matches) | 85 | n/a: no fixed population; one per screened provider found by ABN in one of the 136 statements |
 | `controlled_entity_of` relations | 11 | 85 |
-| `controlled_entity_of` edges (one per provider and group) | 7 | |
+| `controlled_entity_of` edges (one per provider and group) | 7 | 11 `controlled_entity_of` relations, collapsed |
 | Providers with an edge | 6 | 1,210 priority providers (901 with an ABN) |
-| Groups they roll up to | 6 | |
+| Groups they roll up to | 6 | 7 edges |
 | Services those providers operate | 150 | 18,186 current ACECQA services |
-| `group_parent_self` rows / providers | 2 / 2 | not ownership |
+| `group_parent_self` rows / providers | 2 / 2 | 3 `group_parent_self` relations / 1,210 priority providers; not ownership |
 | Services of group-head providers | 298 | 18,186; not ownership |
-| `co_reported_joint` rows / providers / statements | 46 / 16 / 22 | not ownership |
+| `co_reported_joint` rows / providers / statements | 46 / 16 / 22 | 85 relations / 1,210 priority providers / 136 statements; not ownership |
 | Providers whose only relations are joint | 14 | 16 |
-| `self_report_no_included_entities` relations | 25 | not ownership |
-| Review queue rows | 125 | |
+| `self_report_no_included_entities` relations | 25 | 85 relations; not ownership |
+| Review queue rows | 125 | n/a: no fixed population; one row per name match without a matching ABN |
 | Former name-matched edges now in review | 11 | 11 |
 
 All 6 providers with an edge are priority providers. That follows from the method: every edge
@@ -165,11 +165,25 @@ ASIC extracts or annual reports).
 
 ## Completeness checks
 
-The run exits 2 and leaves every output unchanged when any of these happens:
+Exit codes. 0: complete; every output is written. 2: incomplete; some candidate pages are
+missing or unparseable, or an input check fails (both listed below), and every output is left
+unchanged. 1: nothing usable (no CSV snapshot, no candidate statement, or no candidate page that
+can be read); every output is left unchanged. When no page at all can be read the run exits 1,
+except with `--refresh`, where any failed fetch exits 2.
 
-- `provider-profile.csv` or `provider-abn.csv` has a duplicate `provider_approval_number` row;
+Input checks that exit 2 before any page is read:
+
+- the all-statements CSV lacks a column that selection or reconciliation reads (IDX,
+  PeriodStart, PeriodEnd, Type, ReportingEntities, IncludedEntities, ABN, Link), whether missing
+  or renamed, or any record's field count differs from the header's, whichever column it lacks.
+  The check runs before the privacy filter, on download and on rebuild, and nothing is padded;
+- `provider-profile.csv` or `provider-abn.csv` has a duplicate `provider_approval_number` row.
+
+Page checks: a page counts as missing or unparseable, and the run exits 2 (or 1 if no page is
+usable), when any of these happens:
+
 - a matching CSV row has no usable statement page id;
-- a candidate page is missing, or a fetch fails (always 2 with `--refresh`);
+- a candidate page is missing, or its fetch fails;
 - inside either entity section, any element or text node at any depth does not match the known
   structure: entity blocks, each a name block with one name link (a `<small>` former name allowed),
   then paragraphs that are empty, a non-profit flag (reporting entities only), or one ABN, ACN or
@@ -177,24 +191,27 @@ The run exits 2 and leaves every output unchanged when any of these happens:
   labels all fail;
 - an ABN link's text is not a valid ABN (11 digits passing the ABN checksum), with one listed
   exception below;
-- the all-statements CSV lacks a column that selection or reconciliation reads (IDX,
-  PeriodStart, PeriodEnd, Type, ReportingEntities, IncludedEntities, ABN, Link), whether missing
-  or renamed, or a row is shorter or longer than the header. No column defaults to empty;
 - the CSV IncludedEntities field is non-empty but the page has no included-entity section, or the
   reverse;
 - the number of ABNs in brackets in the CSV IncludedEntities field differs from the number of
   included entities with an ABN link on the page;
-- either entity section does not reconcile by identity with its CSV field (ReportingEntities or
-  IncludedEntities). After folding case and whitespace: the set of 11-digit values in brackets in
-  the CSV field must equal the set of the page's ABN links; every page entity name must appear in
-  the CSV field as a whole entry; and once every page name and bracketed ABN is removed from the
-  CSV field, only separators may remain.
+- either entity section does not reconcile with its CSV field (ReportingEntities or
+  IncludedEntities) as a multiset of (name, ABN) pairs. The page gives one pair per entity
+  block, duplicates counted: the name folded for case and whitespace, and the ABN (or the listed
+  placeholder, or none). The CSV field is split on commas, and the pieces are grouped into
+  entries, because names can contain commas; an entry's trailing bracketed ABN is its ABN, and a
+  comma directly after a bracketed ABN always separates entries. Exactly one grouping must give
+  the page's multiset. No grouping, or more than one, makes the page unparseable. The search
+  tries at most 100,000 candidate entries per field and fails closed beyond that; on the current
+  snapshots no field needed more than 99.
 
-On the current snapshots all 136 candidates reconcile in both sections. 38 statements list
-included entities in both the CSV and the page and 98 in neither. The earlier comma-based lower
-bound was unreliable and has been removed; the identity check covers omissions instead. The run
-exits 1 if nothing is usable. If `acecqa-services-latest.csv` is missing, service counts are null
-(unknown), not zero.
+On the current snapshots all 136 candidates reconcile in both sections (272 fields, 174 of them
+non-empty), each through exactly one grouping. In 9 fields (8 statements) a name contains a
+comma, so splitting on every comma would not match the page; the grouping resolves each one
+uniquely. This page-constrained grouping is the hub's decision under the owner's "data truth"
+rule. 38 statements list included entities in both the CSV and the page and 98 in neither. The
+earlier comma-based lower bound was unreliable and has been removed. If
+`acecqa-services-latest.csv` is missing, service counts are null (unknown), not zero.
 
 Exception: one page (statement 2022-3013, https://modernslaveryregister.gov.au/statements/11943/)
 shows its reporting entity's ABN as "00 649 711 026": 00 followed by the 9-digit ARBN the same
@@ -208,7 +225,7 @@ confirmation.
 
 ## Review queue (125 rows)
 
-| Reason | Rows |
+| Reason | Rows (of 125) |
 |---|---|
 | name_match_provider_abn_not_resolved (MSR gives an ABN; the provider has no accepted ABN) | 63 |
 | name_match_without_msr_abn (name equals one provider; MSR gives no ABN) | 53 |
