@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T21:05:45.726498+00:00",
+  "generated_at": "2026-10-30T21:15:24.826698+00:00",
   "window": {
     "months": 24,
     "start": "2024-10-29",
@@ -122,7 +122,7 @@
     "services_with_action_last_24_months": 76,
     "providers_with_action_last_24_months": 371,
     "stubs_with_name_variants": 5,
-    "stubs_with_name_withheld": 129,
+    "stubs_with_name_withheld": 134,
     "note": "Stub entities are reported separately and are never added to the live denominators below."
   },
   "per_jurisdiction": {
