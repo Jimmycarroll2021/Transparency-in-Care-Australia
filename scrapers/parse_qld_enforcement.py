@@ -447,7 +447,12 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         "penalty_amount_aud": penalty,
         # In-memory only (not written): the printed content, names included, to spot a row the
         # register prints twice. Never published and never used as the record_id.
-        "_fingerprint": printed_fingerprint(*(clean(c.get_text(" ")) for c in cells)),
+        # Codex round 5: link targets are printed content too, so two rows with the same text
+        # but different documents are told apart and keep stable ids.
+        "_fingerprint": printed_fingerprint(
+            *(clean(c.get_text(" ")) for c in cells),
+            *(a["href"] for c in cells for a in c.find_all("a", href=True)),
+        ),
     }
     if kind in ("individual", "role"):
         # Rule 2: free text can repeat the name in forms no redaction catches, so it is withheld

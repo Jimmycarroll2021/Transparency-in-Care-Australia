@@ -474,3 +474,32 @@ def test_qld_row_with_costs_only_has_no_penalty_and_says_why():
     )[0]
     assert row["penalty_amount_aud"] is None
     assert "penalty amount not recorded" in row["notes"]
+
+
+# --- Codex round 5, finding 4: link targets are part of the QLD row's printed content --------
+
+
+def _two_rows_same_text_different_links(first, second):
+    row = (
+        "<tr><td>Example Kids Pty Ltd</td><td>01/02/2026</td>"
+        '<td><a href="{href}">Compliance notice</a></td><td>N/A</td></tr>'
+    )
+    html = (
+        f"<html><body><h2>2026</h2><table>{HEADER}"
+        + row.format(href=first)
+        + row.format(href=second)
+        + "</table></body></html>"
+    )
+    return parse_register(
+        html, page_url=INDEX_URL, captured_at="2026-10-29T07:00:00+00:00", source_snapshot="x"
+    )
+
+
+def test_rows_with_identical_text_but_different_links_keep_stable_ids():
+    a = _two_rows_same_text_different_links("/docs/notice-1.pdf", "/docs/notice-2.pdf")
+    b = _two_rows_same_text_different_links("/docs/notice-2.pdf", "/docs/notice-1.pdf")
+    ids_a = {r["source_document"]: r["record_id"] for r in a}
+    ids_b = {r["source_document"]: r["record_id"] for r in b}
+    assert len(set(ids_a.values())) == 2
+    assert ids_a == ids_b  # each notice keeps its id when the order changes
+    assert all("duplicate row" not in (r["notes"] or "") for r in a)
