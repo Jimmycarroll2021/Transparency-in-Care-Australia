@@ -19,6 +19,7 @@ from scrapers.parse_nsw_enforcement import (
     period_label_from_slug,
     provider_name_if_entity,
     slug_from_url,
+    snapshot_rel_path,
     split_address,
 )
 
@@ -376,3 +377,21 @@ def test_snapshot_without_meta_falls_back_to_its_file_slug(tmp_path):
     assert [p.name for p in superseded] == [
         "2026-10-29T0718Z-q1-cancellations-providers-2025-2026.pdf"
     ]
+
+
+# --- paths in outputs ---------------------------------------------------------
+
+
+def test_processed_outputs_record_posix_paths_on_every_platform(tmp_path, monkeypatch):
+    # The committed outputs use forward slashes. A run on Windows must not rewrite every
+    # source_snapshot and provenance path with backslashes.
+    from scrapers import common
+
+    monkeypatch.setattr(common, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(common, "PROCESSED_DIR", tmp_path / "data" / "processed")
+    raw = tmp_path / "data" / "raw" / SOURCE / "2026-10-29T0718Z-q1-x.pdf"
+    common.write_processed("x", [], ["record_id"], raw_inputs=[raw])
+    provenance = json.loads((tmp_path / "data" / "processed" / "x.provenance.json").read_text())
+    assert provenance["output"] == "data/processed/x.csv"
+    assert provenance["raw_inputs"] == [f"data/raw/{SOURCE}/2026-10-29T0718Z-q1-x.pdf"]
+    assert snapshot_rel_path(raw, root=tmp_path) == provenance["raw_inputs"][0]

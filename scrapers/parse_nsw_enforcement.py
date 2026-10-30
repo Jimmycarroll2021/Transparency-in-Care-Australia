@@ -633,6 +633,11 @@ def pdf_snapshots(base_dir: Path = RAW_DIR) -> tuple[list[Path], list[Path]]:
     return [p for p in pdfs if p in keep], [p for p in pdfs if p not in keep]
 
 
+def snapshot_rel_path(path: Path, root: Path = PROJECT_ROOT) -> str:
+    """Project-relative path with forward slashes, so outputs are the same on every platform."""
+    return path.relative_to(root).as_posix()
+
+
 def read_meta(path: Path) -> dict:
     meta_path = Path(f"{path}.meta.json")
     if meta_path.exists():
@@ -667,7 +672,7 @@ def parse_all() -> tuple[list[dict], list[Path], dict]:
         summary["superseded_snapshots"].append(path.name)
     for path in snapshots:
         meta = read_meta(path)
-        rel = str(path.relative_to(PROJECT_ROOT))
+        rel = snapshot_rel_path(path)
         slug = slug_of_snapshot(path)
         label = period_label_from_slug(slug)
         if label is None:
