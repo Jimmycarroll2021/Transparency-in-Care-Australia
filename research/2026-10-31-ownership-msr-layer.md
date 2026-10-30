@@ -47,7 +47,8 @@ this order:
 10,073 providers considered, 8,973 screened in (1,121 of the 1,210 priority providers). The ABN
 index is built from screened providers only: 901 accepted, checksum-valid ABNs. A duplicate
 `provider_approval_number` row in `provider-profile.csv` or `provider-abn.csv` stops the run with
-exit 2 before anything is fetched or written.
+exit 2. The check runs after the all-statements CSV has been fetched, checked and stored as a raw
+snapshot (unless `--no-fetch`), and before any statement page is fetched or any output is written.
 
 ## Definitions
 
@@ -171,12 +172,14 @@ unchanged. 1: nothing usable (no CSV snapshot, no candidate statement, or no can
 can be read); every output is left unchanged. When no page at all can be read the run exits 1,
 except with `--refresh`, where any failed fetch exits 2.
 
-Input checks that exit 2 before any page is read:
+Input checks that exit 2 before any statement page is read, in this order:
 
 - the all-statements CSV lacks a column that selection or reconciliation reads (IDX,
   PeriodStart, PeriodEnd, Type, ReportingEntities, IncludedEntities, ABN, Link), whether missing
-  or renamed, or any record's field count differs from the header's, whichever column it lacks.
-  The check runs before the privacy filter, on download and on rebuild, and nothing is padded;
+  or renamed, two header names are the same after stripping spaces and folding case, or any
+  record's field count differs from the header's, whichever column it lacks. The header and
+  record checks run before the privacy filter and before a downloaded CSV is stored, and again
+  when a snapshot is parsed; nothing is padded, and a downloaded CSV that fails is not stored;
 - `provider-profile.csv` or `provider-abn.csv` has a duplicate `provider_approval_number` row.
 
 Page checks: a page counts as missing or unparseable, and the run exits 2 (or 1 if no page is

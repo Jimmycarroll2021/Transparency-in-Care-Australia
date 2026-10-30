@@ -336,12 +336,20 @@ class CsvSchemaError(ValueError):
 
 
 def _rows_matching_header(text: str) -> tuple[list[str], list[list[str]]]:
-    """Header (BOM stripped) and rows. Raises CsvSchemaError when any row's field count
-    differs from the header's. Nothing is padded or cut."""
+    """Header (BOM stripped) and rows. Raises CsvSchemaError when two header names are the same
+    after stripping spaces and folding case, or when any row's field count differs from the
+    header's. Nothing is padded or cut."""
     rows = list(csv.reader(io.StringIO(text.lstrip("\ufeff"))))
     if not rows:
         raise CsvSchemaError("all-statements CSV is empty")
     header = [h.lstrip("\ufeff") for h in rows[0]]
+    seen = Counter(h.strip().casefold() for h in header)
+    duplicates = sorted(name for name, n in seen.items() if n > 1)
+    if duplicates:
+        raise CsvSchemaError(
+            "all-statements CSV has duplicate header name(s) after stripping spaces and folding "
+            "case: " + ", ".join(duplicates)
+        )
     for n, row in enumerate(rows[1:], start=2):
         if len(row) != len(header):
             raise CsvSchemaError(

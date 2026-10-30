@@ -276,6 +276,19 @@ def test_parse_statements_rejects_a_row_of_the_wrong_length(shape):
         msr.parse_statements_csv(_raw_csv(CSV_HEADER, [good, bad]))
 
 
+@pytest.mark.parametrize("duplicate", ["ABN", " abn ", "Abn"])
+def test_duplicate_header_names_are_rejected_before_filtering_and_parsing(duplicate):
+    # Codex round 7: dict(zip(...)) would keep the last ABN column; a duplicate header is refused,
+    # compared after stripping spaces and folding case.
+    header = CSV_HEADER + [duplicate]
+    values = _row_values(CSV_HEADER) + [WATTLE_ABN]
+    text = _raw_csv(header, [values])
+    with pytest.raises(msr.CsvSchemaError, match="duplicate"):
+        msr.privacy_filter_csv(text)
+    with pytest.raises(msr.CsvSchemaError, match="duplicate"):
+        msr.parse_statements_csv(text)
+
+
 def test_parse_statements_reads_abns_page_id_and_included_abn_count():
     included = f"WATTLE KIDS PTY LTD ({spaced(WATTLE_ABN)}), Numbat College, Suburb"
     text = csv_text(
@@ -1528,6 +1541,43 @@ def test_main_exit_2_when_a_fetched_csv_row_is_short_and_nothing_is_stored(env, 
     assert msr.main([]) == 2
     assert sorted((env["raw"] / "msr" / "all-statements").iterdir()) == before
     assert env["written"] == {}
+
+
+def test_main_exit_2_when_a_snapshot_has_a_duplicate_abn_column(env):
+    snap = env["raw"] / "msr" / "all-statements" / "2026-01-01T0000Z.csv"
+    rows = list(csv.reader(io.StringIO(snap.read_text(encoding="utf-8"))))
+    rows = [rows[0] + ["ABN"]] + [r + [OTHER_ABN] for r in rows[1:]]
+    snap.write_text(_raw_csv(rows[0], rows[1:]), encoding="utf-8")
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {} and not (env["proc"] / "summary.json").exists()
+
+
+def test_main_exit_2_when_a_fetched_csv_has_a_duplicate_abn_column_and_nothing_is_stored(
+    env, monkeypatch
+):
+    from scrapers.common import Fetched
+
+    header = CSV_HEADER + ["ABN"]
+    body = _raw_csv(header, [_row_values(CSV_HEADER) + [OTHER_ABN]]).encode("utf-8")
+
+    def fake_fetch(url, **kwargs):
+        content = RESOURCES_HTML.encode("utf-8") if url == msr.RESOURCES_URL else body
+        return Fetched(
+            url=url,
+            final_url=url,
+            status=200,
+            content=content,
+            content_type="text/csv",
+            last_modified=None,
+            etag=None,
+            fetched_at="2026-10-31T01:00:00+00:00",
+        )
+
+    monkeypatch.setattr(msr, "fetch", fake_fetch)
+    before = sorted((env["raw"] / "msr" / "all-statements").iterdir())
+    assert msr.main([]) == 2
+    assert sorted((env["raw"] / "msr" / "all-statements").iterdir()) == before
+    assert env["written"] == {} and not (env["proc"] / "summary.json").exists()
 
 
 def test_main_exit_2_when_a_candidate_row_has_no_page_id(env):
