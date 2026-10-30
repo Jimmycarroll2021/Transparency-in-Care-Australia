@@ -3,13 +3,27 @@
 Finding: 17 of the 1,210 priority providers (1.4%; 17 of the 901 with a resolved ABN) gained an
 ownership edge (`controlled_entity_of`) from the Modern Slavery Statements Register (MSR). They roll
 up to 8 groups and operate 254 of the 18,186 service approvals in the current ACECQA export
-(1.4%). G8 Education accounts for 9 of the 17. Joint-statement rows (56) and group-head rows (2)
-are recorded separately and are not ownership. Confidence: High for the counts as produced by the
-script; Medium for what an edge means (see Definitions).
+(1.4%). Nine of the 17 sit in one group (ABN 95123828553, ABR entity name G8 EDUCATION LIMITED).
+Joint-statement rows (56) and group-head rows (2) are recorded separately and are not ownership.
+Confidence: High for the counts as produced by the script; Medium for what an edge means (see
+Definitions).
 
-Serves GAP-003 (no public ownership graph). Written by the data-engineer spoke and reworked after
-the hub gate on PR #5, which found the first version counted co-reporting and self links as
-ownership. Script: `scrapers/build_msr_group_edges.py`; tests: `tests/test_msr_group_edges.py`.
+Serves GAP-003 (no public ownership graph). Written by the data-engineer spoke, reworked after the
+hub gate and two Codex review rounds on PR #5. Script: `scrapers/build_msr_group_edges.py`; tests:
+`tests/test_msr_group_edges.py`.
+
+## Name policy
+
+This note and every MSR output carry only two kinds of name:
+
+1. Provider names from ACECQA (`provider_legal_name`, keyed by `provider_approval_number`).
+   Providers that ACECQA or the ABR classes as an individual or sole trader are excluded.
+2. Group names from the ABR: the ABR entity name of the reporting entity's ABN, shown only when
+   the ABR entity type for that ABN is held locally (`provider-abn.csv`, `abn-details.csv`) and is
+   not an individual or sole trader. Otherwise the group is shown by ABN and statement id only.
+
+No name read from the register is published. Review, co-reported and summary rows carry statement
+ids, URLs, ABNs and match methods only. The ABN Lookup API was not called for this layer.
 
 ## Definitions
 
@@ -48,11 +62,12 @@ statements behind the 18 edges cover reporting periods from 1 January 2023 to 31
 | of which latest match by ABN / by name with ABR agreement | 7 / 11 | 18 |
 | Providers with an edge | 17 | 1,210 priority providers (901 with an ABN) |
 | Groups they roll up to | 8 | |
+| Group names shown (ABR type non-individual) / ABN only (ABR type not held locally) | 2 / 6 | 8 groups |
 | Services those providers operate | 254 | 18,186 current ACECQA services |
-| `group_parent_self` relations / rows / providers | 3 / 2 / 2 | not ownership |
+| `group_parent_self` rows / providers (both names shown) | 2 / 2 | not ownership |
 | Services of group-head providers | 298 | 18,186; not ownership |
 | `co_reported_joint` rows / providers / statements | 56 / 25 / 23 | not ownership |
-| Providers that appear only in joint statements | 21 | 25 |
+| Providers whose only relations are joint | 21 | 25 |
 | `self_report_no_included_entities` relations / providers | 25 / 6 | not ownership |
 | Review queue rows | 103 | |
 
@@ -61,35 +76,35 @@ needs a provider ABN or ABR name from `provider-abn.csv`, which covers only the 
 
 ### Groups
 
-| Group (reporting entity) | Group key | Controlled providers | Their services | Head provider |
-|---|---|---|---|---|
-| G8 Education Limited | 95123828553 | 9 | 54 | PR-00000898 |
-| SHEL Holdco Pty Limited | 68670538780 | 2 | 46 | none |
-| Goodstart Early Learning Ltd | 69139967794 | 2 | 50 | none |
-| The Corporation of the Synod of the Diocese of Brisbane | 32025287736 | 1 | 6 | none |
-| The Uniting Church in Australia Property Trust (Victoria) | 39703442583 | 1 | 89 | none |
-| MQ Health Pty Limited | 46141203125 | 1 | 4 | none |
-| Christian Education Ministries Ltd | 65124826722 | 1 | 5 | none |
-| Macquarie University | 90952801237 | 1 | 4 | none |
+| Group name (ABR) | Group ABN | ABR type | Controlled providers (ACECQA) | Their services | Head provider |
+|---|---|---|---|---|---|
+| G8 EDUCATION LIMITED | 95123828553 | PUB | 9 | 54 | PR-00000898 |
+| ABN only | 68670538780 | not held | 2: Story House Early Learning No 1 Pty Ltd, Story House Early Learning No 21 Pty Ltd | 46 | none |
+| GOODSTART EARLY LEARNING LTD | 69139967794 | PUB | 2: BFS Children's Services Ltd, GOODSTART EARLY YEARS LIMITED | 50 | none |
+| ABN only | 32025287736 | not held | 1: FSAC Ltd | 6 | none |
+| ABN only | 39703442583 | not held | 1: UNITING (VICTORIA AND TASMANIA) LIMITED | 89 | none |
+| ABN only | 46141203125 | not held | 1: U@MQ Ltd | 4 | none |
+| ABN only | 65124826722 | not held | 1: SMARTPLAY EARLY LEARNERS PTY LTD | 5 | none |
+| ABN only | 90952801237 | not held | 1: U@MQ Ltd | 4 | none |
 
-Goodstart's 2024 and 2025 statements give no ABN for the reporting entity. Its group key comes from
-the same reporting entity's ABN on its other statements (`group_key_source`
-`abn_of_same_name_on_another_statement`). G8 Education is the only group head with a matched
-controlled provider. Wesley Community Services is a head whose one included entity matched no
-provider.
+The 2024 and 2025 statements behind group 69139967794 give no ABN for the reporting entity. The
+key comes from the ABN given for the same reporting entity on its other statements, used only
+because the ABR confirms it (entity type PUB, ABR entity name equal after normalisation;
+`group_key_source` `abn_of_same_name_on_another_statement_abr_confirmed`). Looking up the ABR
+entity type of the 6 ABN-only group ABNs would let their names be shown.
 
 ## Joint statements for manual confirmation
 
 Joint statements are never promoted to edges. Four list priority providers as included entities.
-Two appear to be filed by a single corporate group and should be confirmed through another source
-(for example ASIC extracts or company annual reports) before any ownership claim:
+Statement 2026-1450 looks like one corporate group's filing and should be confirmed through
+another source (for example ASIC extracts or annual reports) before any ownership claim:
 
-| Statement | Reporting entities | Included providers | Assessment |
+| Statement | Reporting entities | Included priority providers | Assessment |
 |---|---|---|---|
-| 2026-1450 (https://modernslaveryregister.gov.au/statements/29210/) | 4: Busy Bees Australia Bidco, Busy Bees Australia Holding, Busy Bees Early Learning Australia, Think Childcare Limited | 9 | One brand group on its face; confirm |
-| 2023-2461 (https://modernslaveryregister.gov.au/statements/15563/) | 1: Goodstart Early Learning Ltd, typed Joint | 1 | Same provider already linked by Goodstart's later Single statements |
-| 2024-1335 (https://modernslaveryregister.gov.au/statements/18637/) | 53 Catholic bodies, including universities, hospitals and cemetery trusts | 4 | Many separate bodies; not one group |
-| 2025-1579 (https://modernslaveryregister.gov.au/statements/23594/) | 44 Catholic bodies | 5 | Many separate bodies; not one group |
+| 2026-1450 (https://modernslaveryregister.gov.au/statements/29210/) | 4, no ABN given | 9, including Busy Bees Panania Pty Ltd, Busy Bees Cranbourne Pty Ltd and FEL Child Care Centres 1 Pty Ltd (ACECQA names) | Appears to be one group; confirm |
+| 2023-2461 (https://modernslaveryregister.gov.au/statements/15563/) | 1 (ABN 69139967794), typed Joint | 1: GOODSTART EARLY YEARS LIMITED | Already linked by the same group's later Single statements |
+| 2024-1335 (https://modernslaveryregister.gov.au/statements/18637/) | 53 | 4 | Many separate bodies; not one group |
+| 2025-1579 (https://modernslaveryregister.gov.au/statements/23594/) | 44 | 5 | Many separate bodies; not one group |
 
 ## Method
 
@@ -107,11 +122,19 @@ Two appear to be filed by a single corporate group and should be confirmed throu
    Statement numbers (IDX) are not unique in the CSV (10 repeat), so the page id is the key.
 4. Matching, strongest first, one relation per provider and statement: the entity's ABN equals a
    provider ABN; or an included entity listed without an ABN whose normalised name equals exactly
-   one ACECQA provider legal name and that provider's ABR entity name. Normalisation:
-   `normalise_provider_name` in `scrapers/join_enforcement.py`.
+   one ACECQA provider legal name and that provider's ABR entity name. Names are used for matching
+   only and are never written.
 5. Classification as in the Definitions table. Edges and heads are collapsed to one row per
    provider and group, taken from the latest statement, with `statement_ids` and `statement_urls`
    listing every statement.
+
+## Completeness checks
+
+The run exits 2 and leaves every output unchanged if any candidate page is missing, a fetch fails
+(always with `--refresh`), the entity markup is not recognised, or the CSV lists included entities
+that the page does not yield. It exits 1 if nothing is usable. On the current snapshots the CSV
+and the pages agree for all 136 candidates: 38 list included entities in both, 98 in neither. If
+`acecqa-services-latest.csv` is missing, service counts are null (unknown), not zero.
 
 ## Review queue (103 rows)
 
@@ -122,8 +145,8 @@ Two appear to be filed by a single corporate group and should be confirmed throu
 | fuzzy_corporate_suffix_differs | 9 |
 | reporting_entity_name_only | 3 |
 
-Most queue rows are operating subsidiaries outside the priority subset (for example G8 and Story
-House centre companies). Resolving their ABNs with `scrapers/abn_lookup.py` would turn many into
+Rows carry the statement, the MSR-side ABN where given, the reason and candidate provider approval
+numbers only. Resolving the candidates' ABNs with `scrapers/abn_lookup.py` would turn many into
 ABN-backed matches. Confidence: Medium.
 
 ## Limits
@@ -133,18 +156,12 @@ ABN-backed matches. Confidence: Medium.
 - Name-matched edges (11 of 18) are not verified by ABN or ACN.
 - Statements are self-reported. A provider in an older statement may since have changed hands;
   every edge lists all its statements and reporting periods.
-- Names fail closed. An MSR name is shown only when the project classifier positively classes it
-  as an organisation (company, association, trust, cooperative, government or church form), or
-  it carries organisation wording or an ACN. Every other name is withheld as
-  `[withheld: may name an individual]`, and no group key is derived from a name: with no ABN the
-  key is `MSR-<statement page id>`. Provider identity (approval number and ACECQA legal name)
-  comes from ACECQA and is never masked, because providers classed as individuals or unknown are
-  excluded before matching. The fail-closed rule (Codex round 1) withheld 4 more distinct names,
-  all in the summary's candidate list. No edge, head, co-reported or review row changed.
 - Licence unclear: the MSR shows "Copyright Attorney-General's Department" and no open licence.
   Raw MSR files and their sidecars stay in `data/raw/msr/` (gitignored). Only derived facts are
   committed. This note does not clear the licence under `.claude/rules/data-pipeline.md`; ask the
   Attorney-General's Department before any public display.
+- Earlier commits on this branch published names taken from the register, which the current
+  policy does not allow. They remain in the public branch history; see the PR for counts.
 
 ## Outputs
 
@@ -154,14 +171,15 @@ ABN-backed matches. Confidence: Medium.
 - `data/processed/provider-group-review-msr.csv` (103 rows)
 - Each with a `.provenance.json`, plus `data/processed/provider-group-edges-msr-summary.json`
 
-Rebuild offline: `python3 scrapers/build_msr_group_edges.py --no-fetch`. The run exits 2 and
-leaves every output unchanged if any candidate page is missing or unparseable, and exits 1 if
-nothing is usable. If `acecqa-services-latest.csv` is missing, service counts are null (unknown),
-not zero. `--refresh` takes a new snapshot of every candidate page beside the old ones.
+Rebuild offline: `python3 scrapers/build_msr_group_edges.py --no-fetch`. `--refresh` takes a new
+snapshot of every candidate page beside the old ones.
 
 ## Open questions
 
 1. Licence: will the Attorney-General's Department permit display of derived group links?
-2. Busy Bees statement 2026-1450: confirm the 9 included providers' ownership from another source.
-3. Should the 28 unique name matches to providers without an ABN be looked up and re-run?
-4. Confirm the section 16 reading of "Included entities". `[Verify This]`
+2. Statement 2026-1450: confirm the 9 included providers' ownership from another source.
+3. Look up the ABR entity type of the 6 ABN-only group ABNs so their names can be shown?
+4. Should the 28 unique name matches to providers without an ABN be looked up and re-run?
+5. History: earlier commits expose names taken from the register; rewriting history is the
+   owner's decision.
+6. Confirm the section 16 reading of "Included entities". `[Verify This]`
