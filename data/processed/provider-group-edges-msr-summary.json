@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T19:49:04.407274+00:00",
+  "generated_at": "2026-10-30T20:02:01.339595+00:00",
   "definitions": [
     "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched by the included entity's ABN, or by exact normalised name agreeing with both the ACECQA legal name and the ABR entity name. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
     "group_parent_self: the provider is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",
@@ -41,6 +41,7 @@
     "priority_providers_total": 1210,
     "priority_providers_with_abn": 901,
     "services_total": 18186,
+    "services_note": null,
     "review_queue": 103,
     "review_by_reason": {
       "fuzzy_corporate_suffix_differs": 9,
@@ -1261,7 +1262,7 @@
           "abn": "89614115856"
         },
         {
-          "name": "OZCARE",
+          "name": "[withheld: may name an individual]",
           "abn": "58072422925"
         },
         {
@@ -2142,7 +2143,7 @@
           "abn": "79078299288"
         },
         {
-          "name": "MARILLAC",
+          "name": "[withheld: may name an individual]",
           "abn": "34050463717"
         },
         {
@@ -2222,7 +2223,7 @@
           "abn": "77896699763"
         },
         {
-          "name": "OZCARE",
+          "name": "[withheld: may name an individual]",
           "abn": "58072422925"
         },
         {
@@ -2254,7 +2255,7 @@
           "abn": "57714505919"
         },
         {
-          "name": "STELLA MARIS APOSTLESHIP OF THE SEAMACKAY HAY POINT",
+          "name": "[withheld: may name an individual]",
           "abn": "94424754630"
         },
         {
@@ -3052,7 +3053,7 @@
           "abn": "89614115856"
         },
         {
-          "name": "OZCARE",
+          "name": "[withheld: may name an individual]",
           "abn": "58072422925"
         },
         {
@@ -3939,7 +3940,7 @@
           "abn": "89614115856"
         },
         {
-          "name": "OZCARE",
+          "name": "[withheld: may name an individual]",
           "abn": "58072422925"
         },
         {
@@ -4190,7 +4191,7 @@
           "abn": "63220072037"
         },
         {
-          "name": "MANRESA",
+          "name": "[withheld: may name an individual]",
           "abn": "86922833438"
         },
         {
@@ -4894,7 +4895,7 @@
           "abn": "89614115856"
         },
         {
-          "name": "OZCARE",
+          "name": "[withheld: may name an individual]",
           "abn": "58072422925"
         },
         {
@@ -5055,7 +5056,7 @@
           "abn": "63220072037"
         },
         {
-          "name": "MANRESA",
+          "name": "[withheld: may name an individual]",
           "abn": "86922833438"
         },
         {

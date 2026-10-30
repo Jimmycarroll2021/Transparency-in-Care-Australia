@@ -1,6 +1,6 @@
 {
   "output": "data/processed/provider-group-review-msr.csv",
-  "written_at": "2026-10-30T19:49:03.999824+00:00",
+  "written_at": "2026-10-30T20:02:00.977477+00:00",
   "rows": 103,
   "schema": null,
   "raw_inputs": [
@@ -144,5 +144,5 @@
     "data/processed/provider-abn.csv",
     "data/processed/provider-profile.csv"
   ],
-  "notes": "Possible links that did not meet the matching rule: ambiguous names, ABR or ABN disagreement, providers without a resolved ABN, corporate-suffix differences and reporting entities matched by name only. Not evidence of ownership. MSR names that may be an individual's are shown as '[withheld: may name an individual]'. Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: licence unclear)."
+  "notes": "Possible links that did not meet the matching rule: ambiguous names, ABR or ABN disagreement, providers without a resolved ABN, corporate-suffix differences and reporting entities matched by name only. Not evidence of ownership. MSR names not positively classed as an organisation are shown as '[withheld: may name an individual]'. Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: licence unclear)."
 }
