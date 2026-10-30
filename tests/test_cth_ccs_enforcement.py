@@ -330,3 +330,9 @@ def test_main_returns_2_when_site_unreachable(monkeypatch):
 
     monkeypatch.setattr(cth, "fetch", boom)
     assert cth.main([]) == 2
+
+
+def test_is_individual_applies_the_shared_fail_closed_rule():
+    assert is_individual("Example Holdings Pty Ltd ATF Jane Example Unit Trust")
+    assert is_individual("Jane Example ATF Example Unit Trust")
+    assert not is_individual("Example Holdings Pty Ltd ATF Smith Family Trust")

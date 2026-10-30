@@ -336,3 +336,20 @@ def test_organisation_trustee_is_still_shown():
     r = privacy_rows()["06/02/2026"]
     assert r["provider_name"] == "Example Holdings Pty Ltd ATF Smith Family Trust"
     assert r["service_name"] == "Sunny Days"
+
+
+def test_person_named_trust_with_company_trustee_is_withheld():
+    # Shared fail-closed rule: a company trustee does not make a person-named trust shown.
+    html = PRIVACY_FIXTURE.replace(
+        "Example Holdings Pty Ltd ATF Smith Family Trust",
+        "Example Holdings Pty Ltd ATF Jane Example Unit Trust",
+    )
+    r = {
+        x["date_issued_raw"]: x
+        for x in parse_register(
+            html, page_url=INDEX_URL, captured_at="2026-10-29T07:00:00+00:00", source_snapshot="x"
+        )
+    }["06/02/2026"]
+    assert r["provider_name"] is None
+    assert INDIVIDUAL_NOTE in r["notes"]
+    assert "jane" not in _text_blob(r)

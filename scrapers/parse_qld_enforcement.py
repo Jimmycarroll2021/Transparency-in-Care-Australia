@@ -54,7 +54,7 @@ from scrapers.common import (
     write_processed,
     write_snapshot,
 )
-from scrapers.profile_providers import classify_entity_form
+from scrapers.profile_providers import classify_entity_form, name_is_withheld
 
 SOURCE = "qld-enforcement"
 JURISDICTION = "QLD"
@@ -177,10 +177,11 @@ def classify_subject(first: str, *, has_service_line: bool) -> str:
     # or its executors, and accented personal names are individuals.
     if classify_entity_form(first) == "likely_individual":
         return "individual"
-    if _LEGAL.search(first):
-        return "entity"
+    if _LEGAL.search(first) or (_BUSINESS.search(first) and has_service_line):
+        # A provider name is kept only when the shared fail-closed rule accepts it.
+        return "individual" if name_is_withheld(first) else "entity"
     if _BUSINESS.search(first):
-        return "entity" if has_service_line else "service_only"
+        return "service_only"
     return "individual"
 
 
@@ -353,9 +354,12 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
     else:  # role or individual: never store the name
         if kind == "individual":
             tokens = name_tokens(first)
-            notes.append(
-                f"{INDIVIDUAL_NOTE} (no legal-entity or business word in the printed name)"
+            detail = (
+                "printed name is not positively an organisation"
+                if _LEGAL.search(first) or _BUSINESS.search(first)
+                else "no legal-entity or business word in the printed name"
             )
+            notes.append(f"{INDIVIDUAL_NOTE} ({detail})")
         else:
             notes.append(f"{INDIVIDUAL_NOTE} (register prints a generic role, no name)")
         if service_parts:

@@ -70,6 +70,7 @@ from scrapers.common import (
     write_processed,
 )
 from scrapers.parse_qld_enforcement import clean
+from scrapers.profile_providers import name_is_withheld
 
 SOURCE = "cth-ccs-enforcement"
 JURISDICTION = "CTH"
@@ -285,7 +286,13 @@ def split_abn(provider_raw: str) -> tuple[str, str | None, str | None]:
 
 
 def is_individual(provider: str) -> bool:
-    """True when the Provider value looks like a natural person (over-withholds on purpose)."""
+    """True when the Provider value looks like a natural person (over-withholds on purpose).
+
+    The shared fail-closed rule (profile_providers.name_is_withheld) applies first, so a
+    company or trust word cannot carry an individual trustee or a person-named trust through.
+    """
+    if name_is_withheld(provider):
+        return True
     if _TITLE.search(provider) or _PARTNERSHIP_OF.match(provider):
         return True
     if _STRONG.search(provider):

@@ -242,3 +242,14 @@ def test_counts_provenance_records_posix_paths_on_every_platform(tmp_path, monke
     assert provenance["raw_inputs"] == [
         "data/raw/vecra-enforcement/2026-10-29T0800Z-august-2026.html"
     ]
+
+
+def test_person_named_trust_provider_is_withheld_by_shared_rule():
+    html = FIXTURE.replace(
+        "<strong>Approved provider name:</strong> Bulsho Family Day Care Pty Ltd",
+        "<strong>Approved provider name:</strong> Example Holdings Pty Ltd ATF Jane Example Unit Trust",
+    )
+    row = vecra.parse_actions(html, period_label="August 2026", **KWARGS)[0]
+    assert row["provider_name"] is None
+    assert "provider name withheld" in row["notes"]
+    assert "Jane" not in json.dumps(row)

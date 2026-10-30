@@ -47,6 +47,7 @@ from scrapers.common import (
     utc_stamp,
     write_processed,
 )
+from scrapers.profile_providers import name_is_withheld
 
 SOURCE = "vecra-enforcement"
 JURISDICTION = "VIC"
@@ -499,8 +500,12 @@ def parse_actions(
             notes.append(f"date not parsable: {date_raw!r}")
         if not date_raw:
             notes.append("date missing")
-        if info["provider_name"] and not ENTITY_MARKER.search(info["provider_name"]):
-            # Likely a sole trader approved in their own name. Rule 2: never name individuals.
+        if info["provider_name"] and (
+            not ENTITY_MARKER.search(info["provider_name"])
+            or name_is_withheld(info["provider_name"])
+        ):
+            # Likely a sole trader approved in their own name, or a name the shared fail-closed
+            # rule does not accept as an organisation. Rule 2: never name individuals.
             info["provider_name"] = None
             notes.append(
                 "provider name withheld: no company or organisation marker, may be an individual"

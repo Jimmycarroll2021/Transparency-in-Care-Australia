@@ -55,3 +55,14 @@ def test_tas_rows_conform_to_schema():
 
     for r in rows:
         jsonschema.validate(r, SCHEMA)
+
+
+def test_tas_person_named_trust_provider_is_withheld_by_shared_rule():
+    html = TAS_HTML.replace(
+        "Lady Gowrie Tasmania Inc, PR-00005936",
+        "Example Holdings Pty Ltd ATF Jane Example Unit Trust, PR-00005936",
+    )
+    r0 = parse_page(html, page_url=INDEX_URL, captured_at="2026-10-29T08:00:00Z")[0]
+    assert r0["provider_name"] is None
+    assert r0["provider_approval_number"] == "PR-00005936"
+    assert "Jane" not in json.dumps(r0)

@@ -52,6 +52,7 @@ from scrapers.common import (
     utc_stamp,
     write_processed,
 )
+from scrapers.profile_providers import name_is_withheld
 
 SOURCE = "sa-enforcement"
 JURISDICTION = "SA"
@@ -786,7 +787,11 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
     # Withhold provider names that may be individuals (rule 2).
     if provider_name:
         family_trust = re.search(r"\bfamily trust\b|^\s*trustee for\b", provider_name, re.I)
-        if family_trust or not is_organisation(provider_name):
+        if (
+            family_trust
+            or not is_organisation(provider_name)
+            or name_is_withheld(provider_name)  # shared fail-closed rule
+        ):
             notes.append(
                 "provider name withheld: no company or organisation marker or a family trust, "
                 "may identify an individual"

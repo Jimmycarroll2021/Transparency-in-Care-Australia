@@ -350,3 +350,14 @@ def test_counts_provenance_records_posix_paths_on_every_platform(tmp_path, monke
     provenance = json.loads(sidecar.read_text(encoding="utf-8"))
     assert provenance["output"] == f"data/processed/{sa.COUNTS_NAME}.csv"
     assert provenance["raw_inputs"] == ["data/raw/sa-enforcement/2026-10-29T0800Z-current.html"]
+
+
+def test_person_named_trust_provider_is_withheld_by_shared_rule():
+    html = CURRENT_FIXTURE.replace(
+        "Smartcare Solutions Pty. Ltd. (PR-400366356)",
+        "Example Holdings Pty Ltd ATF Jane Example Unit Trust (PR-400366356)",
+    )
+    row = by_service(rows_for(html), "Blueskies")
+    assert row["provider_name"] is None
+    assert "provider name withheld" in row["notes"]
+    assert "Jane" not in json.dumps(row)
