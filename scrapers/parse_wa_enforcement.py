@@ -52,7 +52,7 @@ from scrapers.common import (
     utc_now,
     write_processed,
 )
-from scrapers.profile_providers import classify_entity_form
+from scrapers.profile_providers import classify_entity_form, name_is_withheld
 
 INDIVIDUAL_NOTE = "subject is an individual; name withheld"
 _PERSON_ROLE = re.compile(
@@ -224,6 +224,8 @@ def extract_provider_info(
         if (
             cs_norm is not None
             or any(classify_entity_form(t) == "likely_individual" for t in candidates)
+            # Shared fail-closed rule: a name is kept only when it is positively an organisation.
+            or any(name_is_withheld(t) for t in candidates)
             or any(_PERSON_ROLE.search(t) or _EDUCATOR.search(t) for t in candidates)
         ):
             prov_name = None

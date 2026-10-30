@@ -288,3 +288,17 @@ def test_record_id_ignores_cleaning_of_zero_width_characters():
     d = extract_service_details(f"{ZWSP}Tall Tree Early Learning{ZWSP} SE-40017749 1 Example Way")
     assert d["service_name"] == "Tall Tree Early Learning"
     assert d["legacy_name"] == f"{ZWSP}Tall Tree Early Learning{ZWSP} SE-40017749 1 Example Way"
+
+
+def test_person_named_trust_provider_is_withheld_by_shared_rule():
+    # Shared fail-closed rule: a company trustee does not make a person-named trust shown.
+    name, pr, _, notes = extract_provider_info(
+        "Example Holdings Pty Ltd ATF Jane Example Unit Trust (PR-00008204)"
+    )
+    assert name is None
+    assert pr == "PR-00008204"
+    assert "Jane" not in " ".join(notes)
+    kept, _, _, _ = extract_provider_info(
+        "Example Holdings Pty Ltd ATF Smith Family Trust (PR-00008205)"
+    )
+    assert kept == "Example Holdings Pty Ltd ATF Smith Family Trust"
