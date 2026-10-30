@@ -55,6 +55,11 @@
     "date_issued": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
     "date_issued_raw": { "type": ["string", "null"] },
     "period_label": { "type": ["string", "null"], "description": "Register period the row came from, e.g. '2025 Q2' or 'August 2026'." },
-    "notes": { "type": ["string", "null"], "description": "Parser warnings: duplicate rows, unparsable dates, missing keys." }
+    "notes": { "type": ["string", "null"], "description": "Parser warnings: duplicate rows, unparsable dates, missing keys." },
+    "service_type": { "type": ["string", "null"], "description": "CTH only: service type as printed in its labelled field, kept only when it is one of the register's service types; otherwise null." },
+    "end_date": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "CTH only: the printed End date as ISO 8601. Null when not printed or not parsable; never inferred." },
+    "date_charged": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "CTH only: the printed Date charged as ISO 8601. Null when not printed or not parsable; never inferred." },
+    "date_of_sentence": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "CTH only: the printed Date of sentence as ISO 8601. Null when not printed or not parsable; never inferred." },
+    "plea": { "type": ["string", "null"], "description": "CTH only: the printed Plea, kept only when it is 'Guilty' or 'Not guilty'; otherwise null." }
   }
 }

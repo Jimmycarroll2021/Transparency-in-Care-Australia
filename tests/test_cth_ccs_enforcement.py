@@ -303,6 +303,12 @@ def test_conviction_row_keeps_case_facts_and_null_date():
     # date) is withheld whole with the rest of the free text.
     assert r["notes"].endswith("free text withheld: subject may be an individual")
     assert "charge" not in r["notes"] and "Criminal Code" not in r["notes"]
+    # Codex round 2, finding 4: the printed dates survive as structured, source-faithful columns.
+    assert r["date_of_sentence"] == "2025-03-03"
+    assert r["date_charged"] == "2023-09-04"
+    assert r["end_date"] is None
+    assert r["plea"] == "Guilty"
+    assert r["service_type"] == "Family Day Care"
 
 
 def test_past_role_label():
@@ -406,3 +412,61 @@ def test_two_withheld_individuals_with_the_same_action_are_not_duplicates():
     r = rows(page(one, two))
     assert len({x["record_id"] for x in r}) == 2
     assert all("duplicate row in source" not in (x["notes"] or "") for x in r)
+
+
+# Codex round 2, finding 4: structured facts printed in labelled fields are kept as columns,
+# never inferred, and survive the free-text withholding.
+
+
+def test_structured_dates_on_organisation_row():
+    r = rows(page(REPEAT))[0]
+    assert r["end_date"] == "2027-01-01"
+    assert r["date_charged"] is None and r["date_of_sentence"] is None
+    assert r["plea"] is None
+    assert r["service_type"] == "Outside School Hours Care"
+
+
+def test_structured_dates_null_when_not_printed():
+    r = rows(page(COMPANY))[0]
+    for key in ("end_date", "date_charged", "date_of_sentence", "plea"):
+        assert r[key] is None, key
+    assert r["service_type"] == "Centre Based Day Care"
+
+
+def test_structured_date_unparsable_is_null_not_inferred():
+    r = rows(
+        page(
+            entry(
+                "A OSHC",
+                "A Services Inc",
+                "Perth, WA",
+                "Outside School Hours Care",
+                "Conditions on approval under section 195F",
+                "x",
+                "1 July 2026",
+                end="early 2027",
+            )
+        )
+    )[0]
+    assert r["end_date"] is None
+    assert "end date printed but not parsable" in r["notes"]
+
+
+def test_service_type_and_plea_outside_vocabulary_are_null():
+    html = """<html><body><main><h2>On this page:</h2><h2>Example FDC</h2>
+    <div class="views-row"><dl><dt>Provider:</dt><dd>Jane Example</dd>
+    <dt>Location:</dt><dd>Victoria, VIC</dd><dt>Service type:</dt><dd>Run by Jane Example</dd>
+    <dt>Type of sanction:</dt><dd>Conviction (Criminal Code)</dd>
+    <dt>Plea:</dt><dd>Entered by Jane Example</dd></dl></div></main></body></html>"""
+    r = rows(html)[0]
+    assert r["service_type"] is None and r["plea"] is None
+    assert "Jane" not in json.dumps(r)
+
+
+def test_structured_columns_in_fieldnames_and_schema():
+    props = SCHEMA["properties"]
+    for key in ("service_type", "end_date", "date_charged", "date_of_sentence", "plea"):
+        assert key in cth.FIELDNAMES
+        assert key in props
+    for key in ("end_date", "date_charged", "date_of_sentence"):
+        assert props[key]["pattern"] == props["date_issued"]["pattern"]

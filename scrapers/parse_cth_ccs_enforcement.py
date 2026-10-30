@@ -116,6 +116,13 @@ FIELDNAMES = [
     "date_issued_raw",
     "period_label",
     "notes",
+    # Structured facts from labelled fields, kept apart from the prose so that withholding
+    # free text never deletes them. Source-faithful: null when not printed or not parsable.
+    "service_type",
+    "end_date",
+    "date_charged",
+    "date_of_sentence",
+    "plea",
 ]
 
 STATE_CODES = {"NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"}
@@ -155,6 +162,21 @@ NOTE_FIELDS = [
     ("date_charged", "date_charged"),
     ("date_sentence", "date_of_sentence"),
 ]
+
+# Labelled date fields kept as structured ISO columns: field key -> (column, printed label).
+STRUCTURED_DATES = [
+    ("end_date", "end_date", "end date"),
+    ("date_charged", "date_charged", "date charged"),
+    ("date_sentence", "date_of_sentence", "date of sentence"),
+]
+# Controlled vocabularies: a printed value outside them is not copied into a column.
+SERVICE_TYPES = {
+    "family day care": "Family Day Care",
+    "centre based day care": "Centre Based Day Care",
+    "outside school hours care": "Outside School Hours Care",
+    "in home care": "In Home Care",
+}
+PLEAS = {"guilty": "Guilty", "not guilty": "Not guilty"}
 
 _ABN = re.compile(r"\bABN\b\s*:?\s*(?:ABN\s*:?\s*)?((?:\d\s?){11})(?!\d)", re.I)
 _ABN_TAIL = re.compile(r"\s*[–—-]?\s*(?:ABN\s*:?\s*)+[\d\s]*$", re.I)
@@ -525,6 +547,16 @@ def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
             entry["service"], *(f"{k}: {v}" for k, v in entry["pairs"])
         ),
     }
+    # Structured facts, taken before any free text is withheld.
+    row["service_type"] = SERVICE_TYPES.get(clean(fields.get("service_type", "")).lower())
+    row["plea"] = PLEAS.get(clean(fields.get("plea", "")).lower())
+    for key, column, label in STRUCTURED_DATES:
+        printed = fields.get(key, "")
+        row[column] = parse_cth_date(printed) if printed else None
+        if printed and row[column] is None:
+            notes.append(f"{label} printed but not parsable")
+            withheld_markers.append(f"{label} printed but not parsable")
+    row["notes"] = "; ".join(notes) or None
     if withheld:
         withhold_free_text(row, tuple(withheld_markers))
     return row
