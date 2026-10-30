@@ -1,6 +1,6 @@
 {
   "output": "data/processed/enforcement-by-service.csv",
-  "written_at": "2026-10-30T23:13:52.016414+00:00",
+  "written_at": "2026-10-30T23:34:14.431141+00:00",
   "rows": 18292,
   "schema": null,
   "raw_inputs": [
