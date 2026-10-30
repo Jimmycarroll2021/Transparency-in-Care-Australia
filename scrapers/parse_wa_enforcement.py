@@ -45,10 +45,12 @@ from scrapers.common import (
     RAW_DIR,
     USER_AGENT,
     assign_record_ids,
+    ensure_person_names,
     list_snapshots,
     log,
     normalise_pr,
     normalise_se,
+    note_withheld_subject,
     printed_fingerprint,
     utc_now,
     withhold_free_text,
@@ -413,6 +415,7 @@ def parse_wa_html_table(html_content: str, source_snapshot: str, captured_at: st
             # Rule 2: the subject may be an individual, so every free-text field (including the
             # street address, which can be a family day care educator's home) is withheld whole.
             withhold_free_text(row, (INDIVIDUAL_NOTE,))
+            note_withheld_subject(prov_raw)  # in-memory name set, never written
         rows.append(row)
 
     withhold_prose_naming_people(rows)  # shared prose rule, every row
@@ -505,6 +508,7 @@ async def fetch_all_wa_playwright() -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--skip-fetch", action="store_true", help="parse newest local snapshot")
     ap.add_argument("--force", action="store_true", help="write snapshot even if duplicate")

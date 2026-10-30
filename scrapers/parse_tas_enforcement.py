@@ -39,11 +39,13 @@ from scrapers import common
 from scrapers.common import (
     PROJECT_ROOT,
     assign_record_ids,
+    ensure_person_names,
     fetch,
     list_snapshots,
     log,
     normalise_pr,
     normalise_se,
+    note_withheld_subject,
     printed_fingerprint,
     withhold_free_text,
     withhold_prose_naming_people,
@@ -261,6 +263,7 @@ def parse_page(
         }
         if withheld_markers:
             withhold_free_text(row, tuple(withheld_markers))
+            note_withheld_subject(prov_raw)  # in-memory name set, never written
         rows.append(row)
 
     withhold_prose_naming_people(rows)  # shared prose rule, every row
@@ -269,6 +272,7 @@ def parse_page(
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--skip-fetch", action="store_true", help="parse newest local snapshot")
     ap.add_argument("--force", action="store_true", help="write snapshot even if duplicate")

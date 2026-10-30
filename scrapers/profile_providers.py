@@ -415,21 +415,47 @@ def _prose_key(core: str) -> str:
     return key[:-2] if key.endswith("'s") else key
 
 
+_MONTH_WORDS = frozenset(
+    "january february march april may june july august september october november december".split()
+)
+
+
+def _prose_word(word: str) -> tuple[str, str, bool]:
+    """(core, lower-case key, capitalised name-like word with no digits)."""
+    core = word.strip(_PROSE_EDGE)
+    capitalised = (
+        bool(core)
+        and core[0].isalpha()
+        and core[0].isupper()
+        and not any(c.isdigit() for c in core)
+    )
+    return core, _prose_key(core), capitalised
+
+
 def _prose_runs(text: str) -> list[list[str]]:
     """Runs of capitalised, non-stopword words, broken by punctuation, digits or stopwords.
     Lower-case name particles ('de', 'van') and initials ('Q.') continue a run."""
     runs: list[list[str]] = []
     cur: list[str] = []
-    for word in text.split():
-        core = word.strip(_PROSE_EDGE)
-        key = _prose_key(core)
-        is_name = (
-            bool(core)
-            and core[0].isalpha()
-            and core[0].isupper()
-            and not any(ch.isdigit() for ch in core)
-            and key not in _PROSE_STOPWORDS
-        )
+    words = text.split()
+    for i, word in enumerate(words):
+        core, key, capitalised = _prose_word(word)
+        is_name = capitalised and key not in _PROSE_STOPWORDS
+        if (
+            not is_name
+            and capitalised
+            and key in _MONTH_WORDS
+            and word[-1] not in ",;:.)!?"
+            and i + 1 < len(words)
+        ):
+            # Codex round 3: a month before a capitalised word that is not a stopword, a month or
+            # a number reads as a given name ('April Example'); 'April 2025' does not.
+            _, next_key, next_capitalised = _prose_word(words[i + 1])
+            is_name = (
+                next_capitalised
+                and next_key not in _PROSE_STOPWORDS
+                and next_key not in _MONTH_WORDS
+            )
         if is_name:
             cur.append(core)
             if len(core) == 1 and word.endswith("."):
@@ -445,7 +471,104 @@ def _prose_runs(text: str) -> list[list[str]]:
     return runs
 
 
-def prose_may_name_person(text: str | None, known: tuple[str | None, ...] = ()) -> bool:
+# Codex round 3, finding 3: the data-driven layer. Words that are never part of a person's name
+# when a withheld subject string is split into names.
+_NAME_TOKEN = re.compile(r"[^\W\d_]+(?:['\u2019-][^\W\d_]+)*")
+_NAME_SPLIT = re.compile(
+    r"\s*(?:&|\+|;|/|,|\band\b|\ba\.?t\.?f\.?(?=\W|$)|\bas\s+(?:the\s+)?trustees?\s+(?:for|of)\b|"
+    r"\btrustees?\s+(?:for|of)\b|\bestate\s+of\b|\bexecut(?:or|ors|rix)\s+of\b|\bthe\s+late\b|"
+    r"\bt/as?\b|\btrading\s+as\b)\s*",
+    _I,
+)
+_NAME_NOISE = (
+    frozenset(
+        """
+        mr mrs ms miss mx dr prof professor assoc a rev revd reverend sr fr hon honourable dame
+        sir pastor rabbi imam the late deceased estate executor executors executrix abn acn pr se cs
+        """.split()
+    )
+    | _TRUST_FILLER
+)
+
+
+class PersonNames:
+    """Personal names withheld or classed as individuals in this run. In memory only: it has no
+    writer and refuses to be pickled, so it can never reach a committed file.
+
+    Full names (two to five words) match case-insensitively on word boundaries. A surname is
+    used alone only when it has four or more letters, comes from a withheld person's name, and is
+    printed capitalised (so that 'Example' matches but 'for example' does not)."""
+
+    def __init__(self) -> None:
+        self._full: set[tuple[str, ...]] = set()
+        self._surnames: set[str] = set()
+
+    def __reduce__(self):
+        raise TypeError("PersonNames is in memory only and cannot be serialised")
+
+    def __len__(self) -> int:
+        return len(self._full) + len(self._surnames)
+
+    def update(self, other: PersonNames) -> None:
+        self._full |= other._full
+        self._surnames |= other._surnames
+
+    def add_subject(self, raw: str | None) -> None:
+        """Add the people named in a withheld subject string ('Ms A B and C D', 'A B ATF The B
+        Family Trust', 'Estate of A B'). Segments with a business word are skipped."""
+        if not raw:
+            return
+        family = bool(_FAMILY_TRUST.search(raw))
+        for segment in _NAME_SPLIT.split(raw):
+            tokens = _NAME_TOKEN.findall(segment or "")
+            words = [t for t in tokens if t.lower().strip(".") not in _NAME_NOISE]
+            if not words or len(words) > 5:
+                continue
+            keys = [w.lower() for w in words]
+            if any(k in _BUSINESS_WORDS or k in _PROSE_STOPWORDS for k in keys):
+                continue
+            if len(keys) >= 2:
+                self._full.add(tuple(keys))
+                self._full.add((keys[0], keys[-1]))
+            if len(keys[-1]) >= 4 and (len(keys) >= 2 or family):
+                self._surnames.add(keys[-1])
+
+    def found_in(self, text: str | None) -> bool:
+        if not text or not self:
+            return False
+        tokens = _NAME_TOKEN.findall(text)
+        keys = [t.lower() for t in tokens]
+        for i in range(len(keys)):
+            for n in range(2, 6):
+                if i + n <= len(keys) and tuple(keys[i : i + n]) in self._full:
+                    return True
+        return any(
+            t[0].isupper() and k in self._surnames for t, k in zip(tokens, keys, strict=True)
+        )
+
+
+def acecqa_person_names(path: Path | None = None, abr_types: dict | None = None) -> PersonNames:
+    """Names of ACECQA approved providers that the shared rule withholds, from the processed copy
+    of the raw ACECQA register. In memory only."""
+    names = PersonNames()
+    path = path or PROVIDERS_CSV
+    if not path.exists():
+        return names
+    abr = _abr_entity_types() if abr_types is None else abr_types
+    for p in _read(path):
+        legal = p.get("Legal Name")
+        if legal and name_is_withheld(
+            legal, classify_entity_form(legal), abr.get(p.get("provider_approval_number") or "")
+        ):
+            names.add_subject(legal)
+    return names
+
+
+def prose_may_name_person(
+    text: str | None,
+    known: tuple[str | None, ...] = (),
+    person_names: PersonNames | None = None,
+) -> bool:
     """True when free text may name a person. Fail closed.
 
     Text already published for the row in a structured column (its service name, an
@@ -459,6 +582,8 @@ def prose_may_name_person(text: str | None, known: tuple[str | None, ...] = ()) 
             text = re.sub(re.escape(k.strip()), " ", text, flags=re.IGNORECASE)
     # In prose a title counts only before a capitalised word ('Rev Example', not 'rev up').
     if any(m.group(0)[-1].isupper() for m in _TITLE.finditer(text)):
+        return True
+    if person_names is not None and person_names.found_in(text):
         return True
     return bool(_prose_runs(text))
 

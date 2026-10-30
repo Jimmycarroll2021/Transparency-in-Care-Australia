@@ -46,11 +46,13 @@ from scrapers.common import (
     PROJECT_ROOT,
     RAW_DIR,
     assign_record_ids,
+    ensure_person_names,
     fetch,
     list_snapshots,
     log,
     normalise_pr,
     normalise_se,
+    note_withheld_subject,
     printed_fingerprint,
     withhold_free_text,
     withhold_prose_naming_people,
@@ -415,6 +417,7 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         # Rule 2: free text can repeat the name in forms no redaction catches, so it is withheld
         # whole. Structured fields stay.
         withhold_free_text(row, (NO_APPROVAL_NOTE, *withheld_markers))
+        note_withheld_subject(first)  # in-memory name set, never written
     return row
 
 
@@ -459,6 +462,7 @@ def _snapshot_meta(path: Path) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--skip-fetch", action="store_true", help="parse the newest local snapshot")
     ap.add_argument("--force", action="store_true", help="archive even if the page is unchanged")

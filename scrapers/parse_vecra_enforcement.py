@@ -39,11 +39,13 @@ from scrapers.common import (
     USER_AGENT,
     Fetched,
     assign_record_ids,
+    ensure_person_names,
     fetch,
     known_hashes,
     log,
     normalise_pr,
     normalise_se,
+    note_withheld_subject,
     printed_fingerprint,
     utc_stamp,
     withhold_free_text,
@@ -348,8 +350,10 @@ def parse_details_cell(cell: Tag) -> dict:
             fields[current] = clean(line.split(":", 1)[1])
             continue
         if m and PERSON_LABELS.search(label or ""):
-            # Person-level field: dropped at ingest, counted only.
+            # Person-level field: dropped at ingest, counted only. The value is kept in memory
+            # for the prose rule's name set and never written.
             dropped_person_fields += 1
+            note_withheld_subject(clean(line.split(":", 1)[1]))
             current = "_person"
             continue
         if current == "service":
@@ -498,6 +502,7 @@ def parse_actions(
         ):
             # Likely a sole trader approved in their own name, or a name the shared fail-closed
             # rule does not accept as an organisation. Rule 2: never name individuals.
+            subject_raw = info["provider_name"]
             info["provider_name"] = None
             withheld_marker = (
                 "provider name withheld: no company or organisation marker, may be an individual"
@@ -530,6 +535,7 @@ def parse_actions(
         }
         if withheld_marker:
             withhold_free_text(row, (withheld_marker,))
+            note_withheld_subject(subject_raw)  # in-memory name set, never written
         rows.append(row)
     withhold_prose_naming_people(rows)  # shared prose rule, every row
     assign_record_ids(rows)
@@ -693,6 +699,7 @@ def parse_all() -> tuple[list[dict], list[dict], list[Path]]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--force", action="store_true", help="write new snapshots even if unchanged")
     ap.add_argument("--skip-fetch", action="store_true", help="parse existing snapshots only")

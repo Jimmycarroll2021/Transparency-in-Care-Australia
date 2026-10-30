@@ -30,12 +30,14 @@ from scrapers.common import (
     PROJECT_ROOT,
     RAW_DIR,
     assign_record_ids,
+    ensure_person_names,
     fetch,
     known_hashes,
     list_snapshots,
     log,
     normalise_pr,
     normalise_se,
+    note_withheld_subject,
     printed_fingerprint,
     withhold_free_text,
     withhold_prose_naming_people,
@@ -657,6 +659,7 @@ def build_row(
         # every free-text field is withheld whole. Keys, dates and the action type stay.
         # The key note quotes only the printed approval number, which is kept anyway.
         withhold_free_text(row, tuple(n for n in (key_note, withheld_note) if n))
+        note_withheld_subject(f.get("name"))  # in-memory name set, never written
         row["_details"] = None
     return row
 
@@ -870,6 +873,7 @@ def provenance_notes(summary: dict) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--force", action="store_true", help="re-snapshot PDFs already held")
     ap.add_argument("--skip-fetch", action="store_true", help="parse existing snapshots only")

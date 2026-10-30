@@ -346,7 +346,51 @@ def _filter_refs(refs, flagged):
     return "; ".join(kept), len(kept) != len(items)
 
 
-def withhold_prose_naming_people(rows: list[dict]) -> dict[str, int]:
+# Codex round 3, finding 3: the run-wide set of personal names (profile_providers.PersonNames),
+# in memory only. Set by reparse_offline across every register, or by ensure_person_names
+# from the ACECQA register when one parser runs alone.
+_PERSON_NAMES = None
+# Raw subjects withheld so far in this process, as a PersonNames set (in memory only).
+_RUN_NAMES = None
+
+
+def note_withheld_subject(raw: str | None) -> None:
+    """Remember, in memory only, the raw printed name of a subject a parser withheld or a
+    person-level field it dropped, so the prose rule can find that name in other rows."""
+    global _RUN_NAMES
+    if not raw:
+        return
+    if _RUN_NAMES is None:
+        from scrapers.profile_providers import PersonNames
+
+        _RUN_NAMES = PersonNames()
+    _RUN_NAMES.add_subject(raw)
+
+
+def run_person_names():
+    """The names noted so far in this process (in memory only), or None."""
+    return _RUN_NAMES
+
+
+def reset_run_names() -> None:
+    global _RUN_NAMES
+    _RUN_NAMES = None
+
+
+def set_person_names(names) -> None:
+    global _PERSON_NAMES
+    _PERSON_NAMES = names
+
+
+def ensure_person_names() -> None:
+    """Load the ACECQA names when no run-wide set was given. Never written anywhere."""
+    if _PERSON_NAMES is None:
+        from scrapers.profile_providers import acecqa_person_names
+
+        set_person_names(acecqa_person_names())
+
+
+def withhold_prose_naming_people(rows: list[dict], person_names=None) -> dict[str, int]:
     """The shared prose rule, on every row, in place (Codex round 2, finding 1).
 
     For each prose field, if the shared person detector (profile_providers.
@@ -354,7 +398,17 @@ def withhold_prose_naming_people(rows: list[dict]) -> dict[str, int]:
     (action_type_raw becomes the '(withheld)' placeholder, because the schema requires it), a
     flagged legal reference or notes segment is dropped, and the fixed PROSE_WITHHELD_NOTE is
     added once. Rows already withheld whole are skipped. Returns counts of fields nulled."""
-    from scrapers.profile_providers import prose_may_name_person
+    from scrapers.profile_providers import PersonNames, prose_may_name_person
+
+    # The run-wide names plus the raw subjects withheld in these rows (in memory only).
+    names = PersonNames()
+    for base in (person_names, _PERSON_NAMES, _RUN_NAMES):
+        if base is not None:
+            names.update(base)
+    for row in rows:
+        names.add_subject(row.get("_subject_raw"))
+        for extra in row.get("_person_raw") or ():
+            names.add_subject(extra)
 
     counts: dict[str, int] = {}
     for row in rows:
@@ -364,7 +418,7 @@ def withhold_prose_naming_people(rows: list[dict]) -> dict[str, int]:
         known = tuple(row.get(k) for k in ("service_name", "provider_name", "suburb"))
 
         def flagged(text, known=known):
-            return isinstance(text, str) and prose_may_name_person(text, known)
+            return isinstance(text, str) and prose_may_name_person(text, known, names)
 
         hit = False
         for col in PROSE_COLUMNS:

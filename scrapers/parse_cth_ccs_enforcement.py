@@ -64,9 +64,11 @@ from scrapers.common import (
     PROJECT_ROOT,
     RAW_DIR,
     assign_record_ids,
+    ensure_person_names,
     fetch,
     list_snapshots,
     log,
+    note_withheld_subject,
     printed_fingerprint,
     withhold_free_text,
     withhold_prose_naming_people,
@@ -560,6 +562,7 @@ def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
     row["notes"] = "; ".join(notes) or None
     if withheld:
         withhold_free_text(row, tuple(withheld_markers))
+        note_withheld_subject(provider_raw)  # in-memory name set, never written
     return row
 
 
@@ -656,6 +659,7 @@ def _latest_by_role() -> dict[str, Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--skip-fetch", action="store_true", help="parse the newest local snapshots")
     ap.add_argument(
