@@ -1,7 +1,7 @@
 {
   "output": "data/processed/provider-abn.csv",
-  "written_at": "2026-10-30T04:51:52.514868+00:00",
-  "rows": 3,
+  "written_at": "2026-10-30T05:51:50.717128+00:00",
+  "rows": 1210,
   "schema": null,
   "raw_inputs": [
     "data/processed/provider-profile.csv",
@@ -21,23 +21,27 @@
   "run": {
     "subset_size": 1210,
     "subset_rule": "joined to an enforcement action, or service_count >= 5, or state_count > 1",
-    "providers_processed": 3,
-    "providers_queried": 3,
+    "providers_processed": 1210,
+    "providers_queried": 1121,
     "match_kinds": {
-      "accepted_unique": 3
+      "accepted_unique": 884,
+      "accepted_unique_in_state": 17,
+      "ambiguous": 29,
+      "excluded_individual_or_unknown": 89,
+      "no_match": 191
     },
-    "accepted": 3,
+    "accepted": 901,
     "excluded_before_query_by_entity_form": {
       "likely_individual": 63,
       "unknown": 26
     },
     "excluded_as_individual_by_abr": 0,
-    "excluded_individual_candidates_discarded": 4,
-    "api_calls": 5,
-    "cache_hits": 1,
-    "max_calls": 6,
-    "stopped_by_call_cap": true,
-    "providers_remaining": 1207,
-    "providers_remaining_excluding_individuals": 1118
+    "excluded_individual_candidates_discarded": 1350,
+    "api_calls": 1487,
+    "cache_hits": 535,
+    "max_calls": 1500,
+    "stopped_by_call_cap": false,
+    "providers_remaining": 0,
+    "providers_remaining_excluding_individuals": 0
   }
 }
