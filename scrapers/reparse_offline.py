@@ -12,9 +12,11 @@ register or in any enforcement register. The set is built in two passes in one p
 All or nothing (Codex round 4, finding 2). A parser that exits non-zero or raises in the capture
 pass stops the run before anything is written. In the real pass every parser's writes are held
 back in memory until all parsers have succeeded. Then the current processed outputs are copied to
-a persistent backup (data/.reparse-backup/<timestamp>), a marker (data/.reparse-in-progress) is
-set, the held writes are made atomically and the join runs. If anything fails, data/processed is
-restored from the backup (files the run created are removed), the exit code is non-zero, and the
+a persistent backup (data/.reparse-backup/<timestamp>) with a manifest of sizes and sha256, which is
+verified before the marker (data/.reparse-in-progress) is set; the held writes are then made
+atomically and the join runs. If anything fails, data/processed is restored from the backup once
+it verifies against its manifest (files the run created are removed; a backup that fails
+verification restores nothing), the exit code is non-zero, and the
 backup and the marker are kept: until the marker is removed every later run refuses to start and
 prints recovery instructions. Only a fully successful run removes the marker and the backup.
 
