@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T21:34:14.118588+00:00",
+  "generated_at": "2026-10-30T22:17:40.906222+00:00",
   "definitions": [
     "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched only by the included entity's ABN on the statement page equalling the provider's ABN. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
     "group_parent_self: the provider, matched by ABN, is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",
@@ -63,6 +63,7 @@
       "rule": "A provider is used only with exactly one provider-profile.csv row positively classified as an organisation, not withheld, with a legal name, at most one provider-abn.csv row, and no local ABR source marking it as an individual or disagreeing on its ABN's type. Each excluded provider is counted once, under the first reason that applies."
     },
     "candidate_pages_missing": 0,
+    "csv_columns_dropped": 0,
     "abn_placeholders_read_as_no_abn": 1
   },
   "window": {
