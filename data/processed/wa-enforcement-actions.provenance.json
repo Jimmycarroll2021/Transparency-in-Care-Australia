@@ -1,6 +1,6 @@
 {
   "output": "data/processed/wa-enforcement-actions.csv",
-  "written_at": "2026-10-30T23:34:11.503744+00:00",
+  "written_at": "2026-10-30T23:51:53.476124+00:00",
   "rows": 931,
   "schema": null,
   "raw_inputs": [
