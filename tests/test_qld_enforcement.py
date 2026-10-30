@@ -430,3 +430,47 @@ def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
     assert r["provider_name"] is not None
     assert "free text withheld: may name an individual" in r["notes"]
     assert "jane" not in _text_blob(r)
+
+
+# --- Codex round 5, finding 3: only an amount tied explicitly to the fine is recorded ---------
+
+
+def test_costs_or_an_unclear_amount_is_not_recorded_as_the_fine():
+    from scrapers.parse_qld_enforcement import FINE_NOT_RECORDED_NOTE, fine_amount_and_note
+
+    for text in (
+        "Approved provider fined and ordered to pay costs of $3,500",
+        "Approved provider fined, plus $3,500 in costs",
+        "Approved provider fined after a child left the service; $3,500 was ordered",
+    ):
+        assert fine_amount_and_note(text) == (None, FINE_NOT_RECORDED_NOTE), text
+
+
+def test_an_amount_tied_explicitly_to_the_fine_is_recorded():
+    from scrapers.parse_qld_enforcement import fine_amount_and_note
+
+    assert fine_amount_and_note("Approved provider fined $12,000 for missing child") == (
+        12000,
+        None,
+    )
+    assert fine_amount_and_note("Approved provider was fined $23,000") == (23000, None)
+    assert fine_amount_and_note("A fine of $5,000.50 was imposed") == (5000.5, None)
+    assert fine_amount_and_note("Court imposes $7,500 penalty") == (7500, None)
+    assert fine_amount_and_note("Compliance notice") == (None, None)
+    assert fine_amount_and_note("Fined $8,000 and $2,000 in costs") == (
+        None,
+        "penalty amount not recorded: the printed amount is not tied explicitly and solely to the fine",
+    )
+
+
+def test_qld_row_with_costs_only_has_no_penalty_and_says_why():
+    html = f"""<html><body><h2>2026</h2><table>{HEADER}
+    <tr><td><p>Example Kids Pty Ltd</p><p>Sunny Meadow Early Learning</p></td><td>01/02/2026</td>
+      <td><p>Approved provider fined and ordered to pay costs of $3,500</p>
+       <p><a href="/docs/example-kids.pdf">Prosecution</a></p></td><td>N/A</td></tr>
+    </table></body></html>"""
+    row = parse_register(
+        html, page_url=INDEX_URL, captured_at="2026-10-29T07:00:00+00:00", source_snapshot="x"
+    )[0]
+    assert row["penalty_amount_aud"] is None
+    assert "penalty amount not recorded" in row["notes"]

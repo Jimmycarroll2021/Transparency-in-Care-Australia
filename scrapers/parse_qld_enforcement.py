@@ -152,18 +152,47 @@ _FINED = re.compile(r"(?i)(?<![a-z])fined(?![a-z])")
 _DOLLARS = re.compile(r"[$][ ]?([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:[.]([0-9]{2}))?(?![0-9])")
 
 
-def extract_fine_amount(text: str | None) -> int | float | None:
-    """The fine in a printed headline such as 'Approved provider fined $12,000 ...', in dollars.
+_FINE_WORD = re.compile(r"(?i)(?<![a-z])(?:fined|fine|fines|penalty|penalties)(?![a-z])")
+_AMOUNT = r"[$][ ]?(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:[.][0-9]{2})?(?![0-9])"
+# An amount tied explicitly to the fine: 'fined $N', 'fine(d) of $N', 'penalty of $N',
+# '$N fine', '$N penalty'. Costs, or an amount whose role the text does not state, are not.
+_TIED_FINE = re.compile(
+    rf"(?i)(?:(?<![a-z])fined(?:[ ]+(?:a[ ]+total[ ]+of|the[ ]+sum[ ]+of))?[ ]+({_AMOUNT})"
+    rf"|(?<![a-z])(?:fine|penalty)[ ]+(?:of|totalling|totaling)[ ]+({_AMOUNT})"
+    rf"|({_AMOUNT})[ ]+(?:fine|penalty)(?![a-z]))"
+)
+FINE_NOT_RECORDED_NOTE = (
+    "penalty amount not recorded: the printed amount is not tied explicitly and solely to the fine"
+)
 
-    Source-faithful: only when the text says 'fined' and prints exactly one distinct dollar
-    amount. Anything else (no amount, several amounts) is None, never a guess."""
-    if not text or not _FINED.search(text):
-        return None
-    amounts = set()
-    for m in _DOLLARS.finditer(text):
-        whole = int(m.group(1).replace(",", ""))
-        amounts.add(whole + int(m.group(2)) / 100 if m.group(2) else whole)
-    return amounts.pop() if len(amounts) == 1 else None
+
+def _dollars(token: str) -> int | float:
+    m = _DOLLARS.search(token)
+    whole = int(m.group(1).replace(",", ""))
+    return whole + int(m.group(2)) / 100 if m.group(2) else whole
+
+
+def fine_amount_and_note(text: str | None) -> tuple[int | float | None, str | None]:
+    """(fine in dollars, note) from a printed headline (Codex round 5, finding 3).
+
+    Recorded only when the text prints exactly one dollar amount and ties it explicitly to the
+    fine or penalty ('fined $12,000', 'a fine of $5,000', '$7,500 penalty'). When the text speaks
+    of a fine or penalty and prints an amount that is costs, untied or one of several, the value
+    is None and FINE_NOT_RECORDED_NOTE says so. Never a guess."""
+    if not text or not _FINE_WORD.search(text):
+        return None, None
+    amounts = {_dollars(m.group(0)) for m in _DOLLARS.finditer(text)}
+    if not amounts:
+        return None, None
+    tied = {_dollars(next(g for g in m.groups() if g)) for m in _TIED_FINE.finditer(text)}
+    if len(amounts) == 1 and tied == amounts:
+        return amounts.pop(), None
+    return None, FINE_NOT_RECORDED_NOTE
+
+
+def extract_fine_amount(text: str | None) -> int | float | None:
+    """The fine in dollars, or None (see fine_amount_and_note)."""
+    return fine_amount_and_note(text)[0]
 
 
 def parse_date(raw: str) -> tuple[str | None, str | None]:
@@ -384,6 +413,12 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         notes.append(f"breaches column printed: {'; '.join(legal_references)}")
         legal_references = []
 
+    # Codex round 5: only an amount tied explicitly to the fine is recorded.
+    penalty, penalty_note = fine_amount_and_note(action_type_raw)
+    if penalty_note:
+        notes.append(penalty_note)
+        withheld_markers.append(penalty_note)  # a constant phrase, safe on withheld rows
+
     se_raw = pr_raw = None
     row = {
         "record_id": None,  # set by parse_register from non-name facts (assign_record_ids)
@@ -409,7 +444,7 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         "period_label": period,
         "notes": "; ".join(notes),
         "linked_documents": " ".join(u for u in hrefs if u != primary) or None,
-        "penalty_amount_aud": extract_fine_amount(action_type_raw),
+        "penalty_amount_aud": penalty,
         # In-memory only (not written): the printed content, names included, to spot a row the
         # register prints twice. Never published and never used as the record_id.
         "_fingerprint": printed_fingerprint(*(clean(c.get_text(" ")) for c in cells)),
