@@ -1,7 +1,7 @@
 {
   "output": "data/processed/provider-coreported-msr.csv",
-  "written_at": "2026-10-30T21:05:47.695752+00:00",
-  "rows": 56,
+  "written_at": "2026-10-30T21:34:13.727110+00:00",
+  "rows": 46,
   "schema": null,
   "raw_inputs": [
     "data/raw/msr/all-statements/2026-10-30T1932Z.csv",
@@ -146,5 +146,5 @@
     "data/processed/abn-details.csv",
     "data/processed/acecqa-services-latest.csv"
   ],
-  "notes": "co_reported_joint: the provider is named (as a reporting or included entity) in a Joint statement. Joint statements can combine unrelated bodies, so these rows are never edges. Every row carries the caveat 'joint statement: co-reporting, not evidence of ownership'. Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: licence unclear)."
+  "notes": "co_reported_joint: the provider is named by ABN (as a reporting or included entity) in a Joint statement. Joint statements can combine unrelated bodies, so these rows are never edges. Every row carries the caveat 'joint statement: co-reporting, not evidence of ownership'. Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: licence unclear)."
 }

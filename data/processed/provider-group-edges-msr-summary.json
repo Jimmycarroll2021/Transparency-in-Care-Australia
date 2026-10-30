@@ -1,31 +1,27 @@
 {
-  "generated_at": "2026-10-30T21:05:48.128952+00:00",
+  "generated_at": "2026-10-30T21:34:14.118588+00:00",
   "definitions": [
-    "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched by the included entity's ABN, or by exact normalised name agreeing with both the ACECQA legal name and the ABR entity name. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
-    "group_parent_self: the provider is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",
-    "co_reported_joint: the provider is named (as a reporting or included entity) in a Joint statement. Joint statements can combine unrelated bodies, so these rows are never edges."
+    "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched only by the included entity's ABN on the statement page equalling the provider's ABN. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
+    "group_parent_self: the provider, matched by ABN, is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",
+    "co_reported_joint: the provider is named by ABN (as a reporting or included entity) in a Joint statement. Joint statements can combine unrelated bodies, so these rows are never edges."
   ],
   "counts": {
     "candidate_statements": 136,
     "included_entities_parsed": 530,
     "included_entities_with_abn": 350,
-    "relations_total": 107,
+    "relations_total": 85,
     "relations_by_class": {
-      "co_reported_joint": 56,
-      "controlled_entity_of": 23,
+      "co_reported_joint": 46,
+      "controlled_entity_of": 11,
       "group_parent_self": 3,
       "self_report_no_included_entities": 25
     },
     "controlled_entity_of": {
-      "edges": 18,
-      "distinct_providers": 17,
-      "groups": 8,
-      "priority_providers_gained_edge": 17,
-      "services_of_those_providers": 254,
-      "edges_by_latest_match_method": {
-        "included_entity_abn_equals_provider_abn": 7,
-        "included_name_equals_acecqa_and_abr_name": 11
-      }
+      "edges": 7,
+      "distinct_providers": 6,
+      "groups": 6,
+      "priority_providers_gained_edge": 6,
+      "services_of_those_providers": 150
     },
     "group_parent_self_not_ownership_edges": {
       "rows": 2,
@@ -33,82 +29,64 @@
       "services_of_those_providers": 298
     },
     "co_reported_joint_not_ownership": {
-      "rows": 56,
-      "distinct_providers": 25,
-      "statements": 23,
-      "providers_with_only_joint_relations": 21
-    },
-    "group_names": {
-      "edge_groups_by_status": {
-        "shown_abr_organisation_type": 2,
-        "withheld_abr_type_unknown": 6
-      },
-      "head_rows_by_status": {
-        "shown_abr_organisation_type": 2
-      }
+      "rows": 46,
+      "distinct_providers": 16,
+      "statements": 22,
+      "providers_with_only_joint_relations": 14
     },
     "priority_providers_total": 1210,
     "priority_providers_with_abn": 901,
+    "priority_providers_screened_in": 1121,
+    "screened_providers_with_valid_abn": 901,
     "services_total": 18186,
     "services_note": null,
-    "review_queue": 103,
+    "review_queue": 125,
     "review_by_reason": {
       "fuzzy_corporate_suffix_differs": 9,
       "name_match_provider_abn_not_resolved": 63,
-      "name_unique_provider_without_abn": 28,
-      "reporting_entity_name_only": 3
+      "name_match_without_msr_abn": 53
     },
-    "matches_to_excluded_providers": 4,
-    "provider_exclusions": {
-      "profile_individual_unknown_or_withheld": 1100,
-      "abr_individual": 0,
-      "abr_type_conflicts": 0,
-      "individual_status_conflicts": 0,
-      "rule": "A provider is excluded when any local source (ACECQA profile classification or withheld flag, provider-abn.csv, abn-details.csv) marks it as an individual or sole trader, or when the ABR sources disagree on its type."
+    "name_matches_to_excluded_providers": 4,
+    "screening": {
+      "providers_considered": 10073,
+      "providers_screened_in": 8973,
+      "excluded_missing_profile": 0,
+      "excluded_duplicate_profile_rows": 0,
+      "excluded_duplicate_provider_abn_rows": 0,
+      "excluded_not_positively_organisation": 1100,
+      "excluded_name_withheld": 0,
+      "excluded_blank_legal_name": 0,
+      "excluded_abn_step_individual_or_unknown": 0,
+      "excluded_abr_individual": 0,
+      "excluded_abr_type_conflict": 0,
+      "screened_abn_failing_checksum_not_used": 0,
+      "rule": "A provider is used only with exactly one provider-profile.csv row positively classified as an organisation, not withheld, with a legal name, at most one provider-abn.csv row, and no local ABR source marking it as an individual or disagreeing on its ABN's type. Each excluded provider is counted once, under the first reason that applies."
     },
-    "candidate_pages_missing": 0
+    "candidate_pages_missing": 0,
+    "abn_placeholders_read_as_no_abn": 1
   },
   "window": {
-    "edge_reporting_periods_earliest": "2023-01-01 to 2023-12-31",
-    "edge_reporting_periods_latest": "2025-01-01 to 2025-12-31"
+    "note": "Each edge shows its latest statement; statement_ids lists every statement that links the provider to the group, across all reporting years.",
+    "latest_statement_period_earliest": "2023-07-01 to 2024-06-30",
+    "latest_statement_period_latest": "2025-01-01 to 2025-12-31",
+    "all_edge_statement_periods": [
+      "2023-01-01 to 2023-12-31",
+      "2023-07-01 to 2024-06-30",
+      "2024-01-01 to 2024-12-31",
+      "2025-01-01 to 2025-12-31"
+    ]
   },
   "groups": [
     {
-      "group_key": "95123828553",
-      "group_abn": "95123828553",
-      "group_abr_entity_type": "PUB",
-      "group_name": "G8 EDUCATION LIMITED",
-      "group_name_status": "shown_abr_organisation_type",
-      "controlled_providers": 9,
-      "services_of_controlled_providers": 54,
-      "head_provider": "PR-00000898"
-    },
-    {
       "group_key": "68670538780",
       "group_abn": "68670538780",
-      "group_abr_entity_type": null,
-      "group_name": null,
-      "group_name_status": "withheld_abr_type_unknown",
       "controlled_providers": 2,
       "services_of_controlled_providers": 46,
       "head_provider": null
     },
     {
-      "group_key": "69139967794",
-      "group_abn": "69139967794",
-      "group_abr_entity_type": "PUB",
-      "group_name": "GOODSTART EARLY LEARNING LTD",
-      "group_name_status": "shown_abr_organisation_type",
-      "controlled_providers": 2,
-      "services_of_controlled_providers": 50,
-      "head_provider": null
-    },
-    {
       "group_key": "32025287736",
       "group_abn": "32025287736",
-      "group_abr_entity_type": null,
-      "group_name": null,
-      "group_name_status": "withheld_abr_type_unknown",
       "controlled_providers": 1,
       "services_of_controlled_providers": 6,
       "head_provider": null
@@ -116,9 +94,6 @@
     {
       "group_key": "39703442583",
       "group_abn": "39703442583",
-      "group_abr_entity_type": null,
-      "group_name": null,
-      "group_name_status": "withheld_abr_type_unknown",
       "controlled_providers": 1,
       "services_of_controlled_providers": 89,
       "head_provider": null
@@ -126,9 +101,6 @@
     {
       "group_key": "46141203125",
       "group_abn": "46141203125",
-      "group_abr_entity_type": null,
-      "group_name": null,
-      "group_name_status": "withheld_abr_type_unknown",
       "controlled_providers": 1,
       "services_of_controlled_providers": 4,
       "head_provider": null
@@ -136,9 +108,6 @@
     {
       "group_key": "65124826722",
       "group_abn": "65124826722",
-      "group_abr_entity_type": null,
-      "group_name": null,
-      "group_name_status": "withheld_abr_type_unknown",
       "controlled_providers": 1,
       "services_of_controlled_providers": 5,
       "head_provider": null
@@ -146,25 +115,12 @@
     {
       "group_key": "90952801237",
       "group_abn": "90952801237",
-      "group_abr_entity_type": null,
-      "group_name": null,
-      "group_name_status": "withheld_abr_type_unknown",
       "controlled_providers": 1,
       "services_of_controlled_providers": 4,
       "head_provider": null
     }
   ],
   "joint_statements_for_manual_confirmation": [
-    {
-      "statement_id": "2023-2461",
-      "statement_url": "https://modernslaveryregister.gov.au/statements/15563/",
-      "reporting_period": "2022-07-01 to 2023-06-30",
-      "reporting_entity_count": 1,
-      "reporting_entity_abns": "69139967794",
-      "included_providers": [
-        "PR-00004831"
-      ]
-    },
     {
       "statement_id": "2024-1335",
       "statement_url": "https://modernslaveryregister.gov.au/statements/18637/",
@@ -191,36 +147,27 @@
         "PR-40023899",
         "PR-40028424"
       ]
-    },
-    {
-      "statement_id": "2026-1450",
-      "statement_url": "https://modernslaveryregister.gov.au/statements/29210/",
-      "reporting_period": "2025-01-01 to 2025-12-31",
-      "reporting_entity_count": 4,
-      "reporting_entity_abns": "",
-      "included_providers": [
-        "PR-00008264",
-        "PR-40001784",
-        "PR-40002197",
-        "PR-40002206",
-        "PR-40003561",
-        "PR-40004076",
-        "PR-40010506",
-        "PR-40012436",
-        "PR-40012628"
-      ]
     }
   ],
-  "name_policy": "Names in MSR outputs: provider_legal_name is the ACECQA legal name, keyed by provider_approval_number, for providers not classed as individuals by ACECQA or the ABR. group_name is the ABR entity name of the reporting entity's ABN, shown only when the ABR entity type for that ABN is known locally, is a company, government entity, co-operative or other incorporated entity (never a trust, partnership or individual), the sources agree, and the name has no trust wording (family trust, trustee for, ATF); otherwise it is blank and group_name_status says why. No name is taken from the register itself.",
+  "name_policy": "Names in MSR outputs: the only name is provider_legal_name, the ACECQA legal name keyed by provider_approval_number, for providers that pass screening. No group name is written; a group is identified by the reporting entity's ABN or by its statement page. No name read from the register is ever written.",
+  "review_reasons": "name_match_without_msr_abn: the entity's name equals one screened provider's legal name but the statement gives no ABN for it. msr_abn_differs_from_provider_abn: the name matches but the statement's ABN differs from the provider's. name_match_provider_abn_not_resolved: the name matches and the statement gives an ABN, but the provider has no accepted ABN. ambiguous_matches_several_providers: the name equals several providers' legal names. fuzzy_corporate_suffix_differs: the names match only without a PTY LTD, LTD or INC suffix.",
   "caveats": [
-    "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched by the included entity's ABN, or by exact normalised name agreeing with both the ACECQA legal name and the ABR entity name. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
-    "group_parent_self: the provider is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",
-    "co_reported_joint: the provider is named (as a reporting or included entity) in a Joint statement. Joint statements can combine unrelated bodies, so these rows are never edges.",
+    "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched only by the included entity's ABN on the statement page equalling the provider's ABN. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
+    "group_parent_self: the provider, matched by ABN, is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",
+    "co_reported_joint: the provider is named by ABN (as a reporting or included entity) in a Joint statement. Joint statements can combine unrelated bodies, so these rows are never edges.",
     "The register covers entities with annual consolidated revenue of at least AUD 100 million, plus voluntary reporters. Absence of an edge says nothing about ownership.",
-    "Name-matched edges are not verified by ABN or ACN; they need the ACECQA legal name and the ABR entity name to agree.",
+    "Edges need an ABN on the statement page. An included entity listed without an ABN never makes an edge; when its name matches a provider it is in the review queue.",
     "Each edge is collapsed to one row per provider and group from the latest statement; statement_ids lists every statement. A provider in an older statement may since have changed hands.",
     "MSR licence unclear (Copyright Attorney-General's Department). Raw MSR files are not committed. Ask the department before any public display.",
     "Service counts are current ACECQA service approvals from acecqa-services-latest.csv. ACECQA content is not openly licensed."
+  ],
+  "abn_placeholders_read_as_no_abn": [
+    {
+      "statement_id": "2022-3013",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11943/",
+      "msr_role": "reporting_entity",
+      "value": "00649711026"
+    }
   ],
   "source": {
     "csv_url_pattern": "https://modernslaveryregister.gov.au/resources/all-statement-information_<date>.csv",
@@ -984,9 +931,7 @@
       "reporting_period": "2021-07-01 to 2022-06-30",
       "candidate_reason": "childcare_term",
       "reporting_entity_count": 1,
-      "reporting_entity_abns": [
-        "00649711026"
-      ],
+      "reporting_entity_abns": [],
       "included_entities": 0
     },
     {

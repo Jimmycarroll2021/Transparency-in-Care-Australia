@@ -1,7 +1,7 @@
 {
   "output": "data/processed/provider-group-review-msr.csv",
-  "written_at": "2026-10-30T21:05:47.705832+00:00",
-  "rows": 103,
+  "written_at": "2026-10-30T21:34:13.737429+00:00",
+  "rows": 125,
   "schema": null,
   "raw_inputs": [
     "data/raw/msr/all-statements/2026-10-30T1932Z.csv",
@@ -146,5 +146,5 @@
     "data/processed/abn-details.csv",
     "data/processed/acecqa-services-latest.csv"
   ],
-  "notes": "Possible links that did not meet the matching rule: ambiguous names, ABR or ABN disagreement, providers without a resolved ABN, corporate-suffix differences and reporting entities matched by name only. Not evidence of ownership. Rows carry statement ids, URLs, ABNs and candidate provider approval numbers; no names. Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: licence unclear)."
+  "notes": "Name matches that are not ABN matches, so never relations or edges. name_match_without_msr_abn: the entity's name equals one screened provider's legal name but the statement gives no ABN for it. msr_abn_differs_from_provider_abn: the name matches but the statement's ABN differs from the provider's. name_match_provider_abn_not_resolved: the name matches and the statement gives an ABN, but the provider has no accepted ABN. ambiguous_matches_several_providers: the name equals several providers' legal names. fuzzy_corporate_suffix_differs: the names match only without a PTY LTD, LTD or INC suffix. Not evidence of ownership. Rows carry statement ids, URLs, ABNs and candidate provider approval numbers; no names. Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: licence unclear)."
 }
