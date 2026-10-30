@@ -41,6 +41,7 @@ BANKSIA_ABN = make_abn(3)
 LILLY_ABN = make_abn(6)
 PARENT_ABN = make_abn(9)
 OTHER_ABN = make_abn(77)
+KOOK_REP_TEXT = f"KOOKABURRA LEARNING GROUP LIMITED ({spaced(KOOK_ABN)})"
 BAD_ABN = WATTLE_ABN[:-1] + str((int(WATTLE_ABN[-1]) + 1) % 10)  # fails the checksum
 
 RESOURCES_HTML = """
@@ -413,8 +414,8 @@ def test_parse_rejects_an_unusable_abn_text(abn_text):
 
 
 def test_parse_reads_the_registers_00_placeholder_as_no_abn_and_lists_it():
-    # The register shows one ARBN-only entity as "ABN: 00 649 711 026". A 00 prefix is never an
-    # ABN (an ABN's first two digits are check digits from 10 to 99).
+    # The register shows one ARBN-only entity as "ABN: 00 649 711 026", which fails the ABN
+    # checksum. Only such a failing 00-prefixed value is a placeholder.
     page = statement_page([("A LTD", KOOK_ABN)], [("Wattle Kids Pty Ltd", WATTLE_ABN)])
     page = page.replace(f"?abn={KOOK_ABN}", "?abn=00649711026").replace(
         spaced(KOOK_ABN), "00 649 711 026"
@@ -423,6 +424,18 @@ def test_parse_reads_the_registers_00_placeholder_as_no_abn_and_lists_it():
     assert parsed["reporting"][0]["abn"] is None
     assert parsed["abn_placeholders"] == [{"msr_role": "reporting_entity", "value": "00649711026"}]
     assert parsed["included"][0]["abn"] == WATTLE_ABN
+
+
+def test_checksum_valid_00_value_is_a_real_abn_not_a_placeholder():
+    # Codex round 5 item 3: 00000000019 passes the checksum, so it is an ABN.
+    assert msr.valid_abn("00000000019")
+    page = statement_page([("A LTD", KOOK_ABN)])
+    page = page.replace(f"?abn={KOOK_ABN}", "?abn=00000000019").replace(
+        spaced(KOOK_ABN), "00 000 000 019"
+    )
+    parsed = msr.parse_statement_page(page)
+    assert parsed["reporting"][0]["abn"] == "00000000019"
+    assert parsed["abn_placeholders"] == []
 
 
 @pytest.mark.parametrize(
@@ -440,6 +453,82 @@ def test_parse_rejects_abn_href_and_text_that_disagree():
     page = page.replace(f"?abn={WATTLE_ABN}", f"?abn={BANKSIA_ABN}")
     with pytest.raises(msr.PageParseError):
         msr.parse_statement_page(page)
+
+
+RECONCILE_ENTITIES = [
+    {"name": "Wattle Kids Pty Ltd", "abn": WATTLE_ABN},
+    {"name": "Gumnut Care Pty Ltd", "abn": None},
+]
+
+
+def test_reconcile_exact_match_passes_after_case_and_whitespace_normalisation():
+    text = f"WATTLE KIDS  PTY LTD ({spaced(WATTLE_ABN)}), gumnut care pty ltd"
+    assert msr.reconcile_entities(text, RECONCILE_ENTITIES) == {}
+
+
+def test_reconcile_empty_field_and_no_entities_passes():
+    assert msr.reconcile_entities("", []) == {}
+
+
+@pytest.mark.parametrize(
+    "text,problem",
+    [
+        # a different ABN on the page than in the CSV, with equal counts
+        (f"Wattle Kids Pty Ltd ({spaced(BANKSIA_ABN)}), Gumnut Care Pty Ltd", "abn_set_differs"),
+        # the CSV lists a name-only entity the page omits
+        (
+            f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)}), Gumnut Care Pty Ltd, Waratah Ltd",
+            "csv_text_not_on_page",
+        ),
+        # the page lists a name-only entity the CSV lacks
+        (f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)})", "page_names_not_in_csv"),
+        # a page name that is only part of a longer CSV name
+        (
+            f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)}), Gumnut Care Pty Ltd Holdings",
+            "page_names_not_in_csv",
+        ),
+        # an ABN in the CSV that the page does not give
+        (
+            f"Wattle Kids Pty Ltd ({spaced(WATTLE_ABN)}), Gumnut Care Pty Ltd "
+            f"({spaced(LILLY_ABN)})",
+            "abn_set_differs",
+        ),
+    ],
+)
+def test_reconcile_reports_each_difference(text, problem):
+    assert problem in msr.reconcile_entities(text, RECONCILE_ENTITIES)
+
+
+def test_reconcile_counts_hold_no_names():
+    out = msr.reconcile_entities("Waratah Ltd", RECONCILE_ENTITIES)
+    assert all(isinstance(v, int) for v in out.values())
+    assert "Waratah" not in repr(out) and "Gumnut" not in repr(out)
+
+
+# ---------------------------------------------------------------------------
+# CSV header (Codex round 5 item 2)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("column", msr.REQUIRED_CSV_COLUMNS)
+def test_parse_statements_rejects_a_missing_column(column):
+    header = [h for h in CSV_HEADER if h != column]
+    with pytest.raises(msr.CsvSchemaError, match=column):
+        msr.parse_statements_csv(csv_text([csv_row("2024-1", "1", "X LTD", KOOK_ABN)], header))
+
+
+def test_parse_statements_rejects_a_renamed_column():
+    header = ["URL" if h == "Link" else h for h in CSV_HEADER]
+    row = csv_row("2024-1", "1", "X LTD", KOOK_ABN)
+    row["URL"] = row.pop("Link")
+    with pytest.raises(msr.CsvSchemaError, match="Link"):
+        msr.parse_statements_csv(csv_text([row], header))
+
+
+def test_parse_statements_rejects_a_short_row_instead_of_defaulting_to_empty():
+    text = csv_text([csv_row("2024-1", "1", "X LTD", KOOK_ABN)]) + "2024-2,2024-01-01\n"
+    with pytest.raises(msr.CsvSchemaError):
+        msr.parse_statements_csv(text)
 
 
 # ---------------------------------------------------------------------------
@@ -901,7 +990,7 @@ def env(tmp_path, monkeypatch):
         csv_row(
             "2024-501",
             "501",
-            "KOOKABURRA LEARNING GROUP LIMITED",
+            KOOK_REP_TEXT,
             KOOK_ABN,
             included=f"WATTLE KIDS PTY LTD ({spaced(WATTLE_ABN)}), Gumnut Care Pty Ltd, "
             "Grevillea Kindergarten",
@@ -909,7 +998,8 @@ def env(tmp_path, monkeypatch):
         csv_row(
             "2024-502",
             "502",
-            "PARENT LTD, BANKSIA EARLY YEARS PTY LTD",
+            f"PARENT LTD ({spaced(PARENT_ABN)}), "
+            f"BANKSIA EARLY YEARS PTY LTD ({spaced(BANKSIA_ABN)})",
             f"{PARENT_ABN}, {BANKSIA_ABN}",
             included="Lilly Pilly Childcare Pty Ltd",
             type_="Joint",
@@ -1056,7 +1146,7 @@ def test_person_plus_business_word_name_never_appears_in_any_output(env):
         env,
         "2024-504",
         "504",
-        PERSON_BUSINESS,
+        f"{PERSON_BUSINESS} ({spaced(OTHER_ABN)})",
         f"{OTHER_ABN}, {WATTLE_ABN}",
         statement_page([(PERSON_BUSINESS, OTHER_ABN)], [("x", WATTLE_ABN)]),
         included_text=f"x ({spaced(WATTLE_ABN)})",
@@ -1104,7 +1194,7 @@ def test_main_exit_2_on_an_unusable_abn_text(env):
 
 
 def test_main_builds_with_a_placeholder_abn_and_lists_it(env):
-    page = statement_page([("PLACEHOLDER CO", PARENT_ABN)], [("x", WATTLE_ABN)])
+    page = statement_page([("PLACEHOLDER EDUCATION CO", PARENT_ABN)], [("x", WATTLE_ABN)])
     page = page.replace(f"?abn={PARENT_ABN}", "?abn=00649711026").replace(
         spaced(PARENT_ABN), "00 649 711 026"
     )
@@ -1112,7 +1202,7 @@ def test_main_builds_with_a_placeholder_abn_and_lists_it(env):
         env,
         "2024-511",
         "511",
-        "PLACEHOLDER EDUCATION CO",
+        "PLACEHOLDER EDUCATION CO (00 649 711 026)",
         f"00649711026, {WATTLE_ABN}",
         page,
         included_text=f"x ({spaced(WATTLE_ABN)})",
@@ -1131,7 +1221,7 @@ def test_main_exit_2_when_csv_lists_included_entities_but_page_has_none(env):
         env,
         "2024-506",
         "506",
-        "KOOKABURRA LEARNING GROUP LIMITED",
+        KOOK_REP_TEXT,
         KOOK_ABN,
         statement_page([("KOOKABURRA LEARNING GROUP LIMITED", KOOK_ABN)]),
         included_text="Wattle Kids Pty Ltd",
@@ -1147,7 +1237,7 @@ def test_main_exit_2_when_csv_and_page_disagree_on_included_abns(env):
         env,
         "2024-508",
         "508",
-        "KOOKABURRA LEARNING GROUP LIMITED",
+        KOOK_REP_TEXT,
         KOOK_ABN,
         statement_page([("KOOKABURRA LEARNING GROUP LIMITED", KOOK_ABN)], [("x", WATTLE_ABN)]),
         included_text=f"x ({spaced(WATTLE_ABN)}), y ({spaced(BANKSIA_ABN)})",
@@ -1161,11 +1251,84 @@ def test_main_complete_when_csv_and_page_agree(env):
         env,
         "2024-509",
         "509",
-        "KOOKABURRA LEARNING GROUP LIMITED",
+        KOOK_REP_TEXT,
         KOOK_ABN,
         statement_page([("KOOKABURRA LEARNING GROUP LIMITED", KOOK_ABN)]),
     )
     assert msr.main(["--no-fetch"]) == 0
+
+
+def test_main_exit_2_when_page_abn_differs_from_the_csv(env):
+    # Equal counts, different identity: the round 4 count check passed this page.
+    add_statement(
+        env,
+        "2024-512",
+        "512",
+        KOOK_REP_TEXT,
+        KOOK_ABN,
+        statement_page([("KOOKABURRA LEARNING GROUP LIMITED", KOOK_ABN)], [("x", WATTLE_ABN)]),
+        included_text=f"x ({spaced(BANKSIA_ABN)})",
+    )
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+
+
+def test_main_exit_2_when_page_omits_a_name_only_entity_the_csv_lists(env):
+    add_statement(
+        env,
+        "2024-513",
+        "513",
+        KOOK_REP_TEXT,
+        KOOK_ABN,
+        statement_page([("KOOKABURRA LEARNING GROUP LIMITED", KOOK_ABN)], [("x", WATTLE_ABN)]),
+        included_text=f"x ({spaced(WATTLE_ABN)}), Gumnut Care Pty Ltd",
+    )
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+
+
+def test_main_exit_2_when_page_reporting_abn_differs_from_the_csv(env):
+    add_statement(
+        env,
+        "2024-514",
+        "514",
+        f"KOOKABURRA LEARNING GROUP LIMITED ({spaced(OTHER_ABN)})",
+        KOOK_ABN,
+        statement_page([("KOOKABURRA LEARNING GROUP LIMITED", KOOK_ABN)]),
+    )
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+
+
+def test_main_complete_when_page_matches_the_csv_exactly(env):
+    add_statement(
+        env,
+        "2024-515",
+        "515",
+        KOOK_REP_TEXT,
+        KOOK_ABN,
+        statement_page(
+            [("KOOKABURRA LEARNING GROUP LIMITED", KOOK_ABN)],
+            [("Wattle Kids Pty Ltd", WATTLE_ABN), "Numbat College, Suburb"],
+        ),
+        included_text=f"WATTLE KIDS PTY LTD ({spaced(WATTLE_ABN)}), numbat college,  suburb",
+    )
+    assert msr.main(["--no-fetch"]) == 0
+
+
+@pytest.mark.parametrize("change", ["missing", "renamed"])
+def test_main_exit_2_on_a_bad_csv_header(env, change):
+    snap = env["raw"] / "msr" / "all-statements" / "2026-01-01T0000Z.csv"
+    rows = list(csv.DictReader(io.StringIO(snap.read_text(encoding="utf-8"))))
+    if change == "missing":
+        header = [h for h in CSV_HEADER if h != "IncludedEntities"]
+    else:
+        header = ["Entities" if h == "IncludedEntities" else h for h in CSV_HEADER]
+        for r in rows:
+            r["Entities"] = r.pop("IncludedEntities")
+    snap.write_text(csv_text(rows, header), encoding="utf-8")
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
 
 
 def test_main_exit_2_when_a_candidate_row_has_no_page_id(env):
