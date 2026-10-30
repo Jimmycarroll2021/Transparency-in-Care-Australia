@@ -70,7 +70,7 @@ from collections import Counter, defaultdict
 from pathlib import Path
 from urllib.parse import urljoin
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment, NavigableString
 
 try:
     from scrapers.common import (
@@ -139,16 +139,37 @@ ACCEPTED_KINDS = {"accepted_unique", "accepted_unique_in_state"}
 # ABR entity type codes that mean an individual or sole trader. Any other known code is a
 # non-individual entity (company, trust, partnership, government, charity and so on).
 INDIVIDUAL_ABR_TYPES = {"IND"}
-NAME_SHOWN = "shown_abr_non_individual"
+NAME_SHOWN = "shown_abr_organisation_type"
 NAME_ABR_INDIVIDUAL = "withheld_abr_individual"
 NAME_ABR_UNKNOWN = "withheld_abr_type_unknown"
 NAME_NO_ABN = "withheld_no_abn"
+NAME_TYPE_NOT_ALLOWED = "withheld_abr_type_not_allowed"
+NAME_MAY_EMBED_PERSON = "withheld_name_may_embed_person"
+NAME_ABR_CONFLICT = "withheld_abr_type_conflict"
+# Owner rule 2, fail closed: a group name is shown only for these ABR entity types (companies,
+# government entities and statutory authorities, co-operatives, other incorporated entities such
+# as incorporated associations). Trusts, partnerships, unincorporated entities, superannuation
+# funds and any type not listed show the ABN only. Only codes seen in local ABR data are listed.
+ALLOWED_GROUP_ABR_TYPES = {"PRV", "PUB", "COP", "OIE", "LGE", "LGA", "SGE", "TGE"}
+# Wording that can embed a person's name (a family trust, a trustee for a named trust).
+_PERSON_WORDING = re.compile(
+    r"family\s+trust|trustee\s+for|as\s+trustee|\bA\.?T\.?F\b\.?", re.IGNORECASE
+)
+# A CSV IncludedEntities segment that ends an entity: an ABN in brackets or a corporate suffix.
+_ENTITY_END = re.compile(
+    r"(?:\((?:\d\s?){11}\)|\b(?:PTY\.?\s*LTD|PTY\.?\s*LIMITED|PROPRIETARY\s+LIMITED|LTD|"
+    r"LIMITED|INC|INCORPORATED|LLC|PLC|GMBH|PTE\.?\s*LTD|SDN\.?\s*BHD|CO-?OPERATIVE|TRUST|"
+    r"CORPORATION)\.?)\s*$",
+    re.IGNORECASE,
+)
 NAME_POLICY = (
     "Names in MSR outputs: provider_legal_name is the ACECQA legal name, keyed by "
     "provider_approval_number, for providers not classed as individuals by ACECQA or the ABR. "
     "group_name is the ABR entity name of the reporting entity's ABN, shown only when the ABR "
-    "entity type for that ABN is known locally and is not an individual or sole trader; otherwise "
-    "it is blank and group_name_status says why. No name is taken from the register itself."
+    "entity type for that ABN is known locally, is a company, government entity, co-operative or "
+    "other incorporated entity (never a trust, partnership or individual), the sources agree, and "
+    "the name has no trust wording (family trust, trustee for, ATF); otherwise it is blank and "
+    "group_name_status says why. No name is taken from the register itself."
 )
 # One edge per provider and statement: the strongest method wins.
 _RANK = {
@@ -322,17 +343,30 @@ def parse_statements_csv(text: str) -> list[dict]:
                 "reporting_entities_text": (row.get("ReportingEntities") or "").strip(),
                 "abns": _abns(row.get("ABN")),
                 "csv_lists_included": bool((row.get("IncludedEntities") or "").strip()),
+                "csv_included_min": csv_included_lower_bound(row.get("IncludedEntities")),
             }
         )
     return out
 
 
+def csv_included_lower_bound(text: str | None) -> int:
+    """A lower bound on the entities a CSV IncludedEntities field lists.
+
+    Names can contain commas ("X COLLEGE, SUBURB", "X Holdings, LLC"), so segments are not
+    counted directly. A segment counts only when it ends an entity: it ends with an ABN in
+    brackets or a corporate suffix.
+    """
+    return sum(1 for seg in (text or "").split(",") if _ENTITY_END.search(seg.strip()))
+
+
 def select_candidates(statements: list[dict], provider_abns: set[str]) -> list[dict]:
-    """Statements naming a provider ABN as a reporting entity, or with a childcare term."""
+    """Statements naming a provider ABN, or with a childcare term in the reporting entities.
+
+    A matching row without a usable page id is kept (page_id None) so that main() can report
+    the run as incomplete rather than drop it silently.
+    """
     out = []
     for s in statements:
-        if not s["page_id"]:
-            continue
         if set(s["abns"]) & provider_abns:
             reason = "abn_match"
         elif CHILDCARE_TERMS.search(s["reporting_entities_text"]):
@@ -356,7 +390,13 @@ def _entities(section, label: str) -> list[dict]:
     """Entities in a section. Raises PageParseError when the markup is not recognised."""
     if section is None:
         return []
-    divs = section.find_all("div", class_="statement-entity")
+    for child in section.children:
+        if isinstance(child, NavigableString):
+            if child.strip() and not isinstance(child, Comment):
+                raise PageParseError(f"{label} section holds text outside an entity element")
+        elif not (child.name == "div" and "statement-entity" in (child.get("class") or [])):
+            raise PageParseError(f"{label} section holds an unrecognised element <{child.name}>")
+    divs = section.find_all("div", class_="statement-entity", recursive=False)
     if not divs:
         raise PageParseError(f"{label} section present but holds no recognised entity")
     out = []
@@ -388,12 +428,13 @@ def parse_statement_page(page_html: str) -> dict:
         raise PageParseError("no reporting entity found")
     included: list[dict] = []
     seen: set[tuple[str, str | None]] = set()
-    for ent in _entities(soup.find(id="statement-included-entities"), "included"):
+    listed = _entities(soup.find(id="statement-included-entities"), "included")
+    for ent in listed:
         key = (normalise(ent["name"]), ent["abn"])
         if key[0] and key not in seen:
             seen.add(key)
             included.append(ent)
-    return {"reporting": reporting, "included": included}
+    return {"reporting": reporting, "included": included, "included_raw_count": len(listed)}
 
 
 # ---------------------------------------------------------------------------
@@ -418,11 +459,24 @@ def _excluded(profile: dict) -> bool:
 
 
 class _Index:
-    def __init__(self, profiles: list[dict], abn_rows: list[dict]):
+    """Provider lookups for matching. Excludes providers fail closed.
+
+    A provider is excluded when any local source marks it as an individual or sole trader: the
+    ACECQA-derived profile (entity_form likely_individual or unknown, or a withheld name),
+    provider-abn.csv (entity type IND or match_kind excluded_individual_abr) or abn-details.csv;
+    or when the ABR sources disagree on its ABN's entity type.
+    """
+
+    def __init__(
+        self, profiles: list[dict], abn_rows: list[dict], abr_types: dict[str, dict] | None = None
+    ):
+        abr_types = abr_types or {}
         self.legal: dict[str, str] = {}
         self.excluded: set[str] = set()
         self.by_name: dict[str, set[str]] = defaultdict(set)
         self.by_loose: dict[str, set[str]] = defaultdict(set)
+        self.stats: Counter = Counter()
+        likely_individual: set[str] = set()
         for p in profiles:
             pr = normalise_pr(p.get("provider_approval_number"))
             if not pr:
@@ -430,6 +484,9 @@ class _Index:
             legal = (p.get("legal_name") or "").strip()
             if _excluded(p):
                 self.excluded.add(pr)
+                self.stats["providers_excluded_profile"] += 1
+                if (p.get("entity_form") or "").strip() == "likely_individual":
+                    likely_individual.add(pr)
             else:
                 self.legal[pr] = legal
             if normalise(legal):
@@ -438,15 +495,41 @@ class _Index:
         self.abn_of: dict[str, str] = {}
         self.abr_name: dict[str, str] = {}
         self.by_abn: dict[str, list[str]] = defaultdict(list)
+
+        def exclude(pr: str, reason: str) -> None:
+            if pr not in self.excluded:
+                self.stats["individual_status_conflicts"] += reason == "abr_individual"
+            self.excluded.add(pr)
+            self.legal.pop(pr, None)
+            self.stats[f"providers_excluded_{reason}"] += 1
+
         for r in abn_rows:
             pr = normalise_pr(r.get("provider_approval_number"))
+            if not pr:
+                continue
+            kind = r.get("match_kind") or ""
+            if kind == "excluded_individual_abr":
+                exclude(pr, "abr_individual")
+                continue
             abn = (r.get("abn") or "").strip()
-            if not pr or not abn or pr in self.excluded:
+            if not abn or kind not in ACCEPTED_KINDS:
                 continue
-            if (r.get("match_kind") or "") not in ACCEPTED_KINDS:
+            info = abr_types.get(abn) or {}
+            row_code = (r.get("entity_type_code") or "").strip().upper()
+            if (
+                row_code in INDIVIDUAL_ABR_TYPES
+                or info.get("entity_type_code") in INDIVIDUAL_ABR_TYPES
+            ):
+                exclude(pr, "abr_individual")
                 continue
-            if (r.get("entity_type_code") or "").strip().upper() == "IND":
+            if pr in self.excluded:
+                # The profile says individual while the ABR says a non-individual type.
+                self.stats["individual_status_conflicts"] += pr in likely_individual
+                continue
+            if info.get("conflict"):
                 self.excluded.add(pr)
+                self.legal.pop(pr, None)
+                self.stats["abr_type_conflicts"] += 1
                 continue
             self.abn_of[pr] = abn
             self.abr_name[pr] = (r.get("abr_entity_name") or "").strip()
@@ -455,13 +538,14 @@ class _Index:
 
 
 def abr_types_from(abn_rows: list[dict], details_rows: list[dict] = ()) -> dict[str, dict]:
-    """ABN -> {entity_type_code, entity_name, source} from ABR data already held locally.
+    """ABN -> {entity_type_code, entity_name, source, conflict} from ABR data held locally.
 
     provider-abn.csv gives the type and ABR entity name of accepted provider ABNs; abn-details.csv
-    gives them for ABNs looked up in stage A. An ABN the ABR marks as an individual keeps the code
-    IND and no name.
+    gives them for ABNs looked up in stage A. When the sources disagree on the type, the entry is
+    a conflict: its code is IND if either source says individual, otherwise None. An individual
+    never keeps a name.
     """
-    out: dict[str, dict] = {}
+    seen: dict[str, list[tuple[str, str | None, str]]] = defaultdict(list)
     for r in details_rows:
         abn = (r.get("abn") or "").strip()
         code = (r.get("entity_type_code") or "").strip().upper()
@@ -469,28 +553,50 @@ def abr_types_from(abn_rows: list[dict], details_rows: list[dict] = ()) -> dict[
         if not abn:
             continue
         if status == "excluded_individual" or code in INDIVIDUAL_ABR_TYPES:
-            out[abn] = {"entity_type_code": "IND", "entity_name": None, "source": "abn-details.csv"}
+            seen[abn].append(("IND", None, "abn-details.csv"))
         elif status == "ok" and code:
-            name = (r.get("entity_name") or "").strip() or None
-            out[abn] = {"entity_type_code": code, "entity_name": name, "source": "abn-details.csv"}
+            seen[abn].append(
+                (code, (r.get("entity_name") or "").strip() or None, "abn-details.csv")
+            )
     for r in abn_rows:
         abn = (r.get("abn") or "").strip()
         code = (r.get("entity_type_code") or "").strip().upper()
-        if not abn or not code or abn in out:
+        if not abn or not code:
             continue
         if (r.get("match_kind") or "") not in ACCEPTED_KINDS and code not in INDIVIDUAL_ABR_TYPES:
             continue
         name = None if code in INDIVIDUAL_ABR_TYPES else (r.get("abr_entity_name") or "").strip()
+        seen[abn].append((code, name or None, "provider-abn.csv"))
+    out: dict[str, dict] = {}
+    for abn, entries in seen.items():
+        codes = {code for code, _, _ in entries}
+        sources = "; ".join(sorted({src for _, _, src in entries}))
+        if len(codes) > 1:
+            code = "IND" if "IND" in codes else None
+            out[abn] = {
+                "entity_type_code": code,
+                "entity_name": None,
+                "source": sources,
+                "conflict": True,
+            }
+            continue
+        (code,) = codes
+        name = None if code in INDIVIDUAL_ABR_TYPES else next((n for _, n, _ in entries if n), None)
         out[abn] = {
             "entity_type_code": code,
-            "entity_name": name or None,
-            "source": "provider-abn.csv",
+            "entity_name": name,
+            "source": sources,
+            "conflict": False,
         }
     return out
 
 
 def group_name_fields(abn: str | None, abr_types: dict[str, dict]) -> dict:
-    """group_abn, group_abr_entity_type, group_name and group_name_status for one ABN."""
+    """group_abn, group_abr_entity_type, group_name and group_name_status for one ABN.
+
+    Fails closed: the ABR entity name is shown only for an allowed organisation type, with
+    agreeing sources and no wording that can embed a person's name.
+    """
     if not abn:
         return {
             "group_abn": None,
@@ -498,20 +604,27 @@ def group_name_fields(abn: str | None, abr_types: dict[str, dict]) -> dict:
             "group_name": None,
             "group_name_status": NAME_NO_ABN,
         }
-    info = abr_types.get(abn)
-    code = info["entity_type_code"] if info else None
-    if not code:
-        status, name = NAME_ABR_UNKNOWN, None
-    elif code in INDIVIDUAL_ABR_TYPES:
-        status, name = NAME_ABR_INDIVIDUAL, None
-    elif info.get("entity_name"):
-        status, name = NAME_SHOWN, info["entity_name"]
+    info = abr_types.get(abn) or {}
+    code = info.get("entity_type_code")
+    name = info.get("entity_name")
+    if code in INDIVIDUAL_ABR_TYPES:
+        status = NAME_ABR_INDIVIDUAL
+    elif info.get("conflict"):
+        status = NAME_ABR_CONFLICT
+    elif not code:
+        status = NAME_ABR_UNKNOWN
+    elif code not in ALLOWED_GROUP_ABR_TYPES:
+        status = NAME_TYPE_NOT_ALLOWED
+    elif not name:
+        status = NAME_ABR_UNKNOWN
+    elif _PERSON_WORDING.search(name):
+        status = NAME_MAY_EMBED_PERSON
     else:
-        status, name = NAME_ABR_UNKNOWN, None
+        status = NAME_SHOWN
     return {
         "group_abn": abn,
         "group_abr_entity_type": code,
-        "group_name": name,
+        "group_name": name if status == NAME_SHOWN else None,
         "group_name_status": status,
     }
 
@@ -594,11 +707,11 @@ def match_relations(
     A relation is one provider named in one statement, by its strongest match. A relation is not
     an edge: classify_relation decides what each one means.
     """
-    idx = _Index(profiles, abn_rows)
     abr_types = abr_types if abr_types is not None else abr_types_from(abn_rows)
+    idx = _Index(profiles, abn_rows, abr_types)
     relations: dict[tuple[str, str], dict] = {}
     review: list[dict] = []
-    stats = Counter()
+    stats = Counter(idx.stats)
 
     def add_relation(s: dict, pr: str, role: str, method: str, abn: str | None) -> None:
         k = (pr, s["page_id"])
@@ -882,6 +995,17 @@ def summarise(
             "review_queue": len(review),
             "review_by_reason": dict(sorted(Counter(r["reason"] for r in review).items())),
             "matches_to_excluded_providers": stats.get("matches_to_excluded_providers", 0),
+            "provider_exclusions": {
+                "profile_individual_unknown_or_withheld": stats.get(
+                    "providers_excluded_profile", 0
+                ),
+                "abr_individual": stats.get("providers_excluded_abr_individual", 0),
+                "abr_type_conflicts": stats.get("abr_type_conflicts", 0),
+                "individual_status_conflicts": stats.get("individual_status_conflicts", 0),
+                "rule": "A provider is excluded when any local source (ACECQA profile "
+                "classification or withheld flag, provider-abn.csv, abn-details.csv) marks it as "
+                "an individual or sole trader, or when the ABR sources disagree on its type.",
+            },
         },
         "window": {
             "edge_reporting_periods_earliest": periods[0] if periods else None,
@@ -1002,6 +1126,14 @@ def _parse_page(path: Path, statement: dict) -> dict | None:
             path.as_posix(),
         )
         return None
+    if parsed["included_raw_count"] < statement.get("csv_included_min", 0):
+        log.error(
+            "statement page %s: the CSV lists at least %d included entities, the page yields %d",
+            path.as_posix(),
+            statement["csv_included_min"],
+            parsed["included_raw_count"],
+        )
+        return None
     return parsed
 
 
@@ -1035,6 +1167,9 @@ def main(argv: list[str] | None = None) -> int:
     missing: list[str] = []
     unparseable: list[str] = []
     for s in candidates:
+        if not s["page_id"]:
+            missing.append(f"{s['statement_id']} (no usable page id in {s['statement_url']!r})")
+            continue
         path, meta = acquire_page(s, args.no_fetch, last, refresh=args.refresh)
         if path is None:
             missing.append(f"{s['statement_id']} ({s['statement_url']})")
@@ -1072,7 +1207,9 @@ def main(argv: list[str] | None = None) -> int:
     if services is None:
         log.warning("%s missing: service counts are null (unknown)", SERVICES_CSV.name)
 
-    raw_inputs = [csv_path, *page_paths, PROVIDER_ABN_CSV, PROFILE_CSV]
+    raw_inputs = [csv_path, *page_paths, PROVIDER_ABN_CSV, PROFILE_CSV] + [
+        path for path in (ABN_DETAILS_CSV, SERVICES_CSV) if path.exists()
+    ]
     local_only = (
         " Raw MSR inputs listed here are a local cache only (data/raw/msr/ is gitignored: licence "
         "unclear)."

@@ -496,7 +496,7 @@ def test_group_name_shown_only_with_non_individual_abr_type():
     # Codex round 2, finding 1(b)
     (e,) = layer(stmt([PARENT], ["Wattle Kids Pty Ltd"]), abr_types=abr("PRV"))["edges"]
     assert e["group_name"] == "PARENT LTD"
-    assert e["group_name_status"] == "shown_abr_non_individual"
+    assert e["group_name_status"] == "shown_abr_organisation_type"
     assert e["group_abr_entity_type"] == "PRV"
 
 
@@ -744,7 +744,7 @@ def test_summary_counts_each_class_separately():
     assert c["review_queue"] == 1
     (g,) = s["groups"]
     assert g["group_name"] == "KOOKABURRA LEARNING GROUP LIMITED"
-    assert g["group_name_status"] == "shown_abr_non_individual"
+    assert g["group_name_status"] == "shown_abr_organisation_type"
     assert g["head_provider"] == "PR-00000001"
     assert len(s["joint_statements_for_manual_confirmation"]) == 1
 
@@ -885,7 +885,12 @@ def env(tmp_path, monkeypatch):
     written: dict = {}
 
     def fake_write_processed(name, rows, fieldnames, **kwargs):
-        written[name] = {"rows": rows, "fieldnames": fieldnames, "notes": kwargs.get("notes")}
+        written[name] = {
+            "rows": rows,
+            "fieldnames": fieldnames,
+            "notes": kwargs.get("notes"),
+            "raw_inputs": kwargs.get("raw_inputs"),
+        }
 
     def fake_write_snapshot(source, fetched, ext, **kwargs):
         return common.write_snapshot(source, fetched, ext, base_dir=raw, **kwargs)
@@ -1236,3 +1241,216 @@ def test_failed_refresh_of_one_page_returns_no_snapshot(env, monkeypatch):
     # a non-refresh run still reuses the snapshot already held
     path, _ = msr.acquire_page(s, False, [0.0])
     assert path.name == "2026-01-01T0000Z.html"
+
+
+# ---------------------------------------------------------------------------
+# Codex round 3
+# ---------------------------------------------------------------------------
+
+
+def _append_details(env, rows):
+    path = env["proc"] / "abn-details.csv"
+    existing = list(csv.DictReader(io.StringIO(path.read_text(encoding="utf-8"))))
+    _write_csv(
+        path,
+        existing + rows,
+        ["abn", "lookup_status", "entity_type_code", "entity_name"],
+    )
+
+
+def test_provider_marked_individual_in_abn_details_never_appears(env):
+    # Finding 1: the profile says company and provider-abn.csv says PRV, but the ABR details say
+    # individual. Fail closed: the provider is excluded from every output.
+    _append_details(
+        env,
+        [
+            {
+                "abn": "11000000002",
+                "lookup_status": "ok",
+                "entity_type_code": "IND",
+                "entity_name": "",
+            }
+        ],
+    )
+    assert msr.main(["--no-fetch"]) == 0
+    blob = everything_written(env)
+    assert "PR-00000002" not in blob and "Wattle" not in blob
+    excl = _summary(env)["counts"]["provider_exclusions"]
+    assert excl["abr_individual"] >= 1
+    assert excl["individual_status_conflicts"] >= 1
+
+
+def test_provider_with_conflicting_abr_types_is_excluded_and_counted(env):
+    _append_details(
+        env,
+        [
+            {
+                "abn": "11000000002",
+                "lookup_status": "ok",
+                "entity_type_code": "PUB",
+                "entity_name": "X",
+            }
+        ],
+    )
+    assert msr.main(["--no-fetch"]) == 0
+    assert "PR-00000002" not in everything_written(env)
+    assert _summary(env)["counts"]["provider_exclusions"]["abr_type_conflicts"] == 1
+
+
+def test_provider_marked_individual_by_abr_lookup_kind_is_excluded():
+    abn_rows = [dict(r) for r in ABN_ROWS] + [
+        {
+            "provider_approval_number": "PR-00000009",
+            "legal_name": "",
+            "abn": "",
+            "abr_entity_name": "",
+            "entity_type_code": "",
+            "match_kind": "excluded_individual_abr",
+        }
+    ]
+    out = msr.build_layer([stmt([PARENT], ["Grevillea Kindergarten"])], PROFILES, abn_rows)
+    assert out["review"] == [] and "PR-00000009" not in repr(out)
+    assert out["stats"]["providers_excluded_abr_individual"] >= 1
+
+
+def test_profile_individual_with_abr_company_is_excluded_and_counted():
+    profiles = [dict(p) for p in PROFILES]
+    for p in profiles:
+        if p["provider_approval_number"] == "PR-00000002":
+            p["entity_form"] = "likely_individual"
+    out = msr.build_layer([stmt([PARENT], [("X", "11000000002")])], profiles, ABN_ROWS)
+    assert out["edges"] == [] and "PR-00000002" not in repr(out)
+    assert out["stats"]["individual_status_conflicts"] == 1
+
+
+def test_parse_rejects_mixed_recognised_and_unrecognised_siblings():
+    # Finding 2
+    page = statement_page([("A LTD", "11000000001")], ["Wattle Kids Pty Ltd"])
+    page = page.replace(
+        '<div id="statement-included-entities" class="accordion__content collapse hide">',
+        '<div id="statement-included-entities" class="accordion__content collapse hide">'
+        '<div class="statement-entity-v2"><span>Banksia Early Years Pty Ltd</span></div>',
+    )
+    with pytest.raises(msr.PageParseError):
+        msr.parse_statement_page(page)
+
+
+def test_parse_rejects_stray_text_in_an_entity_section():
+    page = statement_page([("A LTD", "11000000001")], ["Wattle Kids Pty Ltd"])
+    page = page.replace(
+        '<div id="statement-included-entities" class="accordion__content collapse hide">',
+        '<div id="statement-included-entities" class="accordion__content collapse hide">'
+        "Banksia Early Years Pty Ltd",
+    )
+    with pytest.raises(msr.PageParseError):
+        msr.parse_statement_page(page)
+
+
+def test_main_exit_2_on_mixed_included_markup(env):
+    page = env["raw"] / "msr" / "statements" / "501" / "2026-01-01T0000Z.html"
+    html = page.read_text(encoding="utf-8").replace(
+        '<div id="statement-included-entities" class="accordion__content collapse hide">',
+        '<div id="statement-included-entities" class="accordion__content collapse hide">'
+        '<section class="new-entity">Banksia Early Years Pty Ltd</section>',
+    )
+    page.write_text(html, encoding="utf-8")
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("", 0),
+        ("Wattle Kids Pty Ltd, Banksia Early Years Pty Ltd", 2),
+        ("Bilby Education Holdings, LLC, Bilby Education, Inc.", 2),  # comma before the suffix
+        ("NUMBAT COLLEGE, QUOKKA (11 111 111 111), Wattle Kids Pty Ltd", 2),
+        ("Proversity, Wattle Kids Pty Ltd", 1),  # no suffix: not counted, a lower bound
+    ],
+)
+def test_csv_included_lower_bound(text, expected):
+    assert msr.csv_included_lower_bound(text) == expected
+
+
+def test_main_exit_2_when_page_yields_fewer_entities_than_the_csv_lists(env):
+    add_statement(
+        env,
+        "2024-508",
+        "508",
+        "KOOKABURRA LEARNING GROUP LIMITED (11 000 000 001)",
+        "11000000001",
+        statement_page(
+            [("KOOKABURRA LEARNING GROUP LIMITED", "11000000001")], ["Wattle Kids Pty Ltd"]
+        ),
+        included_text="Wattle Kids Pty Ltd, Banksia Early Years Pty Ltd, Lilly Pilly Childcare Pty Ltd",
+    )
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+
+
+def test_main_complete_when_page_yields_at_least_the_csv_count(env):
+    add_statement(
+        env,
+        "2024-509",
+        "509",
+        "KOOKABURRA LEARNING GROUP LIMITED (11 000 000 001)",
+        "11000000001",
+        statement_page(
+            [("KOOKABURRA LEARNING GROUP LIMITED", "11000000001")],
+            ["Wattle Kids Pty Ltd", "Wattle Kids Pty Ltd"],
+        ),
+        included_text="Wattle Kids Pty Ltd, Wattle Kids Pty Ltd",
+    )
+    assert msr.main(["--no-fetch"]) == 0
+
+
+def test_candidate_row_without_page_id_is_kept_for_the_completeness_check():
+    # Finding 3
+    rows = [csv_row("2024-9", "not-a-number", "KOOKABURRA LEARNING GROUP LIMITED", "11000000001")]
+    (c,) = msr.select_candidates(msr.parse_statements_csv(csv_text(rows)), {"11000000001"})
+    assert c["page_id"] is None and c["candidate_reason"] == "abn_match"
+
+
+def test_main_exit_2_when_a_candidate_row_has_no_page_id(env):
+    snap = env["raw"] / "msr" / "all-statements" / "2026-01-01T0000Z.csv"
+    rows = list(csv.DictReader(io.StringIO(snap.read_text(encoding="utf-8"))))
+    rows.append(
+        csv_row(
+            "2024-510", "x510", "KOOKABURRA LEARNING GROUP LIMITED (11 000 000 001)", "11000000001"
+        )
+    )
+    snap.write_text(csv_text(rows), encoding="utf-8")
+    assert msr.main(["--no-fetch"]) == 2
+    assert env["written"] == {}
+
+
+@pytest.mark.parametrize(
+    "code,name,status",
+    [
+        ("DTT", "The Trustee for the Example Family Trust", "withheld_abr_type_not_allowed"),
+        ("PRV", "The Trustee for the Example Family Trust", "withheld_name_may_embed_person"),
+        ("PRV", "QUOLL HOLDINGS PTY LTD ATF QUOLL UNIT TRUST", "withheld_name_may_embed_person"),
+        ("FPT", "PARENT AND PARTNERS", "withheld_abr_type_not_allowed"),
+        ("UIE", "PARENT CLUB", "withheld_abr_type_not_allowed"),
+    ],
+)
+def test_group_name_withheld_for_trusts_partnerships_and_trust_wording(code, name, status):
+    # Finding 4 (owner rule 2, fail closed)
+    (e,) = layer(stmt([PARENT], ["Wattle Kids Pty Ltd"]), abr_types=abr(code, name))["edges"]
+    assert not e["group_name"]
+    assert e["group_name_status"] == status
+    assert "Example" not in repr(e) and "QUOLL" not in repr(e) and "PARTNERS" not in repr(e)
+
+
+@pytest.mark.parametrize("code", ["PRV", "PUB", "COP", "OIE", "LGE", "LGA", "SGE", "TGE"])
+def test_group_name_shown_for_allowed_organisation_types(code):
+    (e,) = layer(stmt([PARENT], ["Wattle Kids Pty Ltd"]), abr_types=abr(code))["edges"]
+    assert e["group_name"] == "PARENT LTD"
+
+
+def test_provenance_lists_abr_details_and_services_inputs(env):
+    # Finding 5
+    assert msr.main(["--no-fetch"]) == 0
+    for name in (msr.EDGES_NAME, msr.HEADS_NAME, msr.COREPORTED_NAME, msr.REVIEW_NAME):
+        inputs = {p.name for p in env["written"][name]["raw_inputs"]}
+        assert {"abn-details.csv", "acecqa-services-latest.csv", "provider-abn.csv"} <= inputs
