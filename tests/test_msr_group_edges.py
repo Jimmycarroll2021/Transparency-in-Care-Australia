@@ -1620,12 +1620,48 @@ def test_main_exit_2_without_fallback_when_resources_page_has_no_csv_link(env, m
     assert env["written"] == {} and not (env["proc"] / "summary.json").exists()
 
 
-def test_main_exit_2_without_fallback_when_the_csv_fetch_fails(env, monkeypatch):
+def test_main_exit_2_without_fallback_when_the_resources_fetch_fails(env, monkeypatch):
     def failing(url, **kwargs):
         raise RuntimeError("simulated network failure")
 
     monkeypatch.setattr(msr, "fetch", failing)
+    before = sorted((env["raw"] / "msr" / "all-statements").iterdir())
     assert msr.main([]) == 2
+    assert sorted((env["raw"] / "msr" / "all-statements").iterdir()) == before
+    assert env["written"] == {} and not (env["proc"] / "summary.json").exists()
+
+
+def test_main_exit_2_without_fallback_when_the_csv_fetch_fails(env, monkeypatch, caplog):
+    # The resources page succeeds and links a CSV; only the CSV fetch fails, so this reaches the
+    # CSV-fetch handler in acquire_csv.
+    from scrapers.common import Fetched
+
+    calls: list = []
+
+    def fake_fetch(url, **kwargs):
+        calls.append(url)
+        if url == msr.RESOURCES_URL:
+            return Fetched(
+                url=url,
+                final_url=url,
+                status=200,
+                content=RESOURCES_HTML.encode("utf-8"),
+                content_type="text/html",
+                last_modified=None,
+                etag=None,
+                fetched_at="2026-10-31T01:00:00+00:00",
+            )
+        raise RuntimeError("simulated CSV download failure")
+
+    monkeypatch.setattr(msr, "fetch", fake_fetch)
+    before = sorted((env["raw"] / "msr" / "all-statements").iterdir())
+    assert msr.main([]) == 2
+    assert calls == [
+        msr.RESOURCES_URL,
+        "https://modernslaveryregister.gov.au/resources/all-statement-information_2026-10-31.csv",
+    ]
+    assert "all-statements CSV not fetched" in caplog.text
+    assert sorted((env["raw"] / "msr" / "all-statements").iterdir()) == before
     assert env["written"] == {} and not (env["proc"] / "summary.json").exists()
 
 
