@@ -8,9 +8,14 @@ regulatory facts.
 
 **Phase 4: Ownership graph.** Phases 2 and 3 are on `main` (merged 2026-10-29): daily ACECQA
 snapshots, enforcement parsers for NSW, VIC, QLD, SA, WA, TAS and the Commonwealth, and the national
-join (`scrapers/join_enforcement.py`). Phase 2 gate: GAP-001, 002, 003, 005 and 007 validated; the
-owner has stated that consent is held from ACECQA and the other data owners for the uses in
-`docs/02-acecqa-consent-request.md` (save each written reply to `data/evidence/` by script).
+join (`scrapers/join_enforcement.py`). Phase 2 gate: GAP-001, 002, 003, 005 and 007 validated.
+
+**Licence position (corrected 2026-10-30): ACECQA consent is NOT yet held.** The consent request
+was sent on 2026-10-30 (`docs/02-acecqa-consent-request.md`); no reply yet. Until a written yes is
+saved to `data/evidence/` by script: do not display ACECQA ratings on any public site; ACECQA
+data is used for non-commercial research only; if ACECQA asks, remove stored copies from public
+view the same day. NSW and VECRA data are CC BY 4.0; SA ESB is all rights reserved; WA is
+non-commercial only. An earlier note that consent was held was wrong.
 
 Phase 4 scope: ABN Lookup web services (GUID in `.env`, never committed or logged), provider to ABN
 resolution, and provider groups by shared ABN or ACN. Parent and subsidiary links are not in free ABR

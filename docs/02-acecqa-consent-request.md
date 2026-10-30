@@ -1,6 +1,7 @@
 # ACECQA consent request
 
-**Status:** Draft for the project owner to send. Not sent.
+**Status:** Sent 30 October 2026 from jimmisound@gmail.com to copyright@acecqa.gov.au (Gmail message 1a18b40f2bf475a2). No reply yet.
+**Sent version differs from the draft below in two ways:** it adds a fifth ask (an extract of ceased or cancelled approvals, since about 500 published enforcement actions refer to approvals absent from the current export), and a disclosure that daily downloads began on 29 October 2026 for research, that some copies sit in the public repository, that nothing is published on a website, that ratings will not be displayed publicly until ACECQA replies, and an offer to remove the stored copies from public view the same day if asked.
 **To:** copyright@acecqa.gov.au
 **Why:** ACECQA's terms of use prohibit using its content "to compete with or displace the market for
 it, including as the source of quality rating data for regulated services", define "Reproduce" to
