@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib import robotparser
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 import httpx
 
@@ -390,6 +390,27 @@ def ensure_person_names() -> None:
         set_person_names(acecqa_person_names())
 
 
+URL_WITHHELD_NOTE = "source URL withheld: may name an individual"
+# Columns holding URLs (linked_documents holds several, separated by spaces). A URL is never
+# altered: it is kept whole or nulled (Codex round 4, finding 1).
+URL_COLUMNS = ("source_document", "linked_documents")
+_URL_SEPARATORS = re.compile("[-_./+=&?~:;,]+")
+
+
+def _url_words(url: str) -> str:
+    """The decoded path and query of a URL as words: '/docs/Notice-to-Jane%20Example.pdf' ->
+    'docs Notice to Jane Example pdf'. The host is left out (it names the regulator)."""
+    parts = urlsplit(url)
+    return _URL_SEPARATORS.sub(" ", f"{unquote(parts.path)} {unquote(parts.query)}").strip()
+
+
+def _add_note(row: dict, note: str) -> None:
+    notes = row.get("notes") or ""
+    sep = " | " if " | " in notes else "; "
+    segments = [seg for seg in notes.split(sep) if seg] if notes else []
+    row["notes"] = sep.join(dict.fromkeys([*segments, note]))
+
+
 def withhold_prose_naming_people(rows: list[dict], person_names=None) -> dict[str, int]:
     """The shared prose rule, on every row, in place (Codex round 2, finding 1).
 
@@ -412,13 +433,29 @@ def withhold_prose_naming_people(rows: list[dict], person_names=None) -> dict[st
 
     counts: dict[str, int] = {}
     for row in rows:
-        notes = row.get("notes") or ""
-        if FREE_TEXT_WITHHELD_NOTE in notes:
-            continue
         known = tuple(row.get(k) for k in ("service_name", "provider_name", "suburb"))
 
         def flagged(text, known=known):
             return isinstance(text, str) and prose_may_name_person(text, known, names)
+
+        # URLs, on every row (withheld rows too): each URL is kept whole or nulled.
+        url_hit = False
+        for col in URL_COLUMNS:
+            value = row.get(col)
+            if not isinstance(value, str) or not value:
+                continue
+            urls = value.split()
+            kept_urls = [u for u in urls if not flagged(_url_words(u))]
+            if len(kept_urls) != len(urls):
+                row[col] = " ".join(kept_urls) or None
+                counts[col] = counts.get(col, 0) + 1
+                url_hit = True
+        if url_hit:
+            _add_note(row, URL_WITHHELD_NOTE)
+
+        notes = row.get("notes") or ""
+        if FREE_TEXT_WITHHELD_NOTE in notes:
+            continue
 
         hit = False
         for col in PROSE_COLUMNS:

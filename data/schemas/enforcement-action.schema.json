@@ -7,7 +7,6 @@
     "record_id",
     "jurisdiction",
     "source_register",
-    "source_document",
     "captured_at",
     "action_type",
     "action_type_raw"
@@ -16,7 +15,8 @@
     "record_id": { "type": "string", "description": "Stable hash of jurisdiction, the source document parsed and a hash of the row's full printed source text (every printed field, whitespace and case normalised), then an occurrence counter shared only by rows whose printed text is fully identical. No source-order ordinal and no published or withheld value is used; the printed text itself is never stored." },
     "jurisdiction": { "enum": ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT", "CTH"] },
     "source_register": { "type": "string", "pattern": "^https://", "description": "Index page of the register." },
-    "source_document": { "type": "string", "pattern": "^https://", "description": "The page or file the row was parsed from." },
+    "source_document": { "type": ["string", "null"], "pattern": "^https://", "description": "The page or file the row was parsed from. Null when its path or file name may name an individual (notes say 'source URL withheld: may name an individual'); the row stays traceable through record_id and source_snapshot." },
+    "linked_documents": { "type": ["string", "null"], "description": "QLD only: other URLs linked from the row, separated by spaces. A URL whose path or file name may name an individual is left out whole; null when none is left." },
     "source_snapshot": { "type": "string", "description": "Path under data/raw/ of the snapshot parsed." },
     "captured_at": { "type": "string", "description": "ISO 8601 UTC time the snapshot was fetched." },
     "service_approval_number": { "type": ["string", "null"], "pattern": "^SE-\\d{8}$" },
