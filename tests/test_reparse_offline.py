@@ -355,3 +355,32 @@ def test_the_join_runs_again_when_a_builder_changes_a_join_input(processed, monk
     monkeypatch.setattr(ro, "run_join", lambda: seen.append(profile.read_text(encoding="utf-8")))
     assert ro.main([]) == 0
     assert seen == ["v1\n", "v2\n"]  # joined again after the input changed, then stable
+
+
+def test_a_run_that_does_not_converge_fails_closed(processed, monkeypatch, capsys):
+    # PR #12 round 5: an iteration cap; past it the run restores data/processed and fails.
+    profile = processed / "provider-profile.csv"
+    profile.write_text("v0", encoding="utf-8")
+    counter = {"n": 0}
+
+    class ChangesEveryTime:
+        __name__ = "builder"
+
+        @staticmethod
+        def main(argv):
+            counter["n"] += 1
+            profile.write_text(f"v{counter['n']}", encoding="utf-8")
+            return 0
+
+    monkeypatch.setattr(ro, "PARSERS", [make_parser(processed, "a")])
+    monkeypatch.setattr(ro, "PRE_JOIN_BUILDERS", [])
+    monkeypatch.setattr(ro, "BUILDERS", [(ChangesEveryTime, [])])
+    monkeypatch.setattr(ro, "JOIN_INPUTS", [profile])
+    monkeypatch.setattr(ro, "MAX_JOIN_ITERATIONS", 3)
+    joins = []
+    monkeypatch.setattr(ro, "run_join", lambda: joins.append(1))
+    assert ro.main([]) != 0
+    assert len(joins) == 3
+    assert (processed / "a.csv").read_text(encoding="utf-8") == "old a\n"
+    assert profile.read_text(encoding="utf-8") == "v0"
+    assert "restored from the backup" in capsys.readouterr().out

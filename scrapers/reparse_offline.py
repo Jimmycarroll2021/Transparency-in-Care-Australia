@@ -70,11 +70,20 @@ BUILDERS = [(profile, []), (abn_lookup, ["refilter"]), (groups, ["--skip-lookup"
 # Round 4: the provider profile is rebuilt before the first join too (the join reads it), and
 # the loop runs until every join input the builders write is stable.
 PRE_JOIN_BUILDERS = [(profile, []), (abn_lookup, ["refilter"]), (groups, ["--skip-lookup"])]
+# Round 5: provider-abn.csv is no longer read by the join (it feeds the profile, which is here).
 JOIN_INPUTS = [
     PROCESSED_DIR / "abn-details.csv",
     PROCESSED_DIR / "provider-profile.csv",
-    PROCESSED_DIR / "provider-abn.csv",
 ]
+# Round 5: the join, the passes and the builders are repeated at most this many times; a run
+# that has not converged by then fails closed (data/processed restored from the backup).
+MAX_JOIN_ITERATIONS = 10
+
+
+class NotConverged(RuntimeError):
+    pass
+
+
 # Persistent backups of data/processed, one directory per run (gitignored).
 BACKUP_ROOT = PROJECT_ROOT / "data" / ".reparse-backup"
 # Single-writer lock (Codex round 7, gitignored). Taken with an exclusive create.
@@ -345,7 +354,7 @@ def _run() -> int:
             fn(*args, **kwargs)
         for module, argv in PRE_JOIN_BUILDERS:
             _run_parser(module, argv)
-        while True:
+        for iteration in range(1, MAX_JOIN_ITERATIONS + 1):
             inputs_before = [_sha_or_none(path) for path in JOIN_INPUTS]
             run_join()
             # PR #12 round 1: the cross-output pass, then the builders (which see every withheld
@@ -353,14 +362,24 @@ def _run() -> int:
             common.refilter_processed_names()
             # Round 2: builders, then the cross-output pass, until the pass changes nothing (the
             # set of withheld names only grows, so this ends).
-            while True:
+            for _ in range(MAX_JOIN_ITERATIONS):
                 for module, argv in BUILDERS:
                     _run_parser(module, argv)
                 if not common.refilter_processed_names():
                     break
+            else:
+                raise NotConverged(
+                    f"the builders and the cross-output pass did not converge after "
+                    f"{MAX_JOIN_ITERATIONS} passes; nothing kept"
+                )
             # Rounds 3 and 4: if the passes changed a join input, join again.
             if [_sha_or_none(path) for path in JOIN_INPUTS] == inputs_before:
+                log.info("join inputs stable after %d join(s)", iteration)
                 break
+        else:
+            raise NotConverged(
+                f"the join inputs did not converge after {MAX_JOIN_ITERATIONS} joins; nothing kept"
+            )
     except BaseException as exc:  # includes SystemExit from the join
         log.error("writing or join failed (%r)", exc)
         try:

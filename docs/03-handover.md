@@ -98,8 +98,12 @@ enforcement tables and kept in memory only for the name match. Run the join thro
 its own cannot restore them: it stops before writing anything and says so. `--allow-unrestored`
 writes anyway, with fewer joins, and records the count in the join report. The ABN entity stage
 also needs the full ABR business-name lists from the local cache (`data/raw/abr-lookup/`) for
-ABNs whose business names were withheld; without the cache those matches fail closed, both
-scripts refuse to write, and `--allow-unrestored` is needed (PR #12 round 3: 2 joins lost).
+ABNs whose business names were withheld; without the cache those rows fail closed (residual
+reason `abn_business_names_not_restorable`; no later name stage may join them), both scripts
+refuse to write, and `--allow-unrestored` is needed. PR #12 withholds 7 Commonwealth joins this
+way (2 former ABN entity joins and 5 former provider-name joins) until the ABR cache is rebuilt
+with `ABN_LOOKUP_GUID`, which the owner will provide: run `scrapers/abn_lookup.py` stage A, then
+`scrapers/reparse_offline.py`.
 
 **Collection** (full list in the `CLAUDE.md` commands section):
 

@@ -683,7 +683,7 @@ def test_standalone_join_refuses_when_abn_business_names_cannot_be_restored(
 
 
 # ---------------------------------------------------------------------------
-# Codex round 4: a name stage may rescue an unrestorable ABN row only when the ABN agrees
+# Codex rounds 4 and 5: a row whose ABN entity stage failed closed is never rescued
 # ---------------------------------------------------------------------------
 
 
@@ -707,41 +707,24 @@ def _unrestorable(tmp_path):
     return details
 
 
-def test_name_match_disagreeing_with_the_abn_stays_unmatched_and_counted(tmp_path):
-    # The name gives PR-00000101 while the row's ABN belongs to PR-00000202.
-    abns = {"PR-00000101": "99999999999", "PR-00000202": ABN}
-    (row,) = je.join_actions([_cth_row()], _abn_spine(), _unrestorable(tmp_path), abns)
+@pytest.mark.parametrize("name", ["Alpha Holdings Pty Ltd", "Bravo Group Pty Ltd"])
+def test_a_flagged_row_stays_unmatched_even_when_a_name_matches(tmp_path, name):
+    # Each printed provider name matches exactly one ACECQA provider by name.
+    (row,) = je.join_actions([_cth_row(name)], _abn_spine(), _unrestorable(tmp_path))
     assert row["match_confidence"] == je.CONFIDENCE_NONE
     assert row.get("acecqa_provider_approval_number") is None
-    assert row["_abn_unrestorable"] and not row.get("_abn_rescued")
+    assert row["_abn_unrestorable"]
     assert je.ABN_NOT_RESTORABLE_NOTE in row["join_note"]
-    assert je.ABN_RESCUE_REJECTED_NOTE in row["join_note"]
+    assert "ambiguous" not in je.ABN_NOT_RESTORABLE_NOTE
+    assert je.residual_reason(row) == "abn_business_names_not_restorable"
 
 
-def test_name_match_with_no_resolved_abn_is_not_accepted(tmp_path):
-    (row,) = je.join_actions([_cth_row()], _abn_spine(), _unrestorable(tmp_path), {})
-    assert row["match_confidence"] == je.CONFIDENCE_NONE
-    assert je.ABN_NOT_RESTORABLE_NOTE in row["join_note"]
-
-
-def test_abn_consistent_rescue_joins_and_keeps_the_abn_note(tmp_path):
-    abns = {"PR-00000101": ABN}
-    (row,) = je.join_actions([_cth_row()], _abn_spine(), _unrestorable(tmp_path), abns)
-    assert row["acecqa_provider_approval_number"] == "PR-00000101"
-    assert row["join_key_kind"] == "provider_name_match"
-    assert row["_abn_unrestorable"] and row["_abn_rescued"]
-    assert je.ABN_NOT_RESTORABLE_NOTE in row["join_note"]
-    assert je.ABN_RESCUE_NOTE in row["join_note"]
-
-
-def test_a_row_without_the_abn_failure_is_joined_by_name_as_before(tmp_path):
+def test_without_the_abn_failure_the_name_stage_still_joins(tmp_path):
     details = _details()
-    details[ABN]["business_names_withheld"] = "0"
-    je.restore_business_names(details, tmp_path / "missing")
-    row = _cth_row("Bravo Group Pty Ltd")  # the ABN entity stage gives PR-00000101 first
-    (out,) = je.join_actions([row], _abn_spine(), details, {})
-    assert out["acecqa_provider_approval_number"] == "PR-00000101"
-    assert not out.get("_abn_unrestorable")
+    details[ABN]["lookup_status"] = "not_found"  # the ABN stage does not apply
+    (row,) = je.join_actions([_cth_row("Bravo Group Pty Ltd")], _abn_spine(), details)
+    assert row["acecqa_provider_approval_number"] == "PR-00000202"
+    assert not row.get("_abn_unrestorable")
 
 
 def test_cache_restore_needs_the_rows_response_hash(tmp_path):
