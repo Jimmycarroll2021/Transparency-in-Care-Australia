@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-31T09:57:37.252474+00:00",
+  "generated_at": "2026-10-31T10:23:40.005718+00:00",
   "window": {
     "months": 24,
     "start": "2024-10-31",
@@ -1277,5 +1277,7 @@
   ],
   "joined_before_unlisted_stage": 2673,
   "unrestored_withheld_service_names": 0,
+  "abn_entity_rows_business_names_not_restorable": 10,
+  "abn_entity_rows_rescued_by_abn_consistent_name_match": 5,
   "abn_entity_rows_not_matched_business_names_not_restorable": 5
 }
