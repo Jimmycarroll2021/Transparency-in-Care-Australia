@@ -662,6 +662,194 @@ def withhold_prose_naming_people(rows: list[dict], person_names=None) -> dict[st
     return counts
 
 
+# ---------------------------------------------------------------------------
+# Name rule (PR #12): trading names and service names in every processed output.
+# ---------------------------------------------------------------------------
+
+TRADING_NAME_WITHHELD_NOTE = "trading name withheld: may name an individual"
+SERVICE_NAME_WITHHELD_NOTE = "service name withheld: may name an individual"
+# Output columns holding a trading name or a service name, and the fixed note for each.
+# spine-unlisted.csv 'name' is a service name only on rows of kind 'service' (a provider stub's
+# name already follows the provider-name rule); stub_name_variants holds the other printed names
+# of the same key, separated by NAME_VARIANT_SEPARATOR.
+NAME_COLUMN_NOTES = {
+    "trading_name": TRADING_NAME_WITHHELD_NOTE,
+    "service_name": SERVICE_NAME_WITHHELD_NOTE,
+    "acecqa_service_name": SERVICE_NAME_WITHHELD_NOTE,
+    "name": SERVICE_NAME_WITHHELD_NOTE,
+    "stub_name_variants": SERVICE_NAME_WITHHELD_NOTE,
+}
+NAME_VARIANT_SEPARATOR = " | "
+
+
+class _InMemory(dict):
+    """A dict of printed names that must never be serialised."""
+
+    def __reduce__(self):
+        raise TypeError("in memory only and cannot be serialised")
+
+
+# In memory only: the ACECQA name context (profile_providers.AcecqaNameContext), the casefolded
+# names withheld so far in this process (one name withheld in one output is withheld in every
+# output), and the values withheld from each written output by (output name, row index), so that
+# a later step in the same run (the join) can match on them without ever publishing them.
+_NAME_CONTEXT = None
+_WITHHELD_NAME_STRINGS: set[str] = set()
+_WITHHELD_NAME_VALUES: _InMemory = _InMemory()
+
+
+def set_name_context(ctx) -> None:
+    global _NAME_CONTEXT
+    _NAME_CONTEXT = ctx
+
+
+def reset_withheld_names() -> None:
+    """Forget the name context and every withheld name held in memory."""
+    global _NAME_CONTEXT
+    _NAME_CONTEXT = None
+    _WITHHELD_NAME_STRINGS.clear()
+    _WITHHELD_NAME_VALUES.clear()
+
+
+def ensure_name_context():
+    """Load the ACECQA name context when none was set. Never written anywhere."""
+    if _NAME_CONTEXT is None:
+        from scrapers.profile_providers import acecqa_name_context
+
+        set_name_context(acecqa_name_context())
+    return _NAME_CONTEXT
+
+
+def _name_key(value: str) -> str:
+    return " ".join(value.casefold().split())
+
+
+def name_may_name_person_in_row(value: str | None, row: dict | None = None, names=None) -> bool:
+    """The shared person check (profile_providers.name_may_name_person) for one trading or
+    service name, with the run-wide names, the ACECQA context and the row's own withheld provider
+    or subject (in memory only). A name already withheld in this process is withheld again."""
+    if not isinstance(value, str) or not value.strip():
+        return False
+    if _name_key(value) in _WITHHELD_NAME_STRINGS:
+        return True
+    from scrapers.profile_providers import PersonNames, name_may_name_person
+
+    ctx = ensure_name_context()
+    names = _run_wide_names() if names is None else names
+    row = row or {}
+    own = ctx.own_names(
+        row.get("provider_approval_number"), row.get("acecqa_provider_approval_number")
+    )
+    subjects = PersonNames()
+    subjects.add_subject(row.get("_subject_raw"))
+    for extra in row.get("_person_raw") or ():
+        subjects.add_subject(extra)
+    own.update(subjects)
+    return name_may_name_person(value, names, own, ctx.ordinary)
+
+
+def _name_note_column(col: str, fieldnames: list[str]) -> str:
+    for candidate in (f"{col}_note", "notes", "note"):
+        if candidate in fieldnames:
+            return candidate
+    return f"{col}_note"
+
+
+def _append_note(row: dict, column: str, note: str) -> None:
+    value = row.get(column) or ""
+    sep = " | " if " | " in value else "; "
+    segments = [seg for seg in value.split(sep) if seg] if value else []
+    row[column] = sep.join(dict.fromkeys([*segments, note]))
+
+
+def withhold_person_named_names(
+    output: str, rows: list[dict], fieldnames: list[str], names=None
+) -> tuple[list[dict], list[str], dict[str, int]]:
+    """Apply the name rule to every trading-name and service-name column of an output.
+
+    Returns (rows, fieldnames, counts). A row with a withheld name is copied: the caller's rows
+    are not changed. The value becomes null, the fixed note goes to the column's own *_note
+    column, else the row's notes or note column (a *_note column is added to fieldnames when the
+    output has none). A stub_name_variants entry that fires is dropped. Approval numbers stay.
+    The withheld values are kept in memory only (by output and row index) for the join."""
+    cols = [c for c in NAME_COLUMN_NOTES if c in fieldnames]
+    counts: dict[str, int] = {}
+    if not cols:
+        return rows, fieldnames, counts
+    names = _run_wide_names() if names is None else names
+    fieldnames = list(fieldnames)
+    out: list[dict] = []
+    for index, row in enumerate(rows):
+        changed: dict[str, object] = {}
+        withheld: dict[str, str] = {}
+        is_service_stub = row.get("kind") == "service"
+        for col in cols:
+            value = row.get(col)
+            if not isinstance(value, str) or not value.strip():
+                continue
+            if col in ("name", "stub_name_variants") and not is_service_stub:
+                continue
+            if col == "stub_name_variants":
+                parts = [p for p in value.split(NAME_VARIANT_SEPARATOR) if p]
+                kept = [p for p in parts if not name_may_name_person_in_row(p, row, names)]
+                if len(kept) == len(parts):
+                    continue
+                for p in parts:
+                    if p not in kept:
+                        _WITHHELD_NAME_STRINGS.add(_name_key(p))
+                changed[col] = NAME_VARIANT_SEPARATOR.join(kept) or None
+            elif name_may_name_person_in_row(value, row, names):
+                _WITHHELD_NAME_STRINGS.add(_name_key(value))
+                changed[col] = None
+            else:
+                continue
+            withheld[col] = value
+            counts[col] = counts.get(col, 0) + 1
+        if not changed:
+            out.append(row)
+            continue
+        new = dict(row)
+        new.update(changed)
+        for col in withheld:
+            column = _name_note_column(col, fieldnames)
+            if column not in fieldnames:
+                fieldnames.append(column)
+            _append_note(new, column, NAME_COLUMN_NOTES[col])
+        if "name" in withheld and "name_withheld" in new:
+            new["name_withheld"] = "true"
+        _WITHHELD_NAME_VALUES[(output, index)] = (row.get("record_id"), _InMemory(withheld))
+        out.append(new)
+    return out, fieldnames, counts
+
+
+def restore_withheld_names(output: str, rows: list[dict]) -> int:
+    """For a later step in the same run: put back, in memory only, the names withheld from the
+    rows of `output` as written, so that a name match still works. The restored rows keep the
+    fixed note, and every value restored is withheld again when written (it is remembered as
+    withheld). Returns the number of rows restored. A row whose record_id does not agree is
+    left as read."""
+    restored = 0
+    for index, row in enumerate(rows):
+        entry = _WITHHELD_NAME_VALUES.get((output, index))
+        if not entry:
+            continue
+        record_id, held = entry
+        if (row.get("record_id") or None) != (record_id or None):
+            continue
+        for col, value in held.items():
+            if col in row and not row.get(col):
+                row[col] = value
+        restored += 1
+    return restored
+
+
+def unrestored_withheld_names(rows: list[dict], column: str = "service_name") -> int:
+    """Rows whose `column` was withheld by the name rule and is still null (no value in memory,
+    as when the join runs on its own): their name match is not possible."""
+    note = NAME_COLUMN_NOTES[column]
+    return sum(1 for r in rows if not r.get(column) and note in (r.get("notes") or ""))
+
+
 _INVISIBLE_CHARS = re.compile("[​‌‍⁠﻿]")
 
 
@@ -829,7 +1017,16 @@ def write_processed(
     schema: str | None = None,
     notes: str | None = None,
 ) -> Path:
-    """Write data/processed/<name>.csv and <name>.provenance.json listing the raw inputs used."""
+    """Write data/processed/<name>.csv and <name>.provenance.json listing the raw inputs used.
+
+    Every trading-name and service-name column passes the shared name rule first (PR #12,
+    withhold_person_named_names); the caller's rows are not changed."""
+    names_withheld: dict[str, int] | None = None
+    if any(c in fieldnames for c in NAME_COLUMN_NOTES):
+        ensure_person_names()
+        rows, fieldnames, names_withheld = withhold_person_named_names(name, rows, fieldnames)
+        if names_withheld:
+            log.info("%s: names withheld by the name rule %s", name, names_withheld)
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     out = PROCESSED_DIR / f"{name}.csv"
     with atomic_open(out, newline="") as fh:
@@ -848,6 +1045,13 @@ def write_processed(
         ],
         "notes": notes,
     }
+    if names_withheld is not None:
+        # Counts only, never a name.
+        provenance["names_withheld"] = {
+            "rule": "trading and service names withheld when they may name an individual "
+            "(scrapers.common.withhold_person_named_names)",
+            "counts": dict(sorted(names_withheld.items())),
+        }
     # Codex round 5: no URL or path that may name an individual reaches a provenance file.
     provenance = redact_urls_in_obj(provenance)
     atomic_write_text(

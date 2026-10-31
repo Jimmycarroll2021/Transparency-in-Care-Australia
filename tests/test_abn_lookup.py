@@ -263,9 +263,13 @@ def test_company_is_not_individual_and_person_like_business_names_withheld():
     assert row["acn"] == "603236353"
     assert row["business_names"] == "Bright Start Kindy"
     assert row["business_names_withheld"] == 1
-    # a person-like business name that is already an ACECQA organisation name is kept
+    # an ordinary business name that is already an ACECQA organisation name is kept
+    kept, withheld = al.safe_business_names(["Sunny Kids Club"], {"SUNNY KIDS CLUB"})
+    assert kept == ["Sunny Kids Club"] and withheld == 0
+    # PR #12: a person-like business name is withheld even when it equals a known name (the
+    # shared name rule applies to every trading name)
     kept, withheld = al.safe_business_names(["Jane Example"], {"JANE EXAMPLE"})
-    assert kept == ["Jane Example"] and withheld == 0
+    assert kept == [] and withheld == 1
 
 
 def test_not_found_record():

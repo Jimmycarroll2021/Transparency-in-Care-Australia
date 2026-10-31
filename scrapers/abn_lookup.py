@@ -268,6 +268,16 @@ def name_is_safe(name: str | None, known_org_names: set[str] | None = None) -> b
     return normalise_provider_name(name) in (known_org_names or set()) or not name_is_withheld(name)
 
 
+def business_name_may_name_person(name: str | None) -> bool:
+    """PR #12: an ABR business name is a trading name, so the shared name rule
+    (scrapers.common.name_may_name_person_in_row) applies too, whatever the organisation evidence
+    and even when the name equals a known ACECQA name. In-memory names only."""
+    from scrapers.common import ensure_person_names, name_may_name_person_in_row
+
+    ensure_person_names()
+    return name_may_name_person_in_row(name)
+
+
 def safe_business_names(
     names: list[str] | None, known_org_names: set[str] | None = None
 ) -> tuple[list[str], int]:
@@ -275,7 +285,8 @@ def safe_business_names(
 
     A business name is withheld unless it is positively an organisation under the shared
     fail-closed rule, or its normalised form is already an ACECQA organisation name
-    (known_org_names), which is public organisation data.
+    (known_org_names), which is public organisation data. A business name the shared name rule
+    flags as possibly naming an individual is withheld in every case (PR #12).
     """
     kept: list[str] = []
     withheld = 0
@@ -283,7 +294,7 @@ def safe_business_names(
         name = (name or "").strip()
         if not name:
             continue
-        if not name_is_safe(name, known_org_names):
+        if not name_is_safe(name, known_org_names) or business_name_may_name_person(name):
             withheld += 1
             continue
         if name not in kept:
@@ -368,7 +379,10 @@ def filter_details_names(row: dict, known: set[str] | None = None) -> dict:
         row["business_names_withheld"] = withheld
         row["name_withheld"] = "false"
         if withheld:
-            notes.append(f"{withheld} business name(s) withheld: not positively an organisation")
+            notes.append(
+                f"{withheld} business name(s) withheld: not positively an organisation or may "
+                "name an individual"
+            )
     row["note"] = "; ".join(notes) or None
     return row
 

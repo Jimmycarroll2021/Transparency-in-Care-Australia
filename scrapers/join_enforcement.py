@@ -93,10 +93,14 @@ try:
     from scrapers.common import (
         PROCESSED_DIR,
         PROJECT_ROOT,
+        SERVICE_NAME_WITHHELD_NOTE,
+        TRADING_NAME_WITHHELD_NOTE,
         atomic_write_text,
         log,
         normalise_pr,
         normalise_se,
+        restore_withheld_names,
+        unrestored_withheld_names,
         utc_now,
         write_processed,
     )
@@ -108,10 +112,14 @@ except ImportError:  # run as a plain script: python3 scrapers/join_enforcement.
     from scrapers.common import (
         PROCESSED_DIR,
         PROJECT_ROOT,
+        SERVICE_NAME_WITHHELD_NOTE,
+        TRADING_NAME_WITHHELD_NOTE,
         atomic_write_text,
         log,
         normalise_pr,
         normalise_se,
+        restore_withheld_names,
+        unrestored_withheld_names,
         utc_now,
         write_processed,
     )
@@ -512,6 +520,8 @@ def name_withheld_row(row: dict) -> bool:
         .replace(PROSE_WITHHELD_NOTE, "")
         .replace(URL_WITHHELD_NOTE.lower(), "")
         .replace(SNAPSHOT_WITHHELD_NOTE.lower(), "")
+        .replace(SERVICE_NAME_WITHHELD_NOTE, "")
+        .replace(TRADING_NAME_WITHHELD_NOTE, "")
     )
     return "withheld" in notes or "individual" in notes
 
@@ -1240,6 +1250,7 @@ def service_columns(types: list[str]) -> list[str]:
             "service_approval_number",
             "provider_approval_number",
             "service_name",
+            "service_name_note",
             "suburb",
             "state",
             "postcode",
@@ -1265,6 +1276,7 @@ def provider_columns(types: list[str]) -> list[str]:
             "provider_approval_number",
             "legal_name",
             "trading_name",
+            "trading_name_note",
             "name_withheld",
             "entity_form",
             "provider_state",
@@ -1591,10 +1603,23 @@ def main() -> None:
     types = load_action_types()
 
     actions: list[dict] = []
+    restored = 0
     for path in action_files:
         rows = load_csv(path)
         log.info("%s: %d rows", path.name, len(rows))
+        # PR #12: service names the name rule withheld from this file earlier in the same run
+        # (scrapers/reparse_offline.py) are put back in memory only, so that the name match
+        # works; they are withheld again when the outputs are written.
+        restored += restore_withheld_names(path.name.removesuffix(".csv"), rows)
         actions.extend(rows)
+    unrestored = unrestored_withheld_names(actions)
+    log.info(
+        "service names withheld by the name rule: %d restored in memory for matching, %d not "
+        "available (a name match is not possible for those rows; run "
+        "scrapers/reparse_offline.py to match on them)",
+        restored,
+        unrestored,
+    )
     joined = join_actions(actions, spine, abn_details)
     matched_before = sum(1 for r in joined if r["match_confidence"] != CONFIDENCE_NONE)
     stubs = add_unlisted_stage(joined, spine, end)

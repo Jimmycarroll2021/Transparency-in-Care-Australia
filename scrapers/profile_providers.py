@@ -33,8 +33,10 @@ try:
         PROCESSED_DIR,
         PROJECT_ROOT,
         atomic_write_text,
+        ensure_person_names,
         log,
         utc_now,
+        withhold_person_named_names,
         write_processed,
     )
 except ImportError:  # run as a plain script: python3 scrapers/profile_providers.py
@@ -45,8 +47,10 @@ except ImportError:  # run as a plain script: python3 scrapers/profile_providers
         PROCESSED_DIR,
         PROJECT_ROOT,
         atomic_write_text,
+        ensure_person_names,
         log,
         utc_now,
+        withhold_person_named_names,
         write_processed,
     )
 
@@ -371,6 +375,29 @@ def name_is_withheld(
     return not (abr_org or has_organisation_evidence(name))
 
 
+def name_has_person_signal(legal_name: str | None, form: str | None = None) -> bool:
+    """True when name_is_withheld would withhold the name because of a person signal (a likely
+    individual, a deceased estate or executor, a title, a family trust, an individual trustee or
+    a trust named after a person), not merely for lack of organisation evidence."""
+    if not legal_name or not legal_name.strip():
+        return False
+    name = legal_name.strip()
+    form = form or classify_entity_form(name)
+    if form == "likely_individual" or _ESTATE.search(name) or _TITLE.search(name):
+        return True
+    if _FAMILY_TRUST.search(name):
+        return True
+    split = _TRUSTEE_SPLIT.search(name)
+    if split:
+        trustee = _strip_leading_the(name[: split.start()])
+        if trustee and classify_entity_form(trustee) == "likely_individual":
+            return True
+        return _trust_names_a_person(name[split.end() :])
+    if form == "trust_or_trustee" or _TRUST_WORD.search(name):
+        return _trust_names_a_person(name)
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
@@ -555,7 +582,9 @@ class PersonNames:
             if len(keys[-1]) >= 4 and (len(keys) >= 2 or family):
                 self._surnames.add(keys[-1])
 
-    def found_in(self, text: str | None) -> bool:
+    def found_in(self, text: str | None, ordinary: frozenset[str] | set[str] = frozenset()) -> bool:
+        """True when `text` holds a full name, or a capitalised surname used alone. A surname
+        in `ordinary` (lower case) is not used alone; full names always count."""
         if not text or not self:
             return False
         tokens = _NAME_TOKEN.findall(text)
@@ -565,7 +594,8 @@ class PersonNames:
                 if i + n <= len(keys) and tuple(keys[i : i + n]) in self._full:
                     return True
         return any(
-            t[0].isupper() and k in self._surnames for t, k in zip(tokens, keys, strict=True)
+            t[0].isupper() and k in self._surnames and k not in ordinary
+            for t, k in zip(tokens, keys, strict=True)
         )
 
 
@@ -608,6 +638,80 @@ def prose_may_name_person(
     if person_names is not None and person_names.found_in(text):
         return True
     return bool(_prose_runs(text))
+
+
+class AcecqaNameContext:
+    """From the ACECQA provider register, in memory only (it refuses to be pickled):
+
+    - withheld: provider approval number -> raw legal name, for every provider whose name the
+      shared rule withholds. A service or trading name that repeats its own withheld provider's
+      name (or that name's surname) would publish the withheld name.
+    - ordinary: lower-case words of every published (not withheld) provider legal name. A
+      surname from the run-wide set that is also such a word ('Cottage', 'Valley') is not used
+      alone against a name from another provider; full names always count."""
+
+    def __init__(self) -> None:
+        self.withheld: dict[str, str] = {}
+        self.ordinary: frozenset[str] = frozenset()
+
+    def __reduce__(self):
+        raise TypeError("AcecqaNameContext is in memory only and cannot be serialised")
+
+    def own_names(self, *approval_numbers: str | None) -> PersonNames:
+        names = PersonNames()
+        for pr in approval_numbers:
+            if pr and pr in self.withheld:
+                names.add_subject(self.withheld[pr])
+        return names
+
+
+def acecqa_name_context(path: Path | None = None, abr_types: dict | None = None):
+    """Build the AcecqaNameContext from the processed copy of the ACECQA provider register."""
+    ctx = AcecqaNameContext()
+    path = path or PROVIDERS_CSV
+    if not path.exists():
+        return ctx
+    abr = _abr_entity_types() if abr_types is None else abr_types
+    ordinary: set[str] = set()
+    for p in _read(path):
+        legal = (p.get("Legal Name") or "").strip()
+        pr = p.get("provider_approval_number") or ""
+        if not legal:
+            continue
+        if name_is_withheld(legal, classify_entity_form(legal), abr.get(pr)):
+            if pr:
+                ctx.withheld[pr] = legal
+        else:
+            ordinary |= {t.lower() for t in _NAME_TOKEN.findall(legal)}
+    ctx.ordinary = frozenset(ordinary)
+    return ctx
+
+
+def name_may_name_person(
+    name: str | None,
+    person_names: PersonNames | None = None,
+    own_names: PersonNames | None = None,
+    ordinary: frozenset[str] | set[str] = frozenset(),
+) -> bool:
+    """The person check for a trading name or a service name. Fail closed for persons.
+
+    True when the name:
+    - carries a person signal under the provider-name rule (name_has_person_signal: a likely
+      individual, a title, an estate, a family trust, an individual trustee, a trust named after
+      a person);
+    - contains a full name (two or more words) from the run-wide person-name set, or a surname
+      from that set used alone, unless the surname is an ordinary word of a published
+      organisation name;
+    - contains the name, or the surname, of its own withheld provider (own_names).
+    Unlike name_is_withheld, organisation evidence is not required: most trading and service
+    names carry no legal form, and an ordinary name ('Little Acorns Early Learning') is kept."""
+    if not name or not name.strip():
+        return False
+    if name_has_person_signal(name):
+        return True
+    if own_names is not None and own_names.found_in(name):
+        return True
+    return person_names is not None and person_names.found_in(name, ordinary)
 
 
 def _read(path: Path) -> list[dict[str, str]]:
@@ -723,6 +827,7 @@ def build_profile() -> dict:
         "provider_approval_number",
         "legal_name",
         "trading_name",
+        "trading_name_note",
         "name_withheld",
         "entity_form",
         "provider_state",
@@ -736,6 +841,11 @@ def build_profile() -> dict:
     ]
     if mgmt_cols:
         fieldnames.append("management_type")
+
+    # PR #12: the name rule on trading names, here so that the summary below uses the same
+    # values as the CSV (write_processed applies it again, which changes nothing).
+    ensure_person_names()
+    rows, fieldnames, _ = withhold_person_named_names("provider-profile", rows, fieldnames)
 
     raw_inputs = _raw_inputs_of(PROVIDERS_CSV) + _raw_inputs_of(SERVICES_CSV)
     write_processed(
