@@ -84,13 +84,19 @@ On Windows use `python`; on Linux or macOS use `python3`.
 ```
 pip install -r requirements.txt
 python scrapers/snapshot_acecqa_registers.py --no-fetch   # REQUIRED after a fresh clone
-python scrapers/join_enforcement.py
+python scrapers/reparse_offline.py   # re-parse every register offline and run the join
 python -m pytest -q
 ruff check scrapers tests
 ```
 
 **Gotcha:** the two large `acecqa-*-latest.csv` tables are gitignored. A fresh clone has only the
 compressed raw snapshots, so `--no-fetch` must rebuild the tables before the join will run.
+
+**Gotcha (PR #12):** service names that may name an individual are withheld from the committed
+enforcement tables and kept in memory only for the name match. Run the join through
+`scrapers/reparse_offline.py`, which parses and joins in one process. `join_enforcement.py` run on
+its own cannot restore them: it stops before writing anything and says so. `--allow-unrestored`
+writes anyway, with fewer joins, and records the count in the join report.
 
 **Collection** (full list in the `CLAUDE.md` commands section):
 
