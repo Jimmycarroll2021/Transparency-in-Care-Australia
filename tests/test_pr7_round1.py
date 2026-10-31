@@ -41,7 +41,7 @@ def test_per_offence_wording_tied_to_the_amount_stays_null(text):
     assert fine_amount_and_note(text) == (None, FINE_PER_OFFENCE_NOTE)
 
 
-# --- Finding 4: separate equal fines are counted, a repeated phrase is not ----------------------
+# --- Finding 4: amount occurrences are counted (PR #8: a repeated phrase too) ----------------------
 
 
 def test_two_separate_equal_tied_fines_give_null():
@@ -49,9 +49,10 @@ def test_two_separate_equal_tied_fines_give_null():
     assert fine_amount_and_note(text) == (None, FINE_NOT_RECORDED_NOTE)
 
 
-def test_the_same_phrase_printed_twice_counts_once():
+def test_the_same_phrase_printed_twice_gives_null():
+    # PR #8: raw amount occurrences are counted, so a repeated phrase fails closed.
     text = "Approved provider fined $12,000 for missing child Approved provider fined $12,000 for missing child"
-    assert fine_amount_and_note(text) == (12000, None)
+    assert fine_amount_and_note(text) == (None, FINE_NOT_RECORDED_NOTE)
 
 
 # --- Findings 2 and 3: queries after a local path or after a comma are checked -------------------
