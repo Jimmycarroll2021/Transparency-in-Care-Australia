@@ -1,12 +1,14 @@
 """Base-vs-candidate differential check for the QLD fine rule (PR #9, Codex round 3).
 
-The base parser is loaded from git (origin/main, else main) into a temporary module. Both
+The base parser is loaded from git at a pinned commit, BASE_SHA (the PR #8 merge, before the
+allowlist), into a temporary module. Both
 parsers run over a generated synthetic corpus of register rows. The candidate must never
 record a figure where the base gives null or a different figure, unless the case is on the
 reviewed allowlist below. All names and wording are synthetic."""
 
 import importlib.util
 import itertools
+import os
 import re
 import subprocess
 import sys
@@ -16,6 +18,8 @@ import pytest
 from scrapers import parse_qld_enforcement as candidate
 
 ROOT = Path(__file__).resolve().parent.parent
+# PR #10: a fixed base, the PR #8 merge (the tied blocklist rule, before the allowlist).
+BASE_SHA = "2ea37278b9e845689299a4073e741accc4418ffc"
 HEADER = (
     "<tr><th><p>Provider or individual name</p><p>Service name</p></th>"
     "<th>Date of action</th><th>Details</th><th>Breaches (if applicable)</th></tr>"
@@ -28,6 +32,8 @@ LEADS = [
     "Jane Example",
     "Educator warned and operator",
     "Provider warned; director",
+    "Provider; Jane Example",
+    "Provider warned; Other Kids Pty Ltd",
     "Provider will be",
     "Provider may yet be",
     "Another provider",
@@ -66,31 +72,37 @@ ALLOWED_IMPROVEMENTS: set[tuple[str, str, str]] = set()
 # One reviewed category, checked case by case rather than listed: the base gives null only
 # because a link inside the headline repeats the amount as a label ('fined <a>$4,000</a>' reads
 # as two amounts), and the base gives the candidate's figure for the same headline with the
-# link removed. The candidate reads the cell text once, so it sees one amount.
+# link removed. The candidate reads the cell text once, so it sees one amount. PR #10: each
+# such case must also pass the candidate's own checks on the unlinked text
+# (_is_a_clean_single_total), so equality with the base alone never admits a figure.
 _LINK = re.compile(r'<a href="/x[.]pdf">|</a>')
+_TAG = re.compile(r"<[^>]+>")
 
 
 def _base_module(tmp_path):
-    source = None
-    for ref in ("origin/main", "main"):
-        try:
-            done = subprocess.run(
-                ["git", "show", f"{ref}:scrapers/parse_qld_enforcement.py"],
-                cwd=ROOT,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                check=False,
-            )
-        except OSError:
-            pytest.skip("git is not available")
-        if done.returncode == 0:
-            source = done.stdout
-            break
-    if source is None:
-        pytest.skip("no main or origin/main ref to load the base parser from")
+    """The base parser at BASE_SHA, as a temporary module. Skips locally when git or the
+    commit is missing; fails in CI (CI=true), where the checkout fetches the full history."""
+
+    def unavailable(reason):
+        if os.environ.get("CI") == "true":
+            pytest.fail(f"{reason}; the differential must run in CI")
+        pytest.skip(reason)
+
+    try:
+        done = subprocess.run(
+            ["git", "show", f"{BASE_SHA}:scrapers/parse_qld_enforcement.py"],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=False,
+        )
+    except OSError:
+        unavailable("git is not available")
+    if done.returncode != 0:
+        unavailable(f"base commit {BASE_SHA} is not available")
     path = tmp_path / "qld_fine_base.py"
-    path.write_text(source, encoding="utf-8")
+    path.write_text(done.stdout, encoding="utf-8")
     spec = importlib.util.spec_from_file_location("qld_fine_base", path)
     module = importlib.util.module_from_spec(spec)
     sys.modules["qld_fine_base"] = module
@@ -99,6 +111,32 @@ def _base_module(tmp_path):
     finally:
         sys.modules.pop("qld_fine_base", None)
     return module
+
+
+def _plain(html: str) -> str:
+    return " ".join(_TAG.sub(" ", html).replace("\u00a0", " ").split())
+
+
+def _is_a_clean_single_total(case, figure) -> bool:
+    """The candidate's own checks on the unlinked text: one amount, in a recognised total form,
+    equal to the figure, one 'fined', and no guard hit anywhere in the row text."""
+    _, headline, trailing = case
+    text = _plain(_LINK.sub("", headline))
+    row_text = " ".join(t for t in (text, _plain(trailing)) if t)
+    form = candidate._TOTAL_FORM.search(text)
+    guards = (
+        candidate._PER_ITEM,
+        candidate._COSTS,
+        candidate._NOT_A_TOTAL,
+        candidate._OTHER_AMOUNT,
+    )
+    return (
+        len(list(candidate._MONEY_RAW.finditer(row_text))) == 1
+        and form is not None
+        and candidate._dollars(form.group(1)) == figure
+        and len(candidate._FINE_VERB.findall(row_text)) <= 1
+        and not any(g.search(row_text) for g in guards)
+    )
 
 
 def _headlines():
@@ -153,6 +191,7 @@ def test_the_candidate_never_records_a_figure_the_base_did_not(tmp_path):
     linked = [d for d in rest if _LINK.search(d[0][1])]
     unwrapped = _penalties(base, [(s, _LINK.sub("", h), t) for (s, h, t), _, _ in linked])
     artefacts = [d for d, u in zip(linked, unwrapped, strict=True) if u == d[2]]
+    unclean = [d for d in artefacts if not _is_a_clean_single_total(d[0], d[2])]
     looser = [d for d in rest if d not in artefacts]
     summary = {
         "corpus": len(cases),
@@ -164,7 +203,9 @@ def test_the_candidate_never_records_a_figure_the_base_did_not(tmp_path):
         "candidate_records_where_base_null_or_differs": len(differs),
         "allowlisted_cases": len(listed),
         "link_label_artefacts": len(artefacts),
+        "link_label_artefacts_failing_own_checks": len(unclean),
         "looser": len(looser),
     }
     print(f"\nQLD fine differential: {summary}")
     assert not looser, "\n".join(f"{case!r}: base {b}, candidate {c}" for case, b, c in looser[:40])
+    assert not unclean, "\n".join(f"{case!r}: candidate {c}" for case, _, c in unclean[:40])

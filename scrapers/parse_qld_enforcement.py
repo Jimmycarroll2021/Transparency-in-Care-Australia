@@ -229,11 +229,13 @@ _PER_ITEM = re.compile(
     ).pattern
     + r"|(?<![a-z])x[ ]?[0-9]|×"
 )
+# Costs and other components (PR #10: expenses, disbursements, 'the sum|the amount includes').
+_COST_NOUNS = r"(?:costs?|fees?|charges?|levy|levies|expenses?|disbursements?)"
 _COSTS = re.compile(
-    _words("costs?", "plus").pattern
+    _words("costs?", "plus", "the (?:sum|amount) (?:includes|included|including)").pattern
     + r"|(?i:(?<![a-z])(?:including|includes|included|inclusive[ ]+of)(?:[ ]+[^ ]+){0,3}?[ ]+"
-    + r"(?:(?:costs?|fees?|charges?|levy|levies)(?![a-z])|[$]))"
-    + r"|(?i:(?<![a-z])(?:costs?|fees?|charges?|levy|levies)(?:[ ]+[^ ]+){0,3}?[ ]+"
+    + rf"(?:{_COST_NOUNS}(?![a-z])|[$]))"
+    + rf"|(?i:(?<![a-z]){_COST_NOUNS}(?:[ ]+[^ ]+){{0,3}}?[ ]+"
     + r"(?:including|includes|included)(?![a-z]))"
 )
 _NOT_A_TOTAL = _words(
@@ -310,6 +312,18 @@ _NOT_A_TOTAL = _words(
     "reversed",
     "reversal",
     "vacated",
+    # stayed, discharged or deferred (PR #10, Codex round 4)
+    "stayed",
+    "stay of",
+    "discharged",
+    "deferred",
+    "postponed",
+    # imposed jointly or shared (PR #10, Codex round 4)
+    "jointly",
+    "joint",
+    "and others",
+    "shared",
+    "apportioned",
     "instalments",
     "to be paid",
     "payable",
@@ -429,7 +443,8 @@ def _subject_is_the_rows_own(
     ends = [m.start() for m in (_CONJUNCTION.search(lead), _CLAUSE_BREAK.search(lead)) if m]
     own = lead[: min(ends)] if ends else lead
     rest = lead[len(own) :]
-    if _ORG_NOUN.search(rest) or _ROLE_WORDS.search(rest):
+    # PR #10 (Codex round 4): any clause break before 'fined' gives null ('Provider; X was fined').
+    if _CLAUSE_BREAK.search(lead) or _ORG_NOUN.search(rest) or _ROLE_WORDS.search(rest):
         return False
     # On an organisation or service row the leading phrase must name an organisation (or be
     # empty, as in 'Fined $N for ...' or 'A total fine of $N'); a personal name there may be
