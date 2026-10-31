@@ -23,8 +23,9 @@ from scrapers.parse_qld_enforcement import (
         "Provider fined $12,000 after children were left alone for every hour of the trip",
     ],
 )
-def test_each_elsewhere_in_the_sentence_does_not_null_a_single_tied_total(text):
-    assert fine_amount_and_note(text) == (12000, None)
+def test_each_or_every_anywhere_in_the_text_gives_null(text):
+    # PR #9: per-item qualifiers null the figure anywhere in the text (allowlist, fails closed).
+    assert fine_amount_and_note(text) == (None, FINE_PER_OFFENCE_NOTE)
 
 
 @pytest.mark.parametrize(
