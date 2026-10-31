@@ -299,6 +299,7 @@ PR-00000614,Eidsvold Kindergarten Association Inc,,false,incorporated_associatio
 PR-00000616,Weipa Early Childhood Education Association Inc,,false,incorporated_association,QLD,01/01/2012,1,QLD,1,0,52,0
 PR-00000617,Goondiwindi and District Family Day Care Assoc Inc,,false,incorporated_association,QLD,01/01/2012,1,QLD,1,1,,1
 PR-00000619,Mareeba Community Kindergarten Inc,,false,incorporated_association,QLD,01/01/2012,2,QLD,1,0,46,0
+PR-00010102,Shukr Investments Pty Ltd ATF Shukr Trust,Shukr Investments Pty Ltd As Trustee for Shukr Trust,false,trust_or_trustee,QLD,07/11/2024,1,QLD,1,0,125,0
 PR-00010105,LEGACY FAMILY DAY CARE PTY LTD,Legacy Family Day Care,false,company,QLD,11/12/2024,1,QLD,1,1,,1
 PR-00010108,SKYLINE EARLY LEARNING PTY LTD,SKYLINE EARLY LEARNING PTY LTD,false,company,VIC,26/03/2025,0,,0,0,,0
 PR-00010110,TRINITY ACADEMY 2 PTY LTD,,false,company,NSW,19/12/2024,1,NSW,1,0,52,0
@@ -398,7 +399,6 @@ PR-00010345,KATT CHILDCARE PTY LTD,,false,company,NSW,03/03/2025,1,NSW,1,0,39,0
 PR-00010350,BLUEBELL EARLY LEARNING CENTRE PTY LTD,,false,company,VIC,09/03/2025,1,VIC,1,0,88,0
 PR-00010351,SMART STEPS EARLY LEARNING PTY LTD,Smart Steps Early,false,company,NSW,20/06/2025,0,,0,0,,0
 PR-00010355,,,true,likely_individual,NSW,08/04/2025,0,,0,0,,0
-PR-00010358,VINLOW & CO PTY LTD,,false,company,WA,01/04/2025,0,,0,0,,0
 PR-00001918,Wimble Street Child Care Co-op,,false,cooperative,VIC,29/12/2011,1,VIC,1,0,31,0
 PR-00001919,Wingate Avenue Children's Co-op Ltd,,false,cooperative,VIC,29/12/2011,1,VIC,1,0,70,0
 PR-00001921,Winston Hills Preschool Assoc Inc,,false,incorporated_association,VIC,29/12/2011,1,VIC,1,0,49,0
@@ -546,7 +546,7 @@ PR-00005340,Leaping Learners Early Education Centre Pty Ltd,Leaping Learners Ear
 PR-00005341,,,true,likely_individual,NSW,02/10/2009,1,NSW,1,1,,1
 PR-00005343,Nanima Pre School Association Inc,Nanima Pre School Association Inc,false,incorporated_association,NSW,01/09/2009,1,NSW,1,0,30,0
 PR-00005344,Nords Wharf Community Pre School Inc,Nords Wharf Community Pre School Inc,false,incorporated_association,NSW,01/09/2009,1,NSW,1,0,20,0
-PR-00005345,Department of Education,Department of Education,false,government,NSW,01/09/2009,124,NSW,1,0,3696,0
+PR-00005345,Department of Education,Department of Education,false,government,NSW,01/09/2009,125,NSW,1,0,3736,0
 PR-00005347,Snugglepot Day Care Centre Inc,Snugglepot Day Care Centre Inc,false,incorporated_association,NSW,01/09/2009,2,NSW,1,0,109,0
 PR-00005348,Stuarts Point Pre School Association Incorporated,Stuarts Point Pre School Association Incorporated,false,incorporated_association,NSW,01/09/2009,1,NSW,1,0,30,0
 PR-00005349,Tamworth Montessori Association Inc,Tamworth Montessori Association Inc,false,incorporated_association,NSW,01/09/2009,1,NSW,1,0,20,0
@@ -630,6 +630,7 @@ PR-00009948,OBEROI & SAHNI PTY LTD,,false,company,NSW,01/10/2024,0,,0,0,,0
 PR-00009950,IRTIFA PTY LTD,Irtifa Pty Ltd,false,company,VIC,23/12/2024,1,VIC,1,0,105,0
 PR-00009952,LITTLE LUNA EARLY LEARNING PTY LTD,Little Luna Early Learning Pty Ltd,false,company,QLD,17/10/2024,0,,0,0,,0
 PR-00009953,,,true,likely_individual,NSW,28/11/2024,0,,0,0,,0
+PR-00009957,KOBEK PTY LTD,,false,company,NSW,29/10/2024,0,,0,0,,0
 PR-00009958,,,true,trust_or_trustee,ACT,19/09/2024,1,ACT,1,0,100,0
 PR-00009959,MINRES CHILD CARE PTY LTD,MINRES CHILD CARE PTY LTD,false,company,WA,18/10/2024,1,WA,1,0,106,0
 PR-00009961,BLOSSOM BUDS PTY LTD,,false,company,VIC,13/02/2025,1,VIC,1,0,108,0
@@ -662,7 +663,7 @@ PR-00010020,ROSIE'S EARLY LEARNING PTY LTD,ROSIE'S EARLY LEARNING - MT SAMSON,fa
 PR-00010021,A&R SHARK INVESTMENTS PTY LTD,,false,company,NSW,11/03/2025,0,,0,0,,0
 PR-00010024,FAIRFIELD CHILDCARE PTY LTD ATF Fairfield Childcare Trust,Fairfield Early Learning Centre,false,trust_or_trustee,VIC,24/11/2024,1,VIC,1,0,114,0
 PR-00010033,,,true,likely_individual,NSW,09/01/2025,0,,0,0,,0
-PR-00010035,ASPIRE FAMILY DAY CARE PTY LTD,Aspire Family Day Care,false,company,NSW,27/02/2025,1,NSW,1,1,,1
+PR-00010035,ASPIRE FAMILY DAY CARE PTY LTD,Aspire Family Day Care,false,company,NSW,27/02/2025,0,,0,0,,0
 PR-00010036,Noasaurus Pty Ltd,,false,company,WA,22/10/2024,0,,0,0,,0
 PR-00010039,,,true,trust_or_trustee,VIC,19/11/2024,1,VIC,1,0,79,0
 PR-00010041,SAGE ELC PTY LTD,SAGE ELC PTY LTD,false,company,NSW,05/08/2025,1,NSW,1,0,67,0
@@ -698,7 +699,10 @@ PR-00010087,GIFTED STARS PTY LTD,,false,company,NSW,07/03/2025,0,,0,0,,0
 PR-00010091,,,true,trust_or_trustee,VIC,07/05/2025,0,,0,0,,0
 PR-00010092,,,true,company,NSW,25/11/2024,1,NSW,1,0,112,0
 PR-00010093,LEADING BEES BORONIA PTY LTD,Leading Bees Montessori and Early Learning,false,company,VIC,12/02/2025,1,VIC,1,0,85,0
-PR-00010102,Shukr Investments Pty Ltd ATF Shukr Trust,Shukr Investments Pty Ltd As Trustee for Shukr Trust,false,trust_or_trustee,QLD,07/11/2024,1,QLD,1,0,125,0
+PR-40021980,Muzznkaz Investments Pty Ltd,kidz b kidz,false,company,QLD,10/01/2020,0,,0,0,,0
+PR-40021989,CHLOE & JACK PTY LTD,Lilly Pilly South Early Learning Centre,false,company,NSW,11/05/2020,1,NSW,1,0,30,0
+PR-40021992,,,true,unknown,NSW,13/02/2020,1,NSW,1,0,20,0
+PR-40021999,ETZ CHAIM LTD,,false,company,NSW,10/03/2020,1,NSW,1,0,60,0
 PR-40022005,FOWLER PROPERTY INVESTMENTS PTY LTD,Leading Edge Childcare,false,company,QLD,28/01/2020,1,QLD,1,0,80,0
 PR-40022007,Hay Children's Services Incorporated,Hay Children's Services,false,incorporated_association,NSW,29/06/2020,4,NSW,1,0,122,0
 PR-40022013,,,true,trust_or_trustee,NSW,29/01/2020,2,NSW,1,0,145,0
@@ -736,7 +740,7 @@ PR-40022316,,,true,likely_individual,NSW,17/06/2020,0,,0,0,,0
 PR-40022319,Kamali Tactical Group Pty Ltd,,false,company,NSW,07/07/2020,1,NSW,1,0,29,0
 PR-40022320,,,true,incorporated_association,QLD,08/06/2020,1,QLD,1,0,200,0
 PR-40022350,,,true,likely_individual,QLD,13/07/2020,0,,0,0,,0
-PR-40022356,SYDNEY CATHOLIC EARLY CHILDHOOD SERVICES LTD,Sydney Catholic Early Childhood Services,false,church_or_religious,NSW,10/03/2020,75,NSW,1,0,6999,0
+PR-40022356,SYDNEY CATHOLIC EARLY CHILDHOOD SERVICES LTD,Sydney Catholic Early Childhood Services,false,church_or_religious,NSW,10/03/2020,75,NSW,1,0,7082,0
 PR-40022368,Cuddles Childcare Centre Byford Pty Ltd,Cuddles Early Learning & Childcare Byford,false,company,WA,16/03/2020,1,WA,1,0,99,0
 PR-40022371,Village School Association Inc,Pioneer Village school,false,incorporated_association,WA,26/06/2020,1,WA,1,0,50,0
 PR-40022392,,,true,likely_individual,NSW,17/04/2020,0,,0,0,,0
@@ -795,10 +799,10 @@ PR-40022973,,,true,trust_or_trustee,VIC,23/09/2020,0,,0,0,,0
 PR-40022982,The Grove Academy - Wollongong Pty Ltd,The Grove Academy - Wollongong,false,company,NSW,25/06/2020,6,NSW,1,0,618,0
 PR-40022985,KELC PTY LTD,Bilbies ELC & Kinder,false,company,VIC,11/12/2020,1,VIC,1,0,120,0
 PR-40022997,NOBEL FAMILY DAY CARE PTY LTD,NOBEL FAMILY DAY CARE,false,company,QLD,26/06/2020,0,,0,0,,0
-PR-40023010,,,true,trust_or_trustee,QLD,06/07/2020,0,,0,0,,0
-PR-40023017,NORTH ROTHBURY PELC PTY LIMITED,The Cottage Preschool and Early Learning Centre,false,company,NSW,15/10/2020,1,NSW,1,0,84,0
-PR-40023018,Priquin Pty Ltd as Trustee for Priquin Unit Trust,,false,trust_or_trustee,QLD,15/06/2020,0,,0,0,,0
-PR-40023045,,,true,trust_or_trustee,QLD,30/07/2020,0,,0,0,,0
+PR-40003861,,,true,trust_or_trustee,QLD,15/05/2015,1,QLD,1,0,94,0
+PR-40003863,,,true,trust_or_trustee,QLD,15/05/2015,1,QLD,1,0,75,0
+PR-40003864,,,true,trust_or_trustee,QLD,15/05/2015,1,QLD,1,0,75,0
+PR-40003865,Bambini Early Childhood Development Meridan Pty Ltd,,false,company,QLD,15/05/2015,1,QLD,1,0,180,0
 PR-40003884,Macquarie Montessori Academy Pty Ltd,Macquarie Park Montessori Academy,false,company,NSW,14/04/2015,1,NSW,1,0,90,0
 PR-40003917,,,true,unknown,NSW,11/08/2015,0,,0,0,,0
 PR-40003922,Excellent Kidz Pty Ltd,,false,company,QLD,24/04/2015,1,QLD,1,0,111,0
@@ -895,10 +899,7 @@ PR-40004948,One Sheep Two Sheep Pty Ltd,Balgownie Early Learning Centre,false,co
 PR-40004964,Creek Street Christian College Inc,Creek Street Christian College,false,incorporated_association,VIC,11/09/2015,1,VIC,1,0,48,0
 PR-40004971,,,true,incorporated_association,QLD,31/08/2015,1,QLD,1,0,200,0
 PR-40004975,,,true,likely_individual,QLD,14/09/2015,1,NSW,1,1,,1
-PR-40005004,,,true,likely_individual,NSW,30/12/2015,0,,0,0,,0
-PR-40005009,Bush Babies Nurseries Pty Ltd,Bush Babies Nurseries,false,company,QLD,28/10/2015,1,QLD,1,0,85,0
-PR-40005018,,,true,likely_individual,NSW,22/09/2015,0,,0,0,,0
-PR-40005023,,,true,trust_or_trustee,VIC,21/09/2015,1,VIC,1,0,70,0
+PR-00012137,BUNGALOW RUSSELL VALE PTY LTD,,false,company,NSW,10/09/2026,0,,0,0,,0
 PR-00012138,,,true,company,VIC,16/09/2026,0,,0,0,,0
 PR-00012140,SN&B PTY LTD,SN&B PTY LTD,false,company,VIC,02/10/2026,0,,0,0,,0
 PR-00012141,EDUCARE OXA PTY LTD,,false,company,NSW,18/06/2026,0,,0,0,,0
@@ -941,6 +942,7 @@ PR-00012254,SB RYDE PTY LTD,Shared Beginnings Ryde,false,company,QLD,07/09/2026,
 PR-00012255,SB WPH PTY LTD,Shared Beginnings West Pennant Hills,false,company,QLD,07/09/2026,0,,0,0,,0
 PR-00012259,STEP ABOVE CHILDCARE PTY LTD,Step Above Childcare Pty Ltd,false,company,QLD,29/06/2026,1,QLD,1,0,76,0
 PR-00012260,LITTLE WOODS EARLY LEARNING PTY LTD,Little Woods Early Learning,false,company,NSW,06/08/2026,1,NSW,1,0,40,0
+PR-00012262,ASPIRE EARLY EDUCATION & KINDERGARTEN LARA PTY LTD,ASPIRE EARLY EDUCATION & KINDERGARTEN LARA,false,company,VIC,30/10/2026,0,,0,0,,0
 PR-00012264,"ASPIRE EARLY EDUCATION & KINDERGARTEN REDSTONE, SUNBURY PTY LTD",ASPIRE EARLY EDUCATION & KINDERGARTEN REDSTONE,false,company,VIC,04/10/2026,0,,0,0,,0
 PR-00012266,ASPIRE EARLY EDUCATION & KINDERGARTEN DERRIMUT PTY LTD,ASPIRE EARLY EDUCATION & KINDERGARTEN DERRIMUT,false,company,VIC,04/10/2026,0,,0,0,,0
 PR-00012267,ASPIRE EARLY EDUCATION & KINDERGARTEN LARA LAKES PTY LTD,Aspire Early Education & Kindergarten Lara Lakes,false,company,VIC,04/10/2026,0,,0,0,,0
@@ -964,6 +966,7 @@ PR-00012331,,,true,trust_or_trustee,WA,05/10/2026,0,,0,0,,0
 PR-00012340,BLOOM EARLY EDUCATION PTY LTD,Bloom Early Education Pty Ltd,false,company,WA,26/08/2026,0,,0,0,,0
 PR-00012341,SALTBUSH EDUCATION PTY LTD,Saltbush Education,false,company,VIC,16/09/2026,0,,0,0,,0
 PR-00012343,GHALI GROUP PTY LTD,GHALI GROUP PTY LTD,false,company,NSW,16/09/2026,0,,0,0,,0
+PR-00012345,MGA UNITED PTY LTD,,false,company,NSW,30/10/2026,0,,0,0,,0
 PR-00012347,Shantikunj Pty Ltd,,false,company,NSW,26/10/2026,0,,0,0,,0
 PR-00012348,SKY ROCKET EARLY LEARNING CENTRES CO PTY. LTD.,Sky Rocket Early Learning Centre,false,company,NSW,08/09/2026,0,,0,0,,0
 PR-00012350,KMC CHILDREN'S SERVICES PTY LTD,,false,company,VIC,23/10/2026,0,,0,0,,0
@@ -984,6 +987,7 @@ PR-00012423,,,true,trust_or_trustee,QLD,11/08/2026,0,,0,0,,0
 PR-00012424,,,true,trust_or_trustee,QLD,19/08/2026,0,,0,0,,0
 PR-00012425,,,true,trust_or_trustee,QLD,21/09/2026,0,,0,0,,0
 PR-00012428,PLAY ELC - HIGHFIELDS & TOOWOOMBA PTY LTD,Play Early Learning Centre Highfields and Toowoomba,false,company,QLD,27/08/2026,0,,0,0,,0
+PR-00012430,PASSIONIC PTY LTD,,false,company,,29/10/2026,0,,0,0,,0
 PR-00012432,FAITH HOPE LOVE EARLY LEARNING CENTRE PTY LTD,Faith Hope Love Early Learning Centre,false,company,WA,27/10/2026,0,,0,0,,0
 PR-00012448,KIDS' WORLD EDUCATION (AUS) PTY LTD,,false,company,QLD,16/09/2026,0,,0,0,,0
 PR-00012450,WILLOW BK PTY LTD,Hanna Zabakly Pty Ltd,false,company,NSW,24/09/2026,0,,0,0,,0
@@ -995,10 +999,10 @@ PR-00012477,EVERGREEN CHILDCARE HOLDER PTY LTD,EVERGREEN CHILDCARE HOLDER PTY LT
 PR-00012503,BASSENDEAN COMMUNITY CHILDREN'S ASSOCIATION INC.,Wind in the Willows,false,incorporated_association,WA,14/10/2026,0,,0,0,,0
 PR-00012504,WUNDERKIDS EARLY LEARNING CENTRES 002 OPCO PTY LTD,Wunderkids Early Learning Centres Palmwoods,false,company,QLD,29/09/2026,0,,0,0,,0
 PR-00012506,EARLY LEARNING ON DENHAM PTY LTD,Denham Early Learning,false,company,QLD,30/09/2026,0,,0,0,,0
-PR-00012512,,,true,likely_individual,NSW,21/10/2026,0,,0,0,,0
-PR-00012527,,,true,likely_individual,QLD,27/10/2026,0,,0,0,,0
-PR-00012530,THE REDHEIHEI PTY LTD,,false,company,QLD,14/10/2026,0,,0,0,,0
-PR-00012545,THE EDUCATION COLLECTIVE PTY LTD,The Education Collective,false,company,QLD,02/10/2026,0,,0,0,,0
+PR-40030260,,,true,trust_or_trustee,NSW,23/12/2022,0,,0,0,,0
+PR-40030265,SENSORY COVE DEVELOPMENTS PTY LTD,Wauchope Little Learners,false,company,NSW,26/09/2022,0,,0,0,,0
+PR-40030273,ANTARA BEXLEY PTY LTD,,false,company,NSW,08/09/2022,1,NSW,1,0,39,0
+PR-40030299,Manulevu Trading Company PTY LTD,IKAL and Co Pty Ltd,false,company,QLD,19/08/2022,0,,0,0,,0
 PR-40030312,Fig Tree Group (QLD) Ltd,Active OSHC,false,company,QLD,26/08/2022,0,,0,0,,0
 PR-40030344,,,true,trust_or_trustee,NSW,30/01/2023,1,NSW,1,0,40,0
 PR-40030346,ALPINE CHILDREN'S SERVICES LTD,Alpine Children's Services,false,company,VIC,14/07/2021,3,VIC,1,0,348,0
@@ -1095,10 +1099,10 @@ PR-40031027,FORM CHILDCARE PTY LTD,Blume Academy,false,company,NSW,13/12/2022,1,
 PR-40031030,WUNDERKIDS EARLY LEARNING CENTRES PTY LTD,Wunderkids Early Learning Centres,false,company,QLD,13/12/2022,1,QLD,1,0,25,0
 PR-40031031,BEENLEIGH EARLY LEARNING PTY LTD AS TRUSTEE FOR THE ELC 4 UNIT TRUST,BEENLEIGH EARLY LEARNING,false,trust_or_trustee,QLD,11/11/2022,1,QLD,1,0,76,0
 PR-40031046,,,true,trust_or_trustee,QLD,16/11/2022,1,QLD,1,0,84,0
-PR-40031081,,,true,trust_or_trustee,VIC,26/10/2022,1,VIC,1,0,124,0
-PR-40031090,HARBOUR EARLY LEARNING MANAGEMENT PTY LTD,Harbour Early Learning Management Pty Ltd,false,company,NSW,08/03/2023,5,ACT|NSW,2,0,538,0
-PR-40031100,MONACO ST CHILDCARE PTY LTD,,false,company,QLD,31/10/2022,1,QLD,1,0,75,0
-PR-40031106,TINGERA NSW PTY LTD,,false,company,NSW,15/12/2022,1,NSW,1,0,29,0
+PR-40012671,AUSTRA BT PTY LTD,AUSTRA BT PTY LTD,false,company,NSW,12/12/2017,1,NSW,1,0,24,0
+PR-40012681,,,true,trust_or_trustee,VIC,03/10/2017,1,VIC,1,0,130,0
+PR-40012697,BELIEVE PLAYSCHOOL PTY LTD,Lyson,false,company,NSW,20/02/2018,1,NSW,1,0,60,0
+PR-40012698,,,true,trust_or_trustee,NSW,15/02/2018,1,VIC,1,0,130,0
 PR-40012708,AUSELLAKEZ PTY LIMITED,Sherpa Kids,false,company,NSW,24/01/2018,0,,0,0,,0
 PR-40012709,GREEN LEAVES (QLD8) EARLY LEARNING CENTRES PTY LTD,,false,company,QLD,03/11/2017,1,QLD,1,0,120,0
 PR-40012711,Cuddles Childcare Centre South Lake Pty Ltd,,false,company,WA,06/10/2017,1,WA,1,0,65,0
@@ -1195,10 +1199,10 @@ PR-40013554,,,true,likely_individual,QLD,08/01/2018,0,,0,0,,0
 PR-40013561,KINDERPLAY EARLY LEARNING CENTRE PTY. LTD.,KinderPlay Early Learning Centre Pty Ltd,false,company,VIC,04/01/2018,1,VIC,1,0,26,0
 PR-40013588,Shire of Boyup Brook,Shire of Boyup Brook,false,government,WA,20/02/2018,0,,0,0,,0
 PR-40013607,KKBooval Pty Ltd as Trustee for the KKBooval Trust,Kaleidoscope Kids ELC Booval,false,trust_or_trustee,QLD,10/01/2018,1,QLD,1,0,150,0
-PR-40013613,Busy Bees Maroubra Pty Ltd,Bliss Early Learning Maroubra,false,company,QLD,18/06/2018,0,,0,0,,0
-PR-40013625,Edge Early Learning Strathpine Pty Ltd (Administrators Appointed),,false,company,QLD,22/12/2017,1,QLD,1,0,122,0
-PR-40013643,,,true,likely_individual,NSW,01/02/2018,1,NSW,1,0,29,0
-PR-40013657,,,true,trust_or_trustee,NSW,21/11/2017,1,NSW,1,0,40,0
+PR-40018203,OBO CO. PTY LTD,,false,company,WA,17/01/2019,1,WA,1,0,36,0
+PR-40018211,Happy Tone Education and Service Group Pty Ltd,Happy Tone Children's Wonderland,false,company,WA,06/12/2018,0,,0,0,,0
+PR-40018230,Bambini Childcare Group Pty Ltd,Bambini Childcare Group,false,company,VIC,19/02/2019,6,VIC,1,0,517,0
+PR-40018243,Augusta Commercial Pty Ltd,,false,company,NSW,22/02/2019,8,NSW,1,0,293,0
 PR-40018245,FEDERATION CHILDREN NEWTOWN PTY LTD,Federation Children - Newtown,false,company,VIC,16/01/2019,1,VIC,1,0,132,0
 PR-40018251,RIGHTWAY LEARNING FAMILY DAY CARE PTY LTD,RIGHTWAY LEARNING FAMILY DAY CARE PTY LTD,false,company,WA,05/02/2019,1,WA,1,1,,1
 PR-40018267,Edge Early Learning Annerley Pty Ltd (Administrator Appointed),Edge Early Learning Annerley,false,company,QLD,17/01/2019,1,QLD,1,0,144,0
@@ -1295,10 +1299,6 @@ PR-40019160,BRIGHT BEGINNINGS FAMILY DAY CARE CENTRE PTY. LTD.,BRIGHT BEGINNINGS
 PR-40019194,Hessel Pty Ltd,Hessel Childrens Centre,false,company,SA,07/06/2019,1,SA,1,0,103,0
 PR-40019212,,,true,likely_individual,QLD,25/03/2019,3,NSW|QLD,2,0,214,0
 PR-40019230,,,true,likely_individual,NSW,08/07/2019,1,NSW,1,0,36,0
-PR-40019246,Kin Educare Pty Ltd,,false,company,NSW,14/11/2019,2,NSW,1,0,240,0
-PR-40019251,Beryl Grace Pty Ltd,,false,company,QLD,23/04/2019,1,QLD,1,0,67,0
-PR-40019267,THE BIG TREE HOUSE PTY LTD,The Big Tree House,false,company,NSW,05/07/2019,1,NSW,1,0,24,0
-PR-40019274,Wilson Childcare Investments Pty Ltd as trustee for Wilson Childcare Investments Trust,Mother Duck Childcare and Pre School Enoggera,false,trust_or_trustee,QLD,08/04/2019,0,,0,0,,0
 PR-00007849,,,true,likely_individual,NSW,07/05/2013,4,NSW,1,0,220,0
 PR-00007850,,,true,likely_individual,NSW,08/07/2013,4,NSW,1,0,210,0
 PR-00007852,,,true,incorporated_association,NSW,28/03/2013,0,,0,0,,0
@@ -1587,7 +1587,7 @@ PR-00004464,Ross Circuit Pre School Centre Inc,Ross Circuit Pre School Centre In
 PR-00004465,Merrylands Christian Pre School Association Inc,Merrylands Christian Pre School Association Inc,false,incorporated_association,NSW,01/09/2009,2,NSW,1,0,54,0
 PR-00004468,Global Kids Pty Ltd,Global Kids Pty Ltd,false,company,NSW,01/09/2009,1,NSW,1,0,39,0
 PR-00004469,Kidstopia Pty Limited,Kidstopia Pty Limited,false,company,NSW,01/09/2009,2,NSW,1,0,63,0
-PR-00004470,To Be 0-6 Pty Ltd,To Be 0-6 Pty Ltd,false,company,NSW,20/04/2010,6,NSW,1,0,410,0
+PR-00004470,To Be 0-6 Pty Ltd,To Be 0-6 Pty Ltd,false,company,NSW,20/04/2010,7,NSW,1,0,486,0
 PR-00004471,,,true,unknown,NSW,01/09/2009,1,NSW,1,0,67,0
 PR-00004472,Anglas Pty Limited,Anglas Pty Limited,false,company,NSW,26/10/2009,3,NSW,1,0,110,0
 PR-00004473,Armidale and District Family Day Care Ltd,Armidale and District Family Day Care Ltd,false,company,NSW,01/09/2009,0,,0,0,,0
@@ -1599,6 +1599,10 @@ PR-00004485,Julius Avenue Enterprises Pty Ltd,Julius Avenue Enterprises Pty Ltd,
 PR-00004486,Totsafe Pty Ltd,Totsafe Pty Ltd,false,company,NSW,01/09/2009,2,NSW,1,0,188,0
 PR-00004489,3 Bears Cottage Pty Limited,3 Bears Cottage Pty Limited,false,company,NSW,01/09/2009,1,NSW,1,0,50,0
 PR-00004491,Knight Enterprises (Qld) Pty Ltd,Knight Enterprises (Qld) Pty Ltd,false,company,NSW,01/09/2009,0,,0,0,,0
+PR-40001479,HUGGY BEAR OPERATIONS PTY LIMITED,,false,company,QLD,13/01/2014,1,WA,1,0,60,0
+PR-40001480,CG Operations Pty Ltd,,false,company,QLD,31/12/2013,3,QLD,1,0,294,0
+PR-40001481,JACARANDA OPERATIONS PTY LIMITED,,false,company,QLD,02/01/2014,1,WA,1,0,112,0
+PR-40001482,Babyco Family Day Care Pty Ltd,,false,company,QLD,20/06/2014,1,QLD,1,1,,1
 PR-40001483,JELLYBEANS OPERATIONS PTY LTD,,false,company,QLD,02/01/2014,6,WA,1,0,443,0
 PR-40001485,,,true,trust_or_trustee,VIC,11/04/2014,1,VIC,1,0,92,0
 PR-40001487,Kool Kids Operations Pty Ltd,,false,company,QLD,13/01/2014,6,QLD,1,0,601,0
@@ -1695,10 +1699,10 @@ PR-40001871,Claremont Bright Beginnings Inc,Claremont Bright Beginnings Inc,fals
 PR-40001883,NORTHERN VICTORIA FINANCES LIMITED,,false,company,VIC,18/07/2014,1,VIC,1,0,72,0
 PR-40001894,,,true,trust_or_trustee,QLD,22/07/2014,0,,0,0,,0
 PR-40001901,,,true,likely_individual,QLD,09/05/2014,0,,0,0,,0
-PR-40001907,Vantage Education Pty. Ltd.,,false,company,NSW,29/05/2014,8,NSW|QLD|VIC,3,0,884,0
-PR-40001915,,,true,incorporated_association,VIC,16/02/2015,0,,0,0,,0
-PR-40001917,SAMIAN PTY LTD,Child's Play,false,company,VIC,13/06/2014,7,VIC,1,0,959,0
-PR-40001919,CHABAD ACT LIMITED,,false,company,ACT,28/04/2014,1,ACT,1,0,68,0
+PR-40026567,ANKI Pty Ltd ATF ANKI Investment Trust,Mother Duck Childcare and Preschool Lawnton,false,trust_or_trustee,QLD,26/07/2021,0,,0,0,,0
+PR-40026584,,,true,likely_individual,WA,09/12/2021,0,,0,0,,0
+PR-40026601,ALL CARE KIDS PTY LTD,All Care Australia,false,company,QLD,16/08/2021,0,,0,0,,0
+PR-40026606,ME FOR KIDS CROYDON PTY LTD,,false,company,VIC,27/07/2021,1,VIC,1,0,90,0
 PR-40026614,OCEAN GOLD PTY LTD,,false,company,QLD,06/09/2021,0,,0,0,,0
 PR-40026626,BULLEEN HEIGHTS SCHOOL COUNCIL,Bulleen Heights School,false,government,VIC,29/07/2021,0,,0,0,,0
 PR-40026645,Chabad Youth Limited,Chabad Youth,false,company,VIC,28/10/2021,2,VIC,1,0,700,0
@@ -1795,10 +1799,6 @@ PR-40027466,KIDZ ACADEMY PARRAMATTA PTY LTD,Kidz Academy Parramatta Pty Ltd,fals
 PR-40027480,R&J SERVICES PTY LTD,Mickeys World Childcare Centre,false,company,NSW,10/03/2022,1,NSW,1,0,29,0
 PR-40027481,EMANFAYE ENTERPRISE PTY. LTD.,EMANFAYE ENTREPRISE,false,company,QLD,22/02/2022,0,,0,0,,0
 PR-40027485,2 BUILD (QLD) PTY LTD,,false,company,QLD,26/11/2021,0,,0,0,,0
-PR-40027491,730 Pty Ltd,,false,company,NSW,02/11/2021,1,NSW,1,0,66,0
-PR-40027499,Kidz Academy Kingswood Pty Ltd,Kidz Academy Kingswood Pty Ltd,false,company,NSW,20/09/2022,0,,0,0,,0
-PR-40027502,JML TRADING CROYDON PTY LTD,Explorers Early Learning - Croydon,false,company,VIC,19/12/2021,1,VIC,1,0,130,0
-PR-40027503,JML Trading Ashwood Pty Ltd,Explorers Early Learning - Ashwood,false,company,VIC,19/12/2021,1,VIC,1,0,130,0
 PR-00002689,Sunbury Community Health Centre Limited,,false,company,VIC,29/12/2011,1,VIC,1,1,,1
 PR-00002690,Harkaway Primary School Council,,false,government,VIC,29/12/2011,1,VIC,1,0,30,0
 PR-00002691,BABY BELLS PTY LTD ATF BBCC Trust No.1,,false,trust_or_trustee,VIC,29/12/2011,0,,0,0,,0
@@ -1899,6 +1899,7 @@ PR-00002821,Weeden Heights Primary School Council,,false,government,VIC,29/12/20
 PR-00002822,,,true,unknown,VIC,29/12/2011,0,,0,0,,0
 PR-00002823,"Leopold Primary School, School Council.",,false,government,VIC,29/12/2011,1,VIC,1,0,90,0
 PR-00002824,,,true,incorporated_association,VIC,29/12/2011,1,VIC,1,0,80,0
+PR-00011142,"Wodonga Catholic Parish OSHC, Baranduda Blvd Inc.","Wodonga Catholic Parish OSHC, Baranduda Blvd Inc.",false,church_or_religious,VIC,31/10/2025,1,VIC,1,0,90,0
 PR-00011143,CCCL OBEID (CAMPBELLTOWN) PTY LTD,Growth Mindset Early Learning Centre Cambelltown,false,company,NSW,22/08/2025,1,NSW,1,0,108,0
 PR-00011144,VIDEV PTY LTD,,false,company,NSW,14/11/2025,0,,0,0,,0
 PR-00011145,CARING 4 KIDS CENTRE NO.1 PTY LTD,,false,company,NSW,20/11/2025,0,,0,0,,0
@@ -1998,7 +1999,6 @@ PR-00011346,EA PASCOE VALE PTY LTD,,false,company,QLD,25/09/2025,0,,0,0,,0
 PR-00011347,Learning Ladder Early Learning Centres Pty Ltd,Learning Ladder Early Learning Centres Pty Ltd,false,company,QLD,25/09/2025,4,VIC,1,0,448,0
 PR-00011348,EA RURAL VIEW PTY LTD,,false,company,QLD,25/09/2025,0,,0,0,,0
 PR-00011349,EA SEAVIEW DOWNS PTY LTD,,false,company,QLD,25/09/2025,0,,0,0,,0
-PR-00011350,EA Ellengrove Pty Ltd,,false,company,QLD,25/09/2025,1,QLD,1,0,85,0
 PR-00005977,Aberfoyle Campus School OSHC Inc,Aberfoyle Campus Schools Outside School Hours Care Inc School of the Nativity,false,incorporated_association,SA,01/01/2012,2,SA,1,0,160,0
 PR-00005978,,,true,unknown,SA,01/01/2012,1,SA,1,0,70,0
 PR-00005979,Aberfoyle Hub Primary School Council Inc,Aberfoyle Hub Primary School Council Inc,false,incorporated_association,SA,01/01/2012,1,SA,1,0,60,0
@@ -2099,6 +2099,10 @@ PR-00006129,Gulfview Heights Primary School Governing Council Inc,Gulfview Heigh
 PR-00006130,Gumeracha Primary School Council Inc,Gumeracha Primary School Council Inc,false,incorporated_association,SA,01/01/2012,1,SA,1,0,55,0
 PR-00006131,Hackham East School Council,Hackham East School Council,false,government,SA,01/01/2012,1,SA,1,0,59,0
 PR-00006132,Hackham West Children's Centre Inc,Hackham West Children's Centre Inc,false,incorporated_association,SA,01/01/2012,1,SA,1,0,60,0
+PR-40009238,Paisley Park Early Learning Centres (No.6) Pty Ltd ATF Paisley Park ELC (No.6) Unit Trust,,false,trust_or_trustee,NSW,23/11/2016,1,VIC,1,0,88,0
+PR-40009241,VIC CHILDCARE PTY LTD ATF The Vic Childcare Trust,Apple Blossoms Early Learning South Melbourne,false,trust_or_trustee,WA,21/11/2016,1,VIC,1,0,52,0
+PR-40009253,Sturt Street Early Learning Pty. Ltd.,Sturt Street Early Learning,false,company,VIC,27/03/2017,2,NSW|VIC,2,0,203,0
+PR-40009254,Sorelle Qld Pty Ltd,Carrara Tiny Tots Pre-Prep,false,company,QLD,02/12/2016,1,QLD,1,0,22,0
 PR-40009267,,,true,trust_or_trustee,NSW,25/11/2016,2,NSW,1,0,124,0
 PR-40009271,,,true,trust_or_trustee,QLD,25/01/2017,1,QLD,1,0,113,0
 PR-40009285,,,true,likely_individual,VIC,11/11/2016,0,,0,0,,0
@@ -2195,10 +2199,6 @@ PR-40009994,Cassanade FDC Pty. Ltd.,Cassanade FDC Pty. Ltd.,false,company,QLD,25
 PR-40010007,,,true,trust_or_trustee,VIC,18/08/2017,1,VIC,1,1,,1
 PR-40010009,,,true,unknown,SA,24/02/2017,0,,0,0,,0
 PR-40010010,The Young Men's Christian Association of The Northern Territory Ltd,,false,company,NT,23/02/2017,10,NT,1,0,807,0
-PR-40010019,THE HEIGHTS PRE-SCHOOL CENTRE PTY LTD,THE HEIGHTS PRE-SCHOOL CENTRE,false,company,NSW,26/09/2017,1,NSW,1,0,59,0
-PR-40010024,Happy Hearts Academy ELC PTY LTD,Happy Hearts Academy Early Learning Centre,false,company,NSW,05/04/2017,1,NSW,1,0,96,0
-PR-40010025,VS INVESTMENT GROUP PTY LTD,VS INVESTMENT GROUP PTY LTD,false,company,WA,17/02/2017,3,WA,1,0,135,0
-PR-40010043,,,true,likely_individual,NT,01/03/2017,0,,0,0,,0
 PR-00001287,The Essington School Darwin Limited,The Essington School Darwin,false,company,NT,02/02/2010,2,NT,1,0,180,0
 PR-00001290,Top End Early Learning Centre Incorporated,Top End Early Learning Centre Incorporated,false,incorporated_association,NT,27/05/2011,1,NT,1,0,96,0
 PR-00001292,West Arnhem Regional Council,West Arnhem Regional Council,false,government,NT,01/07/2011,1,NT,1,0,59,0
@@ -2299,6 +2299,10 @@ PR-00001434,Cockatoo Kindergarten Inc,,false,incorporated_association,VIC,29/12/
 PR-00001436,Colac Otway Shire,,false,government,VIC,29/12/2011,1,VIC,1,1,,1
 PR-00001438,Coleraine & District Kindergarten Inc,,false,incorporated_association,VIC,29/12/2011,0,,0,0,,0
 PR-00001441,Cooraminta Children's Centre Inc,,false,incorporated_association,VIC,29/12/2011,2,VIC,1,0,90,0
+PR-40025657,SHINE LEARNING CENTRE PTY LTD,Shine Learning Centre,false,company,NSW,14/07/2021,0,,0,0,,0
+PR-40025663,,,true,trust_or_trustee,QLD,26/05/2021,1,QLD,1,0,50,0
+PR-40025664,TODDLER TOWN DAY CARE PTY LTD,TODDLER TOWN DAY CARE PTY LTD,false,company,QLD,27/07/2021,1,QLD,1,0,75,0
+PR-40025682,Whiz Kidz Centres Pty Ltd,Whiz Kidz Centres,false,company,NSW,16/07/2021,0,,0,0,,0
 PR-40025688,LITTLE SUNSHINE ELC & KINDERGARTEN PRESTON PTY LTD,,false,company,VIC,29/11/2021,1,VIC,1,0,76,0
 PR-40025702,,,true,trust_or_trustee,QLD,29/03/2021,1,QLD,1,0,100,0
 PR-40025711,,,true,trust_or_trustee,NSW,02/08/2021,1,NSW,1,0,34,0
@@ -2326,7 +2330,7 @@ PR-40025916,KTR Blossom Pty Ltd,KTR Blossoms PTY LTD,false,company,QLD,26/05/202
 PR-40025925,,,true,likely_individual,QLD,27/08/2021,0,,0,0,,0
 PR-40025933,,,true,trust_or_trustee,QLD,07/07/2021,0,,0,0,,0
 PR-40025952,Bernacci Holdings Pty Ltd,Bernacci Holdings Pty Ltd,false,company,VIC,29/08/2021,0,,0,0,,0
-PR-40025997,Edge Early Learning QLD Pty Ltd (Administrators Appointed),Edge Early Learning QLD,false,company,QLD,13/05/2021,11,QLD,1,0,1065,0
+PR-40025997,Edge Early Learning QLD Pty Ltd (Administrators Appointed),Edge Early Learning QLD,false,company,QLD,13/05/2021,12,QLD,1,0,1179,0
 PR-40026005,Edge Early Learning Eagleby Pty Ltd (Administrators Appointed),Edge Early Learning Eagleby,false,company,QLD,13/05/2021,1,QLD,1,0,108,0
 PR-40026006,Edge Early Learning Beaudesert Pty Ltd (Administrators Appointed),Edge Early Learning,false,company,QLD,13/05/2021,1,QLD,1,0,85,0
 PR-40026007,Edge Early Learning Karana Downs Pty Ltd (Administrators Appointed),Edge Early Learning Karana Downs,false,company,QLD,13/05/2021,1,QLD,1,0,110,0
@@ -2395,10 +2399,10 @@ PR-40026533,Hatch EL1 Pty Ltd,,false,company,WA,05/08/2021,1,WA,1,0,52,0
 PR-40026538,Kindy Ready Pty Ltd,,false,company,WA,27/07/2021,0,,0,0,,0
 PR-40026559,NGUTU COLLEGE LTD,NGUTU COLLEGE,false,company,SA,26/08/2021,2,SA,1,0,55,0
 PR-40026560,PUGGLE DUBBO THOMSON PTY LTD,Crackles Early Learning Centre,false,company,NSW,30/11/2021,0,,0,0,,0
-PR-40026567,ANKI Pty Ltd ATF ANKI Investment Trust,Mother Duck Childcare and Preschool Lawnton,false,trust_or_trustee,QLD,26/07/2021,0,,0,0,,0
-PR-40026584,,,true,likely_individual,WA,09/12/2021,0,,0,0,,0
-PR-40026601,ALL CARE KIDS PTY LTD,All Care Australia,false,company,QLD,16/08/2021,0,,0,0,,0
-PR-40026606,ME FOR KIDS CROYDON PTY LTD,,false,company,VIC,27/07/2021,1,VIC,1,0,90,0
+PR-40033827,MD EDUCATION PTY LTD,,false,company,NSW,15/08/2023,0,,0,0,,0
+PR-40033849,TREASURED TOTS EARLY EDUCATION BENNETT SPRINGS PTY LTD,Treasured Tots Early Education Bennett Springs,false,company,WA,07/08/2023,1,WA,1,0,106,0
+PR-40033869,MYSTIC ENTERPRISES PTY LTD,,false,company,VIC,25/01/2024,0,,0,0,,0
+PR-40033878,,,true,likely_individual,QLD,24/10/2023,0,,0,0,,0
 PR-40033897,,,true,unknown,VIC,14/11/2023,1,VIC,1,0,60,0
 PR-40033906,BAJRANG TRADERS PTY LTD,,false,company,NSW,19/10/2023,0,,0,0,,0
 PR-40033912,CAMERON GROUP SERVICES PTY LTD,,false,company,VIC,22/08/2024,0,,0,0,,0
@@ -2495,10 +2499,6 @@ PR-40035064,TAVANA GROUP PTY LTD,NEIGHBOURHOOD ELC,false,company,NSW,07/12/2023,
 PR-40035065,KNOX CENTRAL PRIMARY SCHOOL Council,Knox Central Primary School Council,false,government,VIC,16/12/2023,1,VIC,1,0,15,0
 PR-40035088,MOVE EARLY LEARNING PTY LTD,MOVE EARLY LEARNING,false,company,ACT,12/12/2023,1,ACT,1,0,113,0
 PR-40035136,HOUDA HADDAD PTY LTD,Mini Graduates Early Learning Centre,false,company,NSW,23/11/2023,1,NSW,1,0,26,0
-PR-40035138,,,true,trust_or_trustee,VIC,28/03/2024,1,VIC,1,0,98,0
-PR-40035148,Tyndale Christian School - Kadina Inc,Harvest Christian College OSHC,false,incorporated_association,SA,04/11/2023,1,SA,1,0,45,0
-PR-40035167,,,true,incorporated_association,NSW,06/06/2024,1,NSW,1,0,90,0
-PR-40035168,DISCOVER AND LEARN ACADEMY PTY LTD,Discover and Learn Academy,false,company,NSW,04/12/2023,1,NSW,1,0,81,0
 PR-00000003,South Burnett Child Care Association Inc,,false,incorporated_association,QLD,01/01/2012,1,QLD,1,0,61,0
 PR-00000005,Tewantin Community Kindergarten Inc,,false,incorporated_association,QLD,01/01/2012,1,QLD,1,0,23,0
 PR-00000006,Whitfield Community Kindergarten Association Inc,,false,incorporated_association,QLD,01/01/2012,1,QLD,1,0,48,0
@@ -2599,6 +2599,10 @@ PR-00000122,Esk & District Kindergarten Association Inc,,false,incorporated_asso
 PR-00000124,Boonah District Kindergarten Association Inc,,false,incorporated_association,QLD,01/01/2012,1,QLD,1,0,21,0
 PR-00000125,Chapel Hill Community Preschool & Kindergarten Assoc Inc,,false,incorporated_association,QLD,01/01/2012,1,QLD,1,0,25,0
 PR-00000126,Manly Community Kindergarten Association Inc,,false,incorporated_association,QLD,01/01/2012,0,,0,0,,0
+PR-40036244,Sheri's Hippity-Hoppity Tots Pty Ltd,Hippity-Hoppity Tots Child Care Centre,false,company,VIC,03/05/2024,0,,0,0,,0
+PR-40036245,MUSTARD SEED CHRISTIAN CHILDCARE LTD,Mustard Seed Christian Childcare,false,company,NSW,08/12/2023,2,NSW,1,0,109,0
+PR-40036247,NOVARIA KINDERCARE PTY LTD,,false,company,QLD,21/12/2023,1,QLD,1,0,92,0
+PR-40036248,,,true,trust_or_trustee,WA,07/03/2024,1,WA,1,0,44,0
 PR-40036250,,,true,unknown,QLD,30/10/2024,0,,0,0,,0
 PR-40036252,CANOPY ORMISTON PTY LTD,Canopy Early Education Ormiston,false,company,QLD,19/12/2023,1,QLD,1,0,75,0
 PR-40036255,WAUBRA PRIMARY SCHOOL COUNCIL,Waubra Primary School,false,government,VIC,15/01/2024,1,VIC,1,0,15,0
@@ -2668,7 +2672,6 @@ PR-40036919,"ASPIRE EARLY EDUCATION & KINDERGARTEN SMITHS LANE, CLYDE NORTH PTY 
 PR-40036920,"ASPIRE EARLY EDUCATION and KINDERGARTEN ARRAMONT, WOLLERT PTY LTD","ASPIRE EARLY EDUCATION and KINDERGARTEN ARRAMONT, WOLLERT",false,company,VIC,06/02/2024,1,VIC,1,0,142,0
 PR-40036922,"ASPIRE EARLY EDUCATION & KINDERGARTEN RIVERFIELD, CLYDE NORTH PTY LTD","ASPIRE EARLY EDUCATION and KINDERGARTEN RIVERFIELD, CLYDE NORTH",false,company,VIC,06/02/2024,1,VIC,1,0,146,0
 PR-40036925,"ASPIRE EARLY EDUCATION & KINDERGARTEN EVERLY, SUNBURY PTY LTD","ASPIRE EARLY EDUCATION and KINDERGARTEN EVERLY, SUNBURY",false,company,VIC,06/02/2024,1,VIC,1,0,142,0
-PR-40036945,FIRST GENERICS PTY LTD,,false,company,ACT,10/04/2024,0,,0,0,,0
 PR-40036947,GG EARLY LEARNING PTY LTD,,false,company,NSW,21/05/2024,0,,0,0,,0
 PR-40036953,PENGUIN PARENT EDUCATION NETWORK PTY LTD,Penguin Parent Education Network,false,company,QLD,09/02/2024,1,QLD,1,0,76,0
 PR-40036966,XINGVISTA ENTERPRISES PTY LTD,,false,company,WA,13/07/2024,1,WA,1,0,22,0
@@ -2696,9 +2699,6 @@ PR-40037126,WOODLANDS ST KILDA PTY LTD,Woodlands St Kilda Road,false,company,VIC
 PR-40037133,Mini Scholars Educare PTY LTD,,false,company,VIC,06/05/2024,1,VIC,1,0,29,0
 PR-40037134,Nexus Early Education Group Pty Ltd,,false,company,VIC,01/07/2024,2,VIC,1,0,182,0
 PR-40037149,LOVE TO LEARN CHILDCARE PTY LTD,LOVE TO LEARN CHILDCARE PTY LTD,false,company,WA,17/05/2024,0,,0,0,,0
-PR-40037152,KINDER BAY ACADEMY PTY LTD,Kinder Bay Academy Pty Ltd,false,company,QLD,20/03/2024,0,,0,0,,0
-PR-40037190,Green Leaves (QLD30) Early Learning Centres Pty Ltd,,false,company,QLD,18/03/2024,0,,0,0,,0
-PR-40037191,Green Leaves (QLD31) Early Learning Centres Pty Ltd,,false,company,QLD,18/03/2024,1,QLD,1,0,140,0
 PR-00003918,Cabonne Shire Council,Cabonne Shire Council,false,government,NSW,01/09/2009,7,NSW,1,1,174,1
 PR-00003919,,,true,likely_individual,NSW,01/09/2009,1,NSW,1,0,24,0
 PR-00003922,Flint Pty Limited,Flint Pty Limited,false,company,NSW,01/09/2009,4,NSW,1,0,101,0
@@ -2899,6 +2899,10 @@ PR-00000923,Caloundra Christian College Ltd,,false,company,QLD,01/01/2012,2,QLD,
 PR-00000924,,,true,likely_individual,QLD,01/01/2012,1,QLD,1,0,29,0
 PR-00000926,,,true,incorporated_association,QLD,01/01/2012,1,QLD,1,0,54,0
 PR-00000929,Margaret Cribb Child Care Centre Association Inc,,false,incorporated_association,QLD,01/01/2012,1,QLD,1,0,154,0
+PR-40000683,KM Service & Management Pty Ltd,KM Service & Management Pty Ltd,false,company,NSW,12/06/2013,1,NSW,1,0,28,0
+PR-40000684,Gems Christian Education Limited,Emerald Christian College,false,company,QLD,22/05/2013,1,QLD,1,0,44,0
+PR-40000687,Children Heaven Family Day Care Pty Ltd,Children Heaven Family Day Care,false,company,WA,13/05/2013,2,VIC|WA,2,2,,2
+PR-40000690,J CLAPHAM PTY LTD,Bug-A-Lugs Indoor Play Centre,false,company,VIC,12/07/2013,2,VIC,1,0,148,0
 PR-40000699,Jofira Pty Ltd as Trustee for Jofira Unit Trust,Sandstone Lakes Early Learning Centre,false,trust_or_trustee,QLD,22/05/2013,3,QLD,1,0,304,0
 PR-40000703,,,true,likely_individual,QLD,21/06/2012,0,,0,0,,0
 PR-40000710,,,true,company,NSW,17/06/2013,1,NSW,1,0,35,0
@@ -2995,10 +2999,6 @@ PR-40001081,,,true,trust_or_trustee,NSW,26/09/2013,0,,0,0,,0
 PR-40001089,,,true,likely_individual,QLD,13/09/2013,1,QLD,1,1,,1
 PR-40001090,Rainbow Bridge Family Day Care Pty Ltd,Rainbow Bridge Family Day Care,false,company,QLD,13/11/2013,2,NSW|QLD,2,2,,2
 PR-40001095,Brimeehol Pty Ltd,Sherpa Kids Narellan,false,company,NSW,08/10/2013,29,NSW|QLD,2,0,1532,0
-PR-40001107,,,true,likely_individual,SA,23/09/2013,0,,0,0,,0
-PR-40001110,Major Oak Pty Limited,Sherwood Forest Children's Centre,false,company,NSW,23/09/2013,1,QLD,1,0,75,0
-PR-40001111,,,true,likely_individual,QLD,16/10/2013,0,,0,0,,0
-PR-40001112,Affinity Education Group Pty Limited,,false,company,QLD,04/10/2013,217,ACT|NSW|NT|QLD|VIC|WA,6,0,18047,0
 PR-00007410,Logito Pty Ltd atf Logito Unit Trust,Logito Pty Ltd atf Logito Unit Trust,false,trust_or_trustee,,01/08/2012,1,WA,1,0,109,0
 PR-00007411,Lordale Pty Ltd,Lordale Pty Ltd,false,company,WA,01/08/2012,0,,0,0,,0
 PR-00007414,Manbrel Pty Ltd T/A Play's Kool Mandurah ATF The Mandurah Trust,Play's Kool Mandurah,false,trust_or_trustee,WA,01/08/2012,1,WA,1,0,59,0
@@ -3199,6 +3199,10 @@ PR-00005788,D Z Montessori Pty Ltd,D Z Montessori Pty Ltd,false,company,NSW,30/0
 PR-00005791,Maroubra Junction Child Care Centre Pty Ltd,Maroubra Junction Child Care Centre Pty Ltd,false,company,NSW,04/11/2010,1,NSW,1,0,75,0
 PR-00005792,,,true,unknown,NSW,01/09/2009,1,NSW,1,0,45,0
 PR-00005793,,,true,likely_individual,NSW,01/09/2009,1,NSW,1,0,22,0
+PR-40007188,,,true,trust_or_trustee,NSW,30/08/2016,1,SA,1,0,30,0
+PR-40007203,Star J & L Pty Ltd,,false,company,QLD,22/07/2016,0,,0,0,,0
+PR-40007219,,,true,trust_or_trustee,QLD,18/05/2016,0,,0,0,,0
+PR-40007220,LITTLE LEARNING SCHOOL CLEVELAND ST PTY LTD,Little Learning School Surry Hills,false,company,NSW,18/03/2016,1,NSW,1,0,90,0
 PR-40007227,MAYFIELD CHILDCARE LIMITED,Mayfield Early Education,false,company,VIC,07/07/2016,44,QLD|SA|VIC,3,0,4075,0
 PR-40007228,ROTASTAR EDUCATION PTY LTD,,false,company,NSW,18/03/2016,0,,0,0,,0
 PR-40007235,,,true,likely_individual,NSW,05/04/2016,1,NSW,1,0,29,0
@@ -3295,10 +3299,7 @@ PR-40008320,BANKSTOWN COMMUNITY RESOURCE GROUP INC,Bankstown Community Resource 
 PR-40008328,Tomaree Community College Incorporated,Tomaree Community College,false,incorporated_association,NSW,30/03/2017,2,NSW,1,0,97,0
 PR-40008331,Creative Childcare Kotara Pty Ltd,Clever Kids,false,company,NSW,05/10/2016,1,NSW,1,0,74,0
 PR-40008341,,,true,likely_individual,QLD,03/08/2016,0,,0,0,,0
-PR-40008374,SUNRISE CHILDCARE PTY LTD,,false,company,QLD,11/08/2016,1,QLD,1,0,90,0
-PR-40008376,Arkeane Pty Ltd,Pambula Village Pre-School,false,company,NSW,07/07/2016,1,NSW,1,0,60,0
-PR-40008402,CHERMSIDE CHILDCARE PTY LTD,,false,company,QLD,21/07/2016,0,,0,0,,0
-PR-40008403,KIDS PLANET PTY LTD ATF KINDY KOLLEGE UNIT TRUST,Kids Planet Pty Ltd,false,trust_or_trustee,NSW,07/07/2016,1,NSW,1,0,90,0
+PR-00010644,EXPANDING POTENTIAL PTY LTD,EXPANDING POTENTIAL PTY LTD,false,company,VIC,04/09/2025,0,,0,0,,0
 PR-00010645,S&P NEXT GENERATION PTY LTD,Next Generation Kindergarten,false,company,NSW,13/05/2025,0,,0,0,,0
 PR-00010648,SOPHEM PTY LTD,,false,company,WA,27/05/2025,0,,0,0,,0
 PR-00010650,KIDS CLUB OOSH CARE PTY LTD,Kids Club OOSH Care PtyLtd,false,company,NSW,30/05/2025,0,,0,0,,0
@@ -3398,7 +3399,6 @@ PR-00010886,PLAKAKIS & CO PTY LTD,,false,company,WA,26/08/2025,0,,0,0,,0
 PR-00010887,AWC Education Group Pty Ltd,,false,company,NSW,12/08/2025,0,,0,0,,0
 PR-00010888,LITTLE FRIENDS TREEHOUSE PTY LTD,Little Friends Treehouse,false,company,WA,30/09/2025,1,WA,1,0,99,0
 PR-00010892,LITTLE LUMENS PTY LTD,Little Lumens Pty Ltd,false,company,VIC,26/09/2025,0,,0,0,,0
-PR-00010893,EAGLE WINGS ENTERPRISES PTY LTD,,false,company,NSW,04/07/2025,0,,0,0,,0
 PR-00002240,Horsham & District Kindergarten Association Inc,,false,incorporated_association,VIC,29/12/2011,21,VIC,1,0,943,0
 PR-00002242,North East Regional Preschool Association Incorporated,,false,incorporated_association,VIC,29/12/2011,14,VIC,1,0,447,0
 PR-00002244,Heathdale Christian College Ltd,,false,company,VIC,29/12/2011,1,VIC,1,0,120,0
@@ -3499,6 +3499,10 @@ PR-00002435,Piccolo's Accelerated Early Learning Pty Ltd,,false,company,VIC,29/1
 PR-00002437,,,true,trust_or_trustee,VIC,29/12/2011,1,VIC,1,0,62,0
 PR-00002444,,,true,trust_or_trustee,VIC,29/12/2011,1,VIC,1,0,39,0
 PR-00002448,I E L C Pty Ltd,,false,company,VIC,29/12/2011,0,,0,0,,0
+PR-40006032,Funtastic Gems Pty Ltd,Funtastic Gems Pty Ltd,false,company,NSW,26/11/2015,1,NSW,1,0,74,0
+PR-40006035,,,true,trust_or_trustee,QLD,29/07/2016,1,QLD,1,0,140,0
+PR-40006046,,,true,likely_individual,QLD,01/02/2016,0,,0,0,,0
+PR-40006047,,,true,likely_individual,NSW,24/12/2015,0,,0,0,,0
 PR-40006061,North Education Services Pty Ltd as Trustee for North Education Services Trust,,false,trust_or_trustee,QLD,06/11/2015,2,QLD,1,0,292,0
 PR-40006067,,,true,unknown,QLD,06/06/2016,2,QLD,1,0,140,0
 PR-40006068,Learning 4 Kidz Pty Ltd,Learning 4 Kidz Pty Ltd,false,company,VIC,18/05/2016,0,,0,0,,0
@@ -3595,10 +3599,10 @@ PR-40007094,Country Childrens Early Learning Pty Ltd,Country Kids Club,false,com
 PR-40007097,MINI EINSTEINS FAMILY DAY CARE PTY LTD,Sherpa Kids Granville,false,company,NSW,15/03/2016,0,,0,0,,0
 PR-40007129,SERA DIRECT PTY. LTD.,,false,company,NSW,01/04/2016,4,NSW,1,0,189,0
 PR-40007149,,,true,likely_individual,NSW,23/03/2016,0,,0,0,,0
-PR-40007188,,,true,trust_or_trustee,NSW,30/08/2016,1,SA,1,0,30,0
-PR-40007203,Star J & L Pty Ltd,,false,company,QLD,22/07/2016,0,,0,0,,0
-PR-40007219,,,true,trust_or_trustee,QLD,18/05/2016,0,,0,0,,0
-PR-40007220,LITTLE LEARNING SCHOOL CLEVELAND ST PTY LTD,Little Learning School Surry Hills,false,company,NSW,18/03/2016,1,NSW,1,0,90,0
+PR-40024012,LITTLE WALLABIES FAMILY DAY CARE PTY LTD,,false,company,QLD,17/11/2020,0,,0,0,,0
+PR-40024014,,,true,trust_or_trustee,QLD,24/09/2020,0,,0,0,,0
+PR-40024021,WHOLECHILD EARLY LEARNING PTY LIMITED,Wholechild Early Learning,false,company,NSW,13/05/2021,2,NSW,1,0,256,0
+PR-40024030,,,true,incorporated_association,QLD,29/10/2020,1,QLD,1,0,60,0
 PR-40024034,ISLAMIC COLLEGE OF BRISBANE LIMITED,Islamic College of Brisbane,false,company,QLD,15/10/2020,1,QLD,1,0,60,0
 PR-40024037,TRUGANINA BUSINESS ONE EEG PTY LTD,Truganina Business ONE EEG Pty Ltd,false,company,VIC,25/11/2020,1,VIC,1,0,110,0
 PR-40024039,,,true,trust_or_trustee,NSW,08/03/2021,1,NSW,1,0,110,0
@@ -3695,10 +3699,10 @@ PR-40024725,KINDY COTTAGE PTY LTD as Trustee for Stanbridge Childcare Unit Trust
 PR-40024744,LITTLE DREAMERS EARLY LEARNING PTY LTD,Little Dreamers Early Learning,false,company,NSW,12/03/2021,1,NSW,1,0,56,0
 PR-40024756,,,true,likely_individual,QLD,22/01/2021,0,,0,0,,0
 PR-40024764,DIVERSE GEM CARE PTY LTD,Children Unplugged,false,company,VIC,24/10/2021,1,VIC,1,1,,1
-PR-40024767,MOUNTHI PTY LTD,MOUNTHI PTY LTD,false,company,QLD,14/12/2020,0,,0,0,,0
-PR-40024769,Ascolta Early Learning and Care PTY LTD,Ascolta Early Learning and Care PTY LTD,false,company,WA,26/02/2021,7,WA,1,0,601,0
-PR-40024780,Trayhern Family Investments Pty Ltd,Family First Early Learning,false,company,NT,08/02/2021,1,NT,1,0,135,0
-PR-40024786,Warlpiri Youth Development Aboriginal Corporation,Warlpiri Youth Development Aboriginal Corporation,false,unknown,NT,02/06/2021,0,,0,0,,0
+PR-40014698,The King David School ELC Limited,The King David School Kindergarten,false,company,VIC,19/03/2018,1,VIC,1,0,120,0
+PR-40014718,V2 EDUCATION PTY LTD,,false,company,NSW,12/02/2018,1,NSW,1,0,50,0
+PR-40014723,,,true,likely_individual,NSW,04/05/2018,1,NSW,1,0,27,0
+PR-40014728,HARBOUR TOWN EARLY LEARNING CENTRE PTY LTD,,false,company,QLD,09/05/2018,1,QLD,1,0,93,0
 PR-40014761,,,true,likely_individual,QLD,04/04/2018,0,,0,0,,0
 PR-40014762,Cosmic Education Pty Ltd,Montessori Casa Long Day Care & Early Learning Centre,false,company,SA,05/04/2018,1,SA,1,0,32,0
 PR-40014774,Early Learning Schools Australia Pty Ltd as Trustee for the ELSA Trust,Early Learning Schools Australia ATF the ELSA Trust,false,trust_or_trustee,QLD,20/04/2018,0,,0,0,,0
@@ -3717,7 +3721,7 @@ PR-40014953,Bright Stars Kindergarten - Early Learning Centres Pty Ltd,Bright St
 PR-40014958,ERYKSIA ENTERPRISES PTY LTD,Eryksia Enterprises Pty Ltd,false,company,VIC,23/04/2018,2,VIC,1,0,94,0
 PR-40014964,Kouhoku Group Early Learning Pty Ltd,,false,company,QLD,22/03/2018,1,QLD,1,0,85,0
 PR-40014976,Hassett Investments (Adelong) Pty Ltd,GUMNUT CHILDCARE CENTRE,false,company,NSW,01/05/2018,0,,0,0,,0
-PR-40014989,Learn & Laugh No 4 Pty Ltd,,false,company,,04/04/2018,1,NSW,1,0,55,0
+PR-40014989,Learn & Laugh No 4 Pty Ltd,,false,company,,04/04/2018,2,NSW,1,0,95,0
 PR-40014995,,,true,trust_or_trustee,NSW,29/03/2018,1,NSW,1,0,81,0
 PR-40015004,Natwyn Investments Pty Ltd ATF Natwyn Investment Trust,Sandringham Children's Centre,false,trust_or_trustee,VIC,09/05/2018,0,,0,0,,0
 PR-40015013,DUCK & WAFFLE INVESTMENTS PTY LTD,,false,company,NSW,01/05/2018,1,NSW,1,0,56,0
@@ -3795,10 +3799,10 @@ PR-40016036,St Agnes' Assist Limited,St Joseph's Family Services,false,company,N
 PR-40016039,CUDDLES CHILDCARE CENTRE TWO ROCKS PTY LTD,CUDDLES CHILDCARE CENTRE TWO ROCKS,false,company,WA,12/07/2018,1,WA,1,0,100,0
 PR-40016044,,,true,trust_or_trustee,QLD,10/07/2018,0,,0,0,,0
 PR-40016046,Edge Early Learning South Brisbane Pty Ltd (Administrators Appointed),Edge Early Learning South Brisbane,false,company,QLD,20/06/2018,0,,0,0,,0
-PR-40016047,,,true,incorporated_association,QLD,17/07/2018,1,QLD,1,0,200,0
-PR-40016048,PRECIOUS GEMS CHILDCARE PTY LTD,KIDS HAVEN CHILDCARE,false,company,VIC,16/10/2018,1,VIC,1,0,102,0
-PR-40016049,GREEN LEAVES (QLD11) EARLY LEARNING CENTRES PTY LTD,,false,company,QLD,10/08/2018,1,QLD,1,0,76,0
-PR-40016057,,,true,likely_individual,QLD,09/08/2018,1,QLD,1,0,20,0
+PR-40031955,MEANINGFUL BEGINNINGS PTY LTD,,false,company,NSW,08/09/2023,1,NSW,1,0,40,0
+PR-40031959,CESSNOCK ELC PTY LTD,Cessnock ELC,false,company,NSW,11/05/2023,1,NSW,1,0,99,0
+PR-40031968,HT EARLY LEARNING PTY LTD,HT Early Learning PTY LTD,false,company,NSW,25/10/2023,1,NSW,1,0,28,0
+PR-40032009,LITTLE SKOOL PTY LTD,Little Skool Early Education,false,company,NSW,13/04/2023,1,NSW,1,0,68,0
 PR-40032018,NATIONAL AUSTRALIA CHILDCARE PTY LTD,,false,company,NSW,26/06/2023,0,,0,0,,0
 PR-40032034,SRI SARASWATHI PTY LTD,Leap Pad,false,company,NSW,07/03/2023,1,NSW,1,0,34,0
 PR-40032041,A&D Early Learning P/L,,false,company,NSW,04/07/2023,0,,0,0,,0
@@ -3895,10 +3899,10 @@ PR-40032898,HP & PS PTY LTD,HP & PS PVT LTD,false,company,NSW,14/09/2023,1,NSW,1
 PR-40032919,INSPIRA KIDS EARLY LEARNING CENTRE @ ARCHER STREET PTY LTD,Inspira Kids Early Learning Centre - Archer Street,false,company,VIC,06/03/2024,1,VIC,1,0,154,0
 PR-40032929,PARKLANDS CHRISTIAN COLLEGE LIMITED,,false,company,QLD,22/05/2023,2,QLD,1,0,142,0
 PR-40032930,CHAWLA GROUP AU PTY LTD,,false,company,VIC,30/12/2023,1,VIC,1,0,55,0
-PR-40032939,SPARROW NEST EARLY LEARNING 101 PTY LTD and Sparrow Nest Early Learning 101 Pty Ltd,,false,company,QLD,05/07/2023,1,QLD,1,0,75,0
-PR-40032942,,,true,likely_individual,QLD,26/06/2023,0,,0,0,,0
-PR-40032954,LAUGH AND GROW ACADEMY PTY LTD,Laugh and Grow Academy,false,company,NSW,18/08/2023,1,NSW,1,0,79,0
-PR-40032955,BRIGHT CAMP PTY LTD,Cub Care Early Learning Centre,false,company,TAS,25/09/2024,0,,0,0,,0
+PR-40002411,,,true,trust_or_trustee,VIC,26/05/2015,0,,0,0,,0
+PR-40002415,,,true,trust_or_trustee,QLD,28/10/2014,0,,0,0,,0
+PR-40002418,Little Learning School Alexandria - Burrows Rd Pty Ltd,Little Learning School Alexandria - Burrows Rd,false,company,NSW,29/08/2014,0,,0,0,,0
+PR-40002421,Education and Care Hub Pty Ltd as Trustee for The Polly Trust,,false,trust_or_trustee,QLD,05/09/2014,1,QLD,1,0,125,0
 PR-40002427,Cares ''R'' Us Family Day Care Scheme Pty Ltd,,false,company,NSW,31/12/2014,1,NSW,1,1,,1
 PR-40002429,Minchinbury Preschool & Nursery Pty Ltd,,false,company,NSW,04/09/2014,0,,0,0,,0
 PR-40002430,Best Start Early Learning Centres Pty Ltd,,false,company,QLD,24/10/2014,1,QLD,1,0,80,0
@@ -3995,10 +3999,6 @@ PR-40002818,,,true,trust_or_trustee,NSW,30/12/2014,1,NSW,1,0,90,0
 PR-40002822,,,true,trust_or_trustee,NSW,02/02/2015,3,NSW,1,0,138,0
 PR-40002830,,,true,unknown,VIC,19/03/2015,0,,0,0,,0
 PR-40002837,BLESSINGTON HOLDINGS PTY LTD,FANTASIA CHILDCARE,false,company,VIC,08/05/2015,0,,0,0,,0
-PR-40002838,PALLAMAR HOLDINGS PTY. LTD.,Croydon Tennis Centre OOSH,false,company,NSW,21/01/2015,2,NSW,1,0,120,0
-PR-40002839,,,true,likely_individual,NSW,19/12/2014,1,NSW,1,0,44,0
-PR-40002846,BAIB ENTERPRISE PTY LTD,BAIB ENTERPRISE PTY LTD,false,company,NSW,11/02/2015,0,,0,0,,0
-PR-40002860,CUZENT PTY LTD,Kiama Stars of the Future Child Care Centre,false,company,NSW,30/01/2015,1,NSW,1,0,28,0
 PR-00004659,Nambucca Heads Pre-School Playcentre Ltd,Nambucca Heads Pre-School Playcentre Ltd,false,company,NSW,01/09/2009,1,NSW,1,0,39,0
 PR-00004660,Birchgrove Community Association Ltd,Birchgrove Community Association Ltd,false,company,NSW,01/09/2009,1,NSW,1,0,29,0
 PR-00004662,Mudgee Community Preschool Incorporated,Mudgee Community Preschool Incorporated,false,incorporated_association,NSW,01/09/2009,2,NSW,1,0,80,0
@@ -4099,6 +4099,10 @@ PR-00004851,Jacaranda Pre-School Centre Incorporated,Jacaranda Pre-School Centre
 PR-00004854,Holad Pty Ltd,Holad Pty Ltd,false,company,NSW,01/09/2009,1,NSW,1,0,40,0
 PR-00004856,Lower Bucca Community Pre-School Incorporated,Lower Bucca Community Pre-School Incorporated,false,incorporated_association,NSW,01/09/2009,1,NSW,1,0,24,0
 PR-00004858,,,true,likely_individual,NSW,01/09/2009,0,,0,0,,0
+PR-40020345,,,true,likely_individual,VIC,13/11/2019,0,,0,0,,0
+PR-40020358,WARDA ENTERPRISES PTY LTD,Menangle Park Early Learning Centre,false,company,NSW,28/10/2019,1,NSW,1,0,52,0
+PR-40020364,OAKVILLE MONTESSORI ELC PTY LTD,,false,company,NSW,10/10/2019,1,NSW,1,0,101,0
+PR-40020371,,,true,unknown,VIC,31/10/2019,0,,0,0,,0
 PR-40020377,,,true,likely_individual,NSW,14/11/2019,0,,0,0,,0
 PR-40020385,SLK TRADING TARNEIT PTY LTD,EXPLORERS EARLY LEARNING - TARNEIT,false,company,VIC,10/07/2019,1,VIC,1,0,140,0
 PR-40020393,,,true,likely_individual,QLD,17/09/2019,0,,0,0,,0
@@ -4195,10 +4199,6 @@ PR-40021130,MRRA EDUCATION PTY LTD,,false,company,QLD,14/10/2019,0,,0,0,,0
 PR-40021135,STARINVEST PTY LTD,,false,company,QLD,27/09/2019,0,,0,0,,0
 PR-40021137,FINGROW HOLDINGS PTY LTD,,false,company,QLD,27/09/2019,1,QLD,1,0,136,0
 PR-40021139,REKAA PTY LTD,St faiths Childcare and Early Learning Centre,false,company,VIC,02/10/2019,1,VIC,1,0,111,0
-PR-40021142,GREEN LEAVES (QLD12) EARLY LEARNING CENTRES PTY LTD,,false,company,QLD,05/11/2019,1,QLD,1,0,91,0
-PR-40021143,NIET ASSET HOLDING PTY LTD,NIET ASSET HOLDING Pty Ltd,false,company,QLD,30/09/2019,0,,0,0,,0
-PR-40021147,,,true,likely_individual,NSW,18/12/2019,0,,0,0,,0
-PR-40021148,GREEN LEAVES (QLD16) EARLY LEARNING CENTRES PTY LTD,,false,company,QLD,15/11/2019,1,QLD,1,0,126,0
 PR-00009416,Wanneroo Early Learning PTY LTD,Wanneroo Early Learning,false,company,WA,02/07/2024,1,WA,1,0,86,0
 PR-00009418,AJ Bethel Pty Ltd,,false,company,QLD,24/05/2024,1,QLD,1,0,48,0
 PR-00009424,KJJT TRADING PTY LTD,,false,company,SA,01/07/2024,1,QLD,1,0,80,0
@@ -4299,6 +4299,10 @@ PR-00009624,OLIVET ACADEMY INCORPORATED,,false,incorporated_association,NSW,07/1
 PR-00009632,,,true,trust_or_trustee,VIC,23/07/2024,1,VIC,1,0,112,0
 PR-00009633,Simba Education PTY LTD,Simba Education PTY LTD,false,company,,10/09/2024,4,NSW,1,0,364,0
 PR-00009640,ME FOR KIDS LALOR PTY LTD,Lalor Early Learning Centre,false,company,VIC,26/08/2024,1,VIC,1,0,108,0
+PR-40011025,Bundilla Preschool PTY LTD,Lighthouse early learning centre berkeley vale,false,company,NSW,31/08/2017,1,NSW,1,0,29,0
+PR-40011030,CNRC Childcare Pty Ltd,CNRC Childcare,false,company,QLD,16/06/2017,2,QLD,1,0,109,0
+PR-40011040,UNITING (VICTORIA AND TASMANIA) LIMITED,,false,church_or_religious,VIC,05/06/2017,89,TAS|VIC,2,1,3997,1
+PR-40011043,Townsville Christian Life Centre Limited,Life Early Learning Centre,false,company,QLD,27/07/2017,2,QLD,1,0,90,0
 PR-40011047,Milton Lights ELC Pty Ltd,,false,company,NSW,27/07/2017,1,NSW,1,0,104,0
 PR-40011050,Australian Christian Early Education Ltd,,false,company,NSW,29/09/2017,2,NSW|QLD,2,0,115,0
 PR-40011052,Farm Change Pty Ltd,Moreton Drive Early Learning Centre,false,company,QLD,20/07/2017,0,,0,0,,0
@@ -4395,10 +4399,6 @@ PR-40011914,LITTLE GEMS CHILD CARE & EARLY LEARNING PTY LTD,Little Gems Child Ca
 PR-40011921,SUCCESS EARLY LEARNING PTY LIMITED,,false,company,ACT,17/11/2017,4,WA,1,0,377,0
 PR-40011923,,,true,trust_or_trustee,NSW,07/12/2017,1,NSW,1,0,97,0
 PR-40011926,Projects on Parkinson Ltd,,false,company,ACT,20/06/2017,1,ACT,1,0,95,0
-PR-40011930,,,true,trust_or_trustee,NSW,15/09/2017,1,NSW,1,0,60,0
-PR-40011939,Kids Spring Pty Ltd as Trustee for Kids Spring Trust,,false,trust_or_trustee,QLD,21/09/2017,1,QLD,1,0,75,0
-PR-40011948,BIRKDALE CHILD CARE CENTRE PTY LTD,,false,company,QLD,09/08/2017,3,QLD,1,0,251,0
-PR-40011949,Advanced Early Learning Centre Pty Ltd,Advanced Early Learning Centre Pty Ltd,false,company,SA,27/06/2017,1,SA,1,0,114,0
 PR-00006303,Ramme Pty Ltd,Ramme Pty Ltd,false,company,SA,01/01/2012,0,,0,0,,0
 PR-00006305,Redwood Park Primary School Council,Redwood Park Primary School Council,false,government,SA,01/01/2012,1,SA,1,0,70,0
 PR-00006306,Renmark Children's Centre Inc,Renmark Children's Centre Inc,false,incorporated_association,SA,01/01/2012,1,SA,1,0,89,0
@@ -4499,6 +4499,10 @@ PR-00006487,Greta Valley Primary School Council,Greta Valley Primary School,fals
 PR-00006489,Laurimar Primary School Council,Laurimar Primary School,false,government,VIC,24/02/2012,0,,0,0,,0
 PR-00006491,Hope Patterson Lakes Pty Ltd,Hope Patterson Lakes Pty Ltd,false,company,VIC,03/02/2012,1,VIC,1,0,122,0
 PR-00006493,Honey Tree Industries Pty Ltd,The Honey Tree Preschool,false,company,NSW,16/05/2012,1,NSW,1,0,39,0
+PR-40028335,LANGLEY PRIMARY SCHOOL COUNCIL,Langley Primary School,false,government,VIC,27/01/2022,0,,0,0,,0
+PR-40028353,Dara Village Incorporated,Dara School,false,incorporated_association,SA,03/03/2022,1,SA,1,0,45,0
+PR-40028361,COTTAGE ACADEMY PTY LTD,Cottage Academy Pty Ltd,false,company,QLD,20/01/2022,2,QLD,1,0,133,0
+PR-40028364,KIDDIES CASTLE PTY LTD,KIDDIES CASTLE PTY LTD,false,company,NSW,04/05/2022,0,,0,0,,0
 PR-40028365,ROZARIO SIX PTY LTD,,false,company,NSW,24/02/2022,2,NSW,1,0,76,0
 PR-40028369,Little Cookies Early Learning Centre Pty Ltd,Little Cookies Early Learning Centre Pty Ltd,false,company,NSW,04/05/2022,1,NSW,1,0,28,0
 PR-40028371,,,true,likely_individual,VIC,03/07/2023,0,,0,0,,0
@@ -4595,10 +4599,7 @@ PR-40029260,ORENDA CIRCLE PTY LTD,Orenda Circle,false,company,TAS,12/12/2022,1,T
 PR-40029269,KIJO CARE PTY LTD,KIJO CARE CENTRE,false,company,NSW,18/07/2022,1,NSW,1,0,39,0
 PR-40029287,JML Trading Essendon Pty Ltd,Explorers Early Learning - Essendon,false,company,VIC,15/08/2022,1,VIC,1,0,140,0
 PR-40029307,,,true,likely_individual,NSW,12/07/2022,1,NSW,1,0,29,0
-PR-40029327,SIBLINGS EARLY LEARNING PTY LTD,Siblings Early Learning Pty Ltd,false,company,QLD,18/05/2022,1,QLD,1,0,112,0
-PR-40029330,LNS ENTERPRISES (QLD) PTY LTD,,false,company,QLD,28/06/2022,1,QLD,1,0,49,0
-PR-40029334,,,true,likely_individual,QLD,07/06/2022,5,QLD,1,0,237,0
-PR-40029338,ROADSHOW HOLDINGS PTY LTD,Roadshow Holdings PTY LTD,false,company,WA,24/05/2022,4,WA,1,0,193,0
+PR-00011578,CHILDRENS ATELIER GROUP PTY LTD,The Children's Atelier,false,company,NSW,12/03/2026,1,VIC,1,0,130,0
 PR-00011581,Panda Early Learning Centre Joondanna Pty Ltd,Panda Early Learning Centre Joondanna,false,company,WA,23/12/2025,1,WA,1,0,102,0
 PR-00011582,,,true,trust_or_trustee,VIC,02/03/2026,0,,0,0,,0
 PR-00011583,,,true,trust_or_trustee,VIC,02/03/2026,0,,0,0,,0
@@ -4698,7 +4699,6 @@ PR-00011841,EVERBLOOM CHILDCARE PROPRIETARY LTD,EVERBLOOM CHILDCARE PROPRIETARY 
 PR-00011844,SOVEREIGN EARLY LEARNING CHILDCARE CENTRE PTY LTD,SOVEREIGN EARLY LEARNING CHILDCARE CENTRE,false,company,VIC,01/10/2026,0,,0,0,,0
 PR-00011846,NEXTGENEXPLORER PTY LTD,NEXT GENERATION KIDS,false,company,VIC,14/10/2026,0,,0,0,,0
 PR-00011847,RRM HOLDINGS WA PTY LTD,Centre Field,false,company,WA,05/05/2026,0,,0,0,,0
-PR-00011853,H.C & B.T ENTERPRISES PTY LTD,New Horizon's Battery Point (pending service approval transfer),false,company,TAS,14/04/2026,1,TAS,1,0,60,0
 PR-00004859,Kindilan Early Childhood Centre Incorporated,Kindilan Early Childhood Centre Incorporated,false,incorporated_association,NSW,01/09/2009,1,NSW,1,0,90,0
 PR-00004860,Shaw Street Childrens Centre Inc,Shaw Street Childrens Centre Inc,false,incorporated_association,NSW,01/09/2009,1,NSW,1,0,28,0
 PR-00004861,,,true,incorporated_association,NSW,01/09/2009,1,NSW,1,0,20,0
@@ -5299,6 +5299,7 @@ PR-00002235,Golden Plains Shire Council,,false,government,VIC,29/12/2011,5,VIC,1
 PR-00002236,Kinderworld Park Pty Ltd,,false,company,VIC,29/12/2011,0,,0,0,,0
 PR-00002238,Vasey Park Preschool Inc,,false,incorporated_association,VIC,29/12/2011,1,VIC,1,0,30,0
 PR-00002239,Wonder World Pty Ltd,,false,company,VIC,29/12/2011,1,VIC,1,0,45,0
+PR-00010358,VINLOW & CO PTY LTD,,false,company,WA,01/04/2025,0,,0,0,,0
 PR-00010371,Best of Me Early Learning Pty Ltd,Best of Me Early Learning,false,company,NSW,13/01/2025,1,NSW,1,0,22,0
 PR-00010377,WILDBERRIES EARLY LEARNING PTY LTD,,false,company,QLD,25/02/2025,1,WA,1,0,120,0
 PR-00010380,CANN RIVER P12 COLLEGE COUNCIL,Cann River P12 College,false,government,VIC,09/03/2025,1,VIC,1,0,18,0
@@ -5398,7 +5399,6 @@ PR-00010634,LITTLE MINDS MATTER EARLY LEARNING CENTRE PTY LTD,,false,company,NSW
 PR-00010635,INSPIRING GROWING MINDS PTY LTD,,false,company,SA,21/05/2025,1,SA,1,0,47,0
 PR-00010641,AC EARLY EDUCATION PTY LTD,AC EARLY EDUCATION PTY LTD,false,company,VIC,10/08/2025,0,,0,0,,0
 PR-00010642,Munchkin Academy PTY LTD,,false,company,ACT,28/07/2025,0,,0,0,,0
-PR-00010644,EXPANDING POTENTIAL PTY LTD,EXPANDING POTENTIAL PTY LTD,false,company,VIC,04/09/2025,0,,0,0,,0
 PR-00007189,ABWEH Pty Ltd,ABWEH Pty Ltd,false,company,WA,01/08/2012,1,WA,1,0,35,0
 PR-00007190,Acacia Hill Pty Ltd,Acacia Hill Pty Ltd,false,company,WA,01/08/2012,1,WA,1,0,70,0
 PR-00007193,Albany Occasional Child Care Centre Inc,Albany Occasional Child Care Centre Inc,false,incorporated_association,WA,01/08/2012,1,WA,1,0,42,0
@@ -5420,7 +5420,7 @@ PR-00007224,Bremer Bay Community Resource & Visitors Centre Inc,Bremer Bay Commu
 PR-00007225,Brockman House Inc,Brockman House Inc,false,incorporated_association,WA,01/08/2012,1,WA,1,0,95,0
 PR-00007228,Broome Out of School Care Children's Activities Incorporated,Broome Out of School Care Children's Activities Incorporated,false,incorporated_association,WA,01/08/2012,1,WA,1,0,55,0
 PR-00007232,Bunbury Cathedral Grammar School Inc,Bunbury Cathedral Grammar School Inc,false,incorporated_association,WA,01/08/2012,1,WA,1,0,134,0
-PR-00007236,,,true,trust_or_trustee,WA,01/08/2012,31,WA,1,0,2098,0
+PR-00007236,,,true,trust_or_trustee,WA,01/08/2012,32,WA,1,0,2168,0
 PR-00007238,Canning Vale Prekindy Inc,Canning Vale Prekindy Inc,false,incorporated_association,WA,01/08/2012,1,WA,1,0,18,0
 PR-00007240,Care for Kids Pty Ltd ATF Care For Kids Trust,Care for Kids Pty Ltd ATF Care For Kids Trust,false,trust_or_trustee,WA,01/08/2012,0,,0,0,,0
 PR-00007242,Carey Community Resources Ltd,Jump Carey Early Development,false,company,WA,01/08/2012,3,WA,1,0,285,0
@@ -5699,6 +5699,10 @@ PR-00003911,River Region Early Education Ltd,River Region Early Education Ltd,fa
 PR-00003913,Bayside Council,Botany Bay City Council,false,government,NSW,01/09/2009,3,NSW,1,0,208,0
 PR-00003915,Tuntable Falls Early Childhood Centre Inc,Tuntable Falls Early Childhood Centre Inc,false,incorporated_association,NSW,01/09/2009,1,NSW,1,0,20,0
 PR-00003917,Goulding Hill Pre School Inc,Goulding Hill Pre School Inc,false,incorporated_association,NSW,31/03/2010,1,NSW,1,0,42,0
+PR-40000304,Calvin Enterprises Pty Ltd ATF Calvin Enterprises Trust,Small Friends,false,trust_or_trustee,WA,03/12/2012,0,,0,0,,0
+PR-40000307,Dalas Family Day Care Pty Ltd,Dalas Family Day Care Pty Ltd,false,company,VIC,10/12/2012,1,VIC,1,1,,1
+PR-40000309,Tren Trading Pty Ltd,Dubbo Early Learning Centre,false,company,NSW,07/02/2013,1,NSW,1,0,103,0
+PR-40000312,Wiggles and Giggles Quakers Hill Pty Ltd,Wiggles and Giggles Quakers Hill Childcare Centre,false,company,NSW,09/01/2013,2,NSW,1,0,160,0
 PR-40000315,BasicNeeds Australia Inc.,BasicNeeds Family Day Care,false,incorporated_association,VIC,02/04/2013,3,VIC,1,1,140,1
 PR-40000317,Hawthorn Early Years Incorporated,Hawthorn Early Years,false,incorporated_association,VIC,04/01/2013,1,VIC,1,0,155,0
 PR-40000318,PINK LOTUS FAMILY DAY CARE PTY LTD,PINK LOTUS FAMILY DAY CARE PTY LTD,false,company,VIC,04/03/2013,1,VIC,1,1,,1
@@ -5795,10 +5799,10 @@ PR-40000664,IGNITE MINDS PTY. LTD.,IGNITE MINDS PTY. LTD.,false,company,VIC,12/0
 PR-40000670,,,true,likely_individual,VIC,17/06/2013,1,VIC,1,1,,1
 PR-40000679,Lifestreams Christian Church Inc.,Lifestreams Christian Church,false,incorporated_association,WA,23/04/2013,1,WA,1,0,45,0
 PR-40000681,A & I PTY LTD,A & I Pty Ltd,false,company,NSW,14/05/2013,1,NSW,1,0,28,0
-PR-40000683,KM Service & Management Pty Ltd,KM Service & Management Pty Ltd,false,company,NSW,12/06/2013,1,NSW,1,0,28,0
-PR-40000684,Gems Christian Education Limited,Emerald Christian College,false,company,QLD,22/05/2013,1,QLD,1,0,44,0
-PR-40000687,Children Heaven Family Day Care Pty Ltd,Children Heaven Family Day Care,false,company,WA,13/05/2013,2,VIC|WA,2,2,,2
-PR-40000690,J CLAPHAM PTY LTD,Bug-A-Lugs Indoor Play Centre,false,company,VIC,12/07/2013,2,VIC,1,0,148,0
+PR-40013613,Busy Bees Maroubra Pty Ltd,Bliss Early Learning Maroubra,false,company,QLD,18/06/2018,0,,0,0,,0
+PR-40013625,Edge Early Learning Strathpine Pty Ltd (Administrators Appointed),,false,company,QLD,22/12/2017,1,QLD,1,0,122,0
+PR-40013643,,,true,likely_individual,NSW,01/02/2018,1,NSW,1,0,29,0
+PR-40013657,,,true,trust_or_trustee,NSW,21/11/2017,1,NSW,1,0,40,0
 PR-40013665,,,true,likely_individual,NSW,14/12/2017,1,NSW,1,0,42,0
 PR-40013676,FLOURISH EDUCATION PTY LTD,,false,company,QLD,24/01/2018,0,,0,0,,0
 PR-40013678,ALTITUDE EMP PTY LTD,,false,company,QLD,12/01/2018,1,QLD,1,0,80,0
@@ -5895,10 +5899,10 @@ PR-40014609,,,true,trust_or_trustee,VIC,22/08/2018,0,,0,0,,0
 PR-40014610,MONTESSORI EDU PTY LIMITED,Montessori Edu,false,company,NSW,04/04/2018,1,NSW,1,0,26,0
 PR-40014657,Kosy (WA) Pty Ltd,,false,company,WA,14/03/2018,0,,0,0,,0
 PR-40014674,A AND D CHILD CARE PTY LTD,,false,company,NSW,19/02/2018,1,NSW,1,0,39,0
-PR-40014698,The King David School ELC Limited,The King David School Kindergarten,false,company,VIC,19/03/2018,1,VIC,1,0,120,0
-PR-40014718,V2 EDUCATION PTY LTD,,false,company,NSW,12/02/2018,1,NSW,1,0,50,0
-PR-40014723,,,true,likely_individual,NSW,04/05/2018,1,NSW,1,0,27,0
-PR-40014728,HARBOUR TOWN EARLY LEARNING CENTRE PTY LTD,,false,company,QLD,09/05/2018,1,QLD,1,0,93,0
+PR-40031081,,,true,trust_or_trustee,VIC,26/10/2022,1,VIC,1,0,124,0
+PR-40031090,HARBOUR EARLY LEARNING MANAGEMENT PTY LTD,Harbour Early Learning Management Pty Ltd,false,company,NSW,08/03/2023,5,ACT|NSW,2,0,538,0
+PR-40031100,MONACO ST CHILDCARE PTY LTD,,false,company,QLD,31/10/2022,1,QLD,1,0,75,0
+PR-40031106,TINGERA NSW PTY LTD,,false,company,NSW,15/12/2022,1,NSW,1,0,29,0
 PR-40031108,,,true,likely_individual,WA,30/12/2022,0,,0,0,,0
 PR-40031111,,,true,trust_or_trustee,QLD,12/12/2022,0,,0,0,,0
 PR-40031112,CREATIVE NOOK EARLY LEARNING CENTRE PTY LTD,Creative Nook Early Learning Centre,false,company,NSW,17/10/2022,1,NSW,1,0,42,0
@@ -5995,10 +5999,10 @@ PR-40031937,Seasons Early Learning Pty Ltd,Seasons Early Learning Pty Ltd,false,
 PR-40031945,The Village Creative Education (Belrose) Pty Ltd,The Village Creative Education,false,company,NSW,25/01/2023,1,NSW,1,0,20,0
 PR-40031946,Woongarrah ELC PTY LTD,Woongarrah ELC,false,company,NSW,07/03/2023,1,NSW,1,0,92,0
 PR-40031948,,,true,likely_individual,VIC,27/06/2023,0,,0,0,,0
-PR-40031955,MEANINGFUL BEGINNINGS PTY LTD,,false,company,NSW,08/09/2023,1,NSW,1,0,40,0
-PR-40031959,CESSNOCK ELC PTY LTD,Cessnock ELC,false,company,NSW,11/05/2023,1,NSW,1,0,99,0
-PR-40031968,HT EARLY LEARNING PTY LTD,HT Early Learning PTY LTD,false,company,NSW,25/10/2023,1,NSW,1,0,28,0
-PR-40032009,LITTLE SKOOL PTY LTD,Little Skool Early Education,false,company,NSW,13/04/2023,1,NSW,1,0,68,0
+PR-00012512,,,true,likely_individual,NSW,21/10/2026,0,,0,0,,0
+PR-00012527,,,true,likely_individual,QLD,27/10/2026,0,,0,0,,0
+PR-00012530,THE REDHEIHEI PTY LTD,,false,company,QLD,14/10/2026,0,,0,0,,0
+PR-00012545,THE EDUCATION COLLECTIVE PTY LTD,The Education Collective,false,company,QLD,02/10/2026,0,,0,0,,0
 PR-00012548,SB EASTWOOD PTY LTD,Shared Beginnings Eastwood,false,company,QLD,29/09/2026,0,,0,0,,0
 PR-00012549,,,true,trust_or_trustee,NSW,20/10/2026,0,,0,0,,0
 PR-00012557,BLOOM EARLY LEARNING GLENVALE PTY LTD,Bloom Early Learning Glenvale,false,company,QLD,07/10/2026,0,,0,0,,0
@@ -6095,10 +6099,10 @@ PR-40000298,,,true,likely_individual,NSW,08/10/2013,0,,0,0,,0
 PR-40000299,GENAZZANO F.C.J. COLLEGE LIMITED,Genazzano FCJ College,false,company,VIC,24/01/2013,1,VIC,1,0,40,0
 PR-40000302,Gurlitzer Pty Ltd As Trustee For Nerang Trust,,false,trust_or_trustee,QLD,04/01/2013,0,,0,0,,0
 PR-40000303,Happy Children Australia Pty Ltd,Butterflies Early Learning and Childcare,false,company,QLD,11/01/2013,0,,0,0,,0
-PR-40000304,Calvin Enterprises Pty Ltd ATF Calvin Enterprises Trust,Small Friends,false,trust_or_trustee,WA,03/12/2012,0,,0,0,,0
-PR-40000307,Dalas Family Day Care Pty Ltd,Dalas Family Day Care Pty Ltd,false,company,VIC,10/12/2012,1,VIC,1,1,,1
-PR-40000309,Tren Trading Pty Ltd,Dubbo Early Learning Centre,false,company,NSW,07/02/2013,1,NSW,1,0,103,0
-PR-40000312,Wiggles and Giggles Quakers Hill Pty Ltd,Wiggles and Giggles Quakers Hill Childcare Centre,false,company,NSW,09/01/2013,2,NSW,1,0,160,0
+PR-40023010,,,true,trust_or_trustee,QLD,06/07/2020,0,,0,0,,0
+PR-40023017,NORTH ROTHBURY PELC PTY LIMITED,The Cottage Preschool and Early Learning Centre,false,company,NSW,15/10/2020,1,NSW,1,0,84,0
+PR-40023018,Priquin Pty Ltd as Trustee for Priquin Unit Trust,,false,trust_or_trustee,QLD,15/06/2020,0,,0,0,,0
+PR-40023045,,,true,trust_or_trustee,QLD,30/07/2020,0,,0,0,,0
 PR-40023050,SLK TRADING NUNAWADING PTY LTD,EXPLORERS EARLY LEARNING - NUNAWADING,false,company,VIC,14/09/2020,1,VIC,1,0,154,0
 PR-40023053,Cuddles Childcare Centre Kelmscott Pty Ltd,Cuddles Early Learning & Childcare Kelmscott,false,company,WA,14/07/2020,1,WA,1,0,92,0
 PR-40023055,KingKids Early Learning Centre and Kindergarten Hallam Pty Ltd As Trustee For KingKids Early Learning Centre and Kindergarten Hallam Unit Trust,KingKids Early Learning Centre Kindergarten Hallam,false,trust_or_trustee,VIC,06/06/2020,0,,0,0,,0
@@ -6195,10 +6199,10 @@ PR-40023965,MALEK GROUP INVESTMENTS PTY LTD,,false,company,NSW,23/11/2020,1,NSW,
 PR-40023974,BEACHWOOD FRANKSTON SOUTH PTY LTD,Beachwood Frankston South,false,company,VIC,03/11/2020,1,VIC,1,0,100,0
 PR-40023986,DURACK SCHOOL COUNCIL INC,,false,incorporated_association,NT,25/11/2020,1,NT,1,0,110,0
 PR-40024008,,,true,incorporated_association,QLD,29/09/2020,1,QLD,1,0,150,0
-PR-40024012,LITTLE WALLABIES FAMILY DAY CARE PTY LTD,,false,company,QLD,17/11/2020,0,,0,0,,0
-PR-40024014,,,true,trust_or_trustee,QLD,24/09/2020,0,,0,0,,0
-PR-40024021,WHOLECHILD EARLY LEARNING PTY LIMITED,Wholechild Early Learning,false,company,NSW,13/05/2021,2,NSW,1,0,256,0
-PR-40024030,,,true,incorporated_association,QLD,29/10/2020,1,QLD,1,0,60,0
+PR-40005004,,,true,likely_individual,NSW,30/12/2015,0,,0,0,,0
+PR-40005009,Bush Babies Nurseries Pty Ltd,Bush Babies Nurseries,false,company,QLD,28/10/2015,1,QLD,1,0,85,0
+PR-40005018,,,true,likely_individual,NSW,22/09/2015,0,,0,0,,0
+PR-40005023,,,true,trust_or_trustee,VIC,21/09/2015,1,VIC,1,0,70,0
 PR-40005026,AO EDUCATION PTY LTD,,false,company,SA,11/09/2015,1,SA,1,0,106,0
 PR-40005031,,,true,likely_individual,QLD,17/09/2015,0,,0,0,,0
 PR-40005040,Shire of Ravensthorpe,Shire of Ravensthorpe,false,government,WA,25/08/2015,0,,0,0,,0
@@ -6295,10 +6299,6 @@ PR-40006002,MONTESSORI MERRYLANDS CHILDCARE PTY LTD,,false,company,NSW,16/11/201
 PR-40006014,UPPER FERNTREE GULLY PRIMARY SCHOOL COUNCIL,,false,government,VIC,09/12/2015,1,VIC,1,0,22,0
 PR-40006018,,,true,unknown,VIC,08/01/2016,0,,0,0,,0
 PR-40006021,Hadior Family Day Care Pty Ltd,Hadior Family Day care Pty Ltd,false,company,QLD,29/01/2016,0,,0,0,,0
-PR-40006032,Funtastic Gems Pty Ltd,Funtastic Gems Pty Ltd,false,company,NSW,26/11/2015,1,NSW,1,0,74,0
-PR-40006035,,,true,trust_or_trustee,QLD,29/07/2016,1,QLD,1,0,140,0
-PR-40006046,,,true,likely_individual,QLD,01/02/2016,0,,0,0,,0
-PR-40006047,,,true,likely_individual,NSW,24/12/2015,0,,0,0,,0
 PR-00006134,Hallett Cove Community Children's Centre Incorporated,Hallett Cove Community Children's Centre Incorporated,false,incorporated_association,SA,01/01/2012,1,SA,1,0,53,0
 PR-00006135,Hallett Cove East Primary School Council,Hallett Cove East Primary School Council,false,government,SA,01/01/2012,1,SA,1,0,75,0
 PR-00006136,Hallett Cove School Council Inc,Hallett Cove School Council Inc,false,incorporated_association,SA,01/01/2012,1,SA,1,0,105,0
@@ -6399,6 +6399,10 @@ PR-00006296,,,true,unknown,SA,01/01/2012,0,,0,0,,0
 PR-00006297,,,true,unknown,SA,01/01/2012,2,SA,1,0,300,0
 PR-00006298,,,true,unknown,SA,01/01/2012,1,SA,1,0,85,0
 PR-00006300,Pulteney Grammar School Inc,Pulteney Grammar School Inc,false,incorporated_association,SA,01/01/2012,2,SA,1,0,139,0
+PR-40010019,THE HEIGHTS PRE-SCHOOL CENTRE PTY LTD,THE HEIGHTS PRE-SCHOOL CENTRE,false,company,NSW,26/09/2017,1,NSW,1,0,59,0
+PR-40010024,Happy Hearts Academy ELC PTY LTD,Happy Hearts Academy Early Learning Centre,false,company,NSW,05/04/2017,1,NSW,1,0,96,0
+PR-40010025,VS INVESTMENT GROUP PTY LTD,VS INVESTMENT GROUP PTY LTD,false,company,WA,17/02/2017,3,WA,1,0,135,0
+PR-40010043,,,true,likely_individual,NT,01/03/2017,0,,0,0,,0
 PR-40010065,Istar Early Learning Pty Ltd,Istar Early Learning Pty Ltd,false,company,QLD,13/03/2017,0,,0,0,,0
 PR-40010069,,,true,likely_individual,QLD,22/03/2017,0,,0,0,,0
 PR-40010082,,,true,unknown,ACT,20/01/2017,1,ACT,1,0,57,0
@@ -6495,10 +6499,7 @@ PR-40010988,Busy Bees Lane Cove Pty Ltd,Bliss Early Learning Lane Cove,false,com
 PR-40010990,KINGKIDS 4 PTY LTD,,false,company,VIC,10/07/2017,1,VIC,1,0,113,0
 PR-40011009,Matolly PTY LTD ATF The Lyons Childcare Trust,Nido Early School,false,trust_or_trustee,WA,12/05/2017,0,,0,0,,0
 PR-40011011,JOHN MACKENZIE KINDERGARTEN INC,John MacKenzie Kindergarten,false,incorporated_association,VIC,30/06/2017,1,VIC,1,0,49,0
-PR-40011025,Bundilla Preschool PTY LTD,Lighthouse early learning centre berkeley vale,false,company,NSW,31/08/2017,1,NSW,1,0,29,0
-PR-40011030,CNRC Childcare Pty Ltd,CNRC Childcare,false,company,QLD,16/06/2017,2,QLD,1,0,109,0
-PR-40011040,UNITING (VICTORIA AND TASMANIA) LIMITED,,false,church_or_religious,VIC,05/06/2017,89,TAS|VIC,2,1,3997,1
-PR-40011043,Townsville Christian Life Centre Limited,Life Early Learning Centre,false,company,QLD,27/07/2017,2,QLD,1,0,90,0
+PR-00011350,EA Ellengrove Pty Ltd,,false,company,QLD,25/09/2025,1,QLD,1,0,85,0
 PR-00011351,EA Fraser Rise Pty Ltd,,false,company,VIC,25/09/2025,0,,0,0,,0
 PR-00011352,EA Salisbury Heights Pty Ltd,,false,company,QLD,25/09/2025,1,SA,1,0,108,0
 PR-00011353,EA Drysdale Pty Ltd,,false,company,QLD,25/09/2025,0,,0,0,,0
@@ -6511,7 +6512,7 @@ PR-00011359,EA Happy Valley Pty Ltd,,false,company,QLD,25/09/2025,1,SA,1,0,99,0
 PR-00011360,JADESTONE INTERNATIONAL PTY LTD,,false,company,VIC,10/06/2026,0,,0,0,,0
 PR-00011361,SCORESBY PRIMARY SCHOOL COUNCIL,Scoresby Primary School Council,false,government,VIC,23/11/2025,0,,0,0,,0
 PR-00011362,LITTLE ELMS EARLY LEARNING CENTRE PTY LTD,,false,company,VIC,02/03/2026,0,,0,0,,0
-PR-00011372,KIDS CLUB CHILD CARE CENTRES PTY LTD,Think Big Early Learning Centre,false,company,,01/02/2026,0,,0,0,,0
+PR-00011372,KIDS CLUB CHILD CARE CENTRES PTY LTD,Think Big Early Learning Centre,false,company,VIC,01/02/2026,0,,0,0,,0
 PR-00011373,,,true,trust_or_trustee,QLD,14/10/2025,1,QLD,1,0,142,0
 PR-00011374,AC ABRAHAM PTY LIMITED,AC ABRAHAM PTY LIMITED,false,company,NSW,20/11/2025,0,,0,0,,0
 PR-00011375,,,true,likely_individual,NSW,04/02/2026,0,,0,0,,0
@@ -6598,7 +6599,10 @@ PR-00011564,AUBURN KIDS LEARNING ACADEMY PTY LTD,AUBURN KIDS LEARNING ACADEMY,fa
 PR-00011568,PALACE ROAD EARLY EDUCATION CENTRE PTY LTD,The Hills Long Day Preschool,false,company,NSW,18/12/2025,1,NSW,1,0,39,0
 PR-00011569,,,true,likely_individual,NSW,03/03/2026,0,,0,0,,0
 PR-00011577,PARK HOLME COMMUNITY CHILDREN'S CENTRE INCORPORATED,Park Holme Community Children's Centre Incorporated,false,incorporated_association,SA,21/01/2026,1,SA,1,0,51,0
-PR-00011578,CHILDRENS ATELIER GROUP PTY LTD,The Children's Atelier,false,company,NSW,12/03/2026,1,VIC,1,0,130,0
+PR-40027491,730 Pty Ltd,,false,company,NSW,02/11/2021,1,NSW,1,0,66,0
+PR-40027499,Kidz Academy Kingswood Pty Ltd,Kidz Academy Kingswood Pty Ltd,false,company,NSW,20/09/2022,0,,0,0,,0
+PR-40027502,JML TRADING CROYDON PTY LTD,Explorers Early Learning - Croydon,false,company,VIC,19/12/2021,1,VIC,1,0,130,0
+PR-40027503,JML Trading Ashwood Pty Ltd,Explorers Early Learning - Ashwood,false,company,VIC,19/12/2021,1,VIC,1,0,130,0
 PR-40027522,,,true,likely_individual,NSW,22/11/2021,0,,0,0,,0
 PR-40027524,PERERA CHILDREN HOUSE PTY LTD,,false,company,WA,08/02/2022,3,WA,1,0,140,0
 PR-40027537,SHINING BUB PTY LTD,SHINING BUB PYT LTD,false,company,VIC,07/09/2022,0,,0,0,,0
@@ -6695,10 +6699,6 @@ PR-40028283,CHOICE CARE PTY LTD,Connect the Dots Family Day Care,false,company,V
 PR-40028307,MY MATES OUTSIDE SCHOOL HOURS CARE PTY LTD,,false,company,QLD,31/01/2022,0,,0,0,,0
 PR-40028317,EUROLYNX PTY LTD,,false,company,WA,22/02/2022,1,WA,1,0,87,0
 PR-40028320,PUGGLES SCHOOL OF EARLY LEARNING PTY LTD,Puggles School of Early Learning,false,company,NSW,28/04/2022,2,NSW,1,0,189,0
-PR-40028335,LANGLEY PRIMARY SCHOOL COUNCIL,Langley Primary School,false,government,VIC,27/01/2022,0,,0,0,,0
-PR-40028353,Dara Village Incorporated,Dara School,false,incorporated_association,SA,03/03/2022,1,SA,1,0,45,0
-PR-40028361,COTTAGE ACADEMY PTY LTD,Cottage Academy Pty Ltd,false,company,QLD,20/01/2022,2,QLD,1,0,133,0
-PR-40028364,KIDDIES CASTLE PTY LTD,KIDDIES CASTLE PTY LTD,false,company,NSW,04/05/2022,0,,0,0,,0
 PR-00002825,Panton Hill Primary School Council,,false,government,VIC,29/12/2011,0,,0,0,,0
 PR-00002826,Brunswick East Primary School Council,,false,government,VIC,29/12/2011,0,,0,0,,0
 PR-00002827,Macedon Primary School Council,,false,government,VIC,29/12/2011,0,,0,0,,0
@@ -6899,6 +6899,10 @@ PR-00009408,S & L FAMILY INVESTMENTS PTY LTD,,false,company,NSW,08/10/2024,1,NSW
 PR-00009410,SPROUTS ELC PTY LTD,Sprouts ELC Pty Ltd,false,company,VIC,27/06/2024,0,,0,0,,0
 PR-00009412,FORBES EARLY LEARNING PTY LTD,Lakeshore Early Learning,false,company,NSW,17/09/2024,1,NSW,1,0,104,0
 PR-00009414,Adventure OSHC PTY LTD,Adventure OSHC PTY LTD,false,company,NSW,24/06/2024,0,,0,0,,0
+PR-40019246,Kin Educare Pty Ltd,,false,company,NSW,14/11/2019,2,NSW,1,0,240,0
+PR-40019251,Beryl Grace Pty Ltd,,false,company,QLD,23/04/2019,1,QLD,1,0,67,0
+PR-40019267,THE BIG TREE HOUSE PTY LTD,The Big Tree House,false,company,NSW,05/07/2019,1,NSW,1,0,24,0
+PR-40019274,Wilson Childcare Investments Pty Ltd as trustee for Wilson Childcare Investments Trust,Mother Duck Childcare and Pre School Enoggera,false,trust_or_trustee,QLD,08/04/2019,0,,0,0,,0
 PR-40019276,Townsend & Buck Pty Ltd,Happy Campers,false,company,WA,30/05/2019,1,WA,1,0,25,0
 PR-40019287,MAITLAND CHRISTIAN SCHOOL LIMITED,Maitland Christian School Ltd,false,company,NSW,14/08/2019,1,NSW,1,0,80,0
 PR-40019309,KOTER PTY LTD,,false,company,NSW,08/07/2019,1,NSW,1,0,15,0
@@ -6995,10 +6999,10 @@ PR-40020323,,,true,trust_or_trustee,QLD,13/09/2019,0,,0,0,,0
 PR-40020324,Moggill Investments Pty Ltd as Trustee for The Moggill Investments Trust,,false,trust_or_trustee,QLD,13/09/2019,2,VIC,1,0,232,0
 PR-40020325,THE UNICORNS OCEANIA PTY LTD,,false,company,VIC,09/12/2019,2,VIC,1,0,146,0
 PR-40020333,THE LITTLE WISE MONKEYS PTY LTD,The little Wise Monkeys,false,company,NSW,10/10/2019,2,NSW,1,0,66,0
-PR-40020345,,,true,likely_individual,VIC,13/11/2019,0,,0,0,,0
-PR-40020358,WARDA ENTERPRISES PTY LTD,Menangle Park Early Learning Centre,false,company,NSW,28/10/2019,1,NSW,1,0,52,0
-PR-40020364,OAKVILLE MONTESSORI ELC PTY LTD,,false,company,NSW,10/10/2019,1,NSW,1,0,101,0
-PR-40020371,,,true,unknown,VIC,31/10/2019,0,,0,0,,0
+PR-40001907,Vantage Education Pty. Ltd.,,false,company,NSW,29/05/2014,8,NSW|QLD|VIC,3,0,884,0
+PR-40001915,,,true,incorporated_association,VIC,16/02/2015,0,,0,0,,0
+PR-40001917,SAMIAN PTY LTD,Child's Play,false,company,VIC,13/06/2014,7,VIC,1,0,959,0
+PR-40001919,CHABAD ACT LIMITED,,false,company,ACT,28/04/2014,1,ACT,1,0,68,0
 PR-40001922,Life Church Castle Hill Pre-Schools Pty Limited,Kings Road Long Day Care Preschool,false,company,NSW,19/05/2014,1,NSW,1,0,32,0
 PR-40001925,LITTLE PILOTS LONG DAY CARE CENTRE PTY LTD,Little Pilots Long Daycare Centre,false,company,NSW,23/05/2014,1,NSW,1,0,32,0
 PR-40001936,,,true,likely_individual,NSW,29/08/2014,0,,0,0,,0
@@ -7095,10 +7099,6 @@ PR-40002390,Little Smiles Early Childhood Centre Pty. Ltd.,,false,company,ACT,21
 PR-40002399,WATTLE TREE FAMILY DAY CARE SERVICES PTY LTD,WATTLE TREE FAMILY DAY CARE SERVICES PTY LTD,false,company,VIC,04/05/2015,0,,0,0,,0
 PR-40002408,,,true,likely_individual,QLD,28/10/2014,0,,0,0,,0
 PR-40002410,Sunrise Kids #4 Pty Ltd as Trustee for Sunrise Kids Trust #4,,false,trust_or_trustee,QLD,19/09/2014,1,QLD,1,0,75,0
-PR-40002411,,,true,trust_or_trustee,VIC,26/05/2015,0,,0,0,,0
-PR-40002415,,,true,trust_or_trustee,QLD,28/10/2014,0,,0,0,,0
-PR-40002418,Little Learning School Alexandria - Burrows Rd Pty Ltd,Little Learning School Alexandria - Burrows Rd,false,company,NSW,29/08/2014,0,,0,0,,0
-PR-40002421,Education and Care Hub Pty Ltd as Trustee for The Polly Trust,,false,trust_or_trustee,QLD,05/09/2014,1,QLD,1,0,125,0
 PR-00004492,Imagawa Gakuen Australia Pty Limited,Imagawa Gakuen Australia Pty Limited,false,company,NSW,01/09/2009,1,NSW,1,0,60,0
 PR-00004493,Kids 45 Pty Limited,Kids 45 Pty Limited,false,company,NSW,01/09/2009,0,,0,0,,0
 PR-00004494,,,true,likely_individual,NSW,01/09/2009,0,,0,0,,0
@@ -7199,6 +7199,9 @@ PR-00004655,Siron Investments Pty Ltd,Siron Investments Pty Ltd,false,company,NS
 PR-00004656,Eikoh Seminar Australia Pty Limited,Eikoh Seminar Australia Pty Limited,false,company,NSW,01/09/2009,4,NSW,1,0,207,0
 PR-00004657,,,true,likely_individual,NSW,01/09/2009,1,NSW,1,0,40,0
 PR-00004658,LG & LL Marks Pty Limited,LG & LL Marks Pty Limited,false,company,NSW,01/09/2009,1,NSW,1,0,150,0
+PR-40037152,KINDER BAY ACADEMY PTY LTD,Kinder Bay Academy Pty Ltd,false,company,QLD,20/03/2024,0,,0,0,,0
+PR-40037190,Green Leaves (QLD30) Early Learning Centres Pty Ltd,,false,company,QLD,18/03/2024,0,,0,0,,0
+PR-40037191,Green Leaves (QLD31) Early Learning Centres Pty Ltd,,false,company,QLD,18/03/2024,1,QLD,1,0,140,0
 PR-40037194,Terra EL Pty Ltd,,false,company,QLD,22/08/2024,1,QLD,1,0,55,0
 PR-40037195,Green Leaves (QLD32) Early Learning Centres Pty Ltd,,false,company,QLD,18/03/2024,0,,0,0,,0
 PR-40037196,SAAHAS ENTERPRISE PTY LTD,,false,company,VIC,11/06/2024,0,,0,0,,0
@@ -7372,6 +7375,10 @@ PR-00003137,Ahmed Enterprises Pty Ltd,Ahmed Enterprises Pty Ltd,false,company,NS
 PR-00003142,St Stephens Belrose Kindergarten Inc,St Stephens Belrose Kindergarten Inc,false,incorporated_association,NSW,01/09/2009,1,NSW,1,0,60,0
 PR-00003146,Kidz Paradise Day Care Centre Pty Limited,Kidz Paradise Day Care Centre Pty Limited,false,company,NSW,01/09/2009,1,VIC,1,0,93,0
 PR-00003147,Berrigan Children's Centre Association Incorporated,Berrigan Children's Centre Association Incorporated,false,incorporated_association,NSW,01/09/2009,1,NSW,1,0,38,0
+PR-40035138,,,true,trust_or_trustee,VIC,28/03/2024,1,VIC,1,0,98,0
+PR-40035148,Tyndale Christian School - Kadina Inc,Harvest Christian College OSHC,false,incorporated_association,SA,04/11/2023,1,SA,1,0,45,0
+PR-40035167,,,true,incorporated_association,NSW,06/06/2024,1,NSW,1,0,90,0
+PR-40035168,DISCOVER AND LEARN ACADEMY PTY LTD,Discover and Learn Academy,false,company,NSW,04/12/2023,1,NSW,1,0,81,0
 PR-40035181,SPRING 1 2 3 PTY LTD,,false,company,WA,29/11/2023,0,,0,0,,0
 PR-40035191,,,true,trust_or_trustee,VIC,26/03/2024,0,,0,0,,0
 PR-40035221,L & M KHIPAL PTY LTD,Bright Future Early Learning,false,company,ACT,02/01/2024,1,ACT,1,0,90,0
@@ -7436,7 +7443,7 @@ PR-40035842,NSW FAMILY DAY CARE ASSOCIATION INC.,,false,incorporated_association
 PR-40035845,Passion Education Pty Ltd,,false,company,NSW,30/01/2024,3,NSW,1,0,298,0
 PR-40035846,First 5 Years Calliope Pty Ltd,First5Years Biloela,false,company,NSW,16/11/2023,1,QLD,1,0,88,0
 PR-40035860,BRIGHT BEGINNINGS LEARNING CENTRE TARNEIT PTY LTD,,false,company,VIC,22/04/2024,1,VIC,1,0,106,0
-PR-40035867,BEST START ELC PTY LTD,,false,company,NSW,30/01/2024,2,NSW,1,0,198,0
+PR-40035867,BEST START ELC PTY LTD,,false,company,NSW,30/01/2024,3,NSW,1,0,324,0
 PR-40035868,MMNE Education PTY LTD,,false,company,NSW,05/04/2024,1,NSW,1,0,49,0
 PR-40035879,AL RAHMA EARLY LEARNING CENTRE PTY LTD,AL RAHMA EARLY LEARNING CENTRE,false,company,VIC,09/05/2024,0,,0,0,,0
 PR-40035882,,,true,likely_individual,VIC,22/04/2024,0,,0,0,,0
@@ -7468,10 +7475,6 @@ PR-40036203,BELIEVE EDUCATION HOLDINGS PTY LTD,Believe Early Education,false,com
 PR-40036204,MK Said Operations Pty Ltd,,false,company,NSW,29/04/2024,1,NSW,1,0,43,0
 PR-40036237,WONDER EDUCATION GROUP PTY LTD,Wonder Garden Early Learning Centre,false,company,NSW,30/01/2024,0,,0,0,,0
 PR-40036240,Ansena Services PTY LTD,,false,company,,29/04/2024,1,NSW,1,0,24,0
-PR-40036244,Sheri's Hippity-Hoppity Tots Pty Ltd,Hippity-Hoppity Tots Child Care Centre,false,company,VIC,03/05/2024,0,,0,0,,0
-PR-40036245,MUSTARD SEED CHRISTIAN CHILDCARE LTD,Mustard Seed Christian Childcare,false,company,NSW,08/12/2023,2,NSW,1,0,109,0
-PR-40036247,NOVARIA KINDERCARE PTY LTD,,false,company,QLD,21/12/2023,1,QLD,1,0,92,0
-PR-40036248,,,true,trust_or_trustee,WA,07/03/2024,1,WA,1,0,44,0
 PR-00000127,,,true,likely_individual,QLD,01/01/2012,0,,0,0,,0
 PR-00000128,"Clayfield Pre-Prep, Bayview Terrace Inc.",,false,incorporated_association,QLD,01/01/2012,1,QLD,1,0,50,0
 PR-00000129,Cribb Street Child Care Centre Inc,,false,incorporated_association,QLD,01/01/2012,1,QLD,1,0,43,0
@@ -7672,6 +7675,7 @@ PR-00001575,Bubup Womindjeka Family & Children’s Centre Association Inc,,false
 PR-00001576,Home Road Kindergarten Inc,,false,incorporated_association,VIC,29/12/2011,1,VIC,1,0,55,0
 PR-00001577,Hughesdale Kindergarten Inc,,false,incorporated_association,VIC,29/12/2011,0,,0,0,,0
 PR-00001578,Hume City Council,,false,government,VIC,29/12/2011,33,VIC,1,0,2447,0
+PR-00010893,EAGLE WINGS ENTERPRISES PTY LTD,,false,company,NSW,04/07/2025,0,,0,0,,0
 PR-00010895,ALPHA TO DELTA KINDERVERSE PTY LTD,ALPHA TO DELTA KINDERVERSE,false,company,NSW,05/09/2025,0,,0,0,,0
 PR-00010896,,,true,trust_or_trustee,WA,12/11/2025,0,,0,0,,0
 PR-00010898,,,true,trust_or_trustee,VIC,17/09/2025,1,VIC,1,0,130,0
@@ -7771,7 +7775,6 @@ PR-00011135,GREEN LEAVES (TAS3) EARLY LEARNING CENTRES PTY LTD,Green Leaves Earl
 PR-00011137,BILINGUAL BY FIVE HOLDINGS PTY LTD,,false,company,WA,19/09/2025,0,,0,0,,0
 PR-00011138,TITAN EARLY LEARNING PTY LTD,TITAN EARLY LEARNING PTY LTD,false,company,VIC,21/10/2025,1,VIC,1,0,75,0
 PR-00011141,WGH Ventures Pty Ltd as Trustee for WGH Investment Trust,WGH Ventures Pty Ltd as Trustee for WGH Investment Trust,false,trust_or_trustee,QLD,29/08/2025,0,,0,0,,0
-PR-00011142,"Wodonga Catholic Parish OSHC, Baranduda Blvd Inc.","Wodonga Catholic Parish OSHC, Baranduda Blvd Inc.",false,church_or_religious,VIC,31/10/2025,1,VIC,1,0,90,0
 PR-00002454,Davmat Investments Pty Ltd,,false,company,VIC,29/12/2011,11,VIC,1,0,1258,0
 PR-00002460,R.J.T. & Associates Pty Ltd trading as Red Apple Early Learning Centre,,false,company,VIC,29/12/2011,2,VIC,1,0,125,0
 PR-00002461,Balmoral K-12 Community College School Council,Balmoral K-12 Community College School Council,false,government,VIC,29/12/2011,1,VIC,1,0,26,0
@@ -7872,6 +7875,10 @@ PR-00002682,Pakenham Consolidated School Council,,false,government,VIC,29/12/201
 PR-00002684,Mount Waverley Primary School Council,,false,government,VIC,29/12/2011,0,,0,0,,0
 PR-00002685,Korumburra Primary School Council,,false,government,VIC,29/12/2011,0,,0,0,,0
 PR-00002688,V.I.P. Family Day Care Pty Ltd,,false,company,VIC,29/12/2011,1,VIC,1,1,,1
+PR-40008374,SUNRISE CHILDCARE PTY LTD,,false,company,QLD,11/08/2016,1,QLD,1,0,90,0
+PR-40008376,Arkeane Pty Ltd,Pambula Village Pre-School,false,company,NSW,07/07/2016,1,NSW,1,0,60,0
+PR-40008402,CHERMSIDE CHILDCARE PTY LTD,,false,company,QLD,21/07/2016,0,,0,0,,0
+PR-40008403,KIDS PLANET PTY LTD ATF KINDY KOLLEGE UNIT TRUST,Kids Planet Pty Ltd,false,trust_or_trustee,NSW,07/07/2016,1,NSW,1,0,90,0
 PR-40008404,,,true,likely_individual,VIC,21/10/2016,0,,0,0,,0
 PR-40008417,WOODGREEN EARLY EDUCATION CENTRE PTY LTD,WOODGREEN EARLY EDUCATION CENTRE,false,company,NSW,28/07/2016,1,NSW,1,0,48,0
 PR-40008428,BILINGUAL EDUCATION AUSTRALIA PTY LIMITED,,false,company,NSW,14/09/2016,1,NSW,1,0,99,0
@@ -7968,10 +7975,6 @@ PR-40009230,Bright Little Stars No.2 Pty Limited ATF Bright Little Stars No.2 Tr
 PR-40009232,OUR LADY'S SCHOOL WANGARATTA SCHOOL COUNCIL,Our Lady's Primary School,false,government,VIC,23/12/2016,0,,0,0,,0
 PR-40009234,FDC EDUCATORS UNITED SCHEME PTY LTD,FDC UNITED EDUCATORS SCHEME,false,company,NSW,20/02/2017,1,NSW,1,1,,1
 PR-40009237,Paisley Park Early Learning Centres (No.5) Pty Ltd ATF Paisley Park ELC (No.5) Unit Trust,,false,trust_or_trustee,NSW,23/11/2016,1,NSW,1,0,160,0
-PR-40009238,Paisley Park Early Learning Centres (No.6) Pty Ltd ATF Paisley Park ELC (No.6) Unit Trust,,false,trust_or_trustee,NSW,23/11/2016,1,VIC,1,0,88,0
-PR-40009241,VIC CHILDCARE PTY LTD ATF The Vic Childcare Trust,Apple Blossoms Early Learning South Melbourne,false,trust_or_trustee,WA,21/11/2016,1,VIC,1,0,52,0
-PR-40009253,Sturt Street Early Learning Pty. Ltd.,Sturt Street Early Learning,false,company,VIC,27/03/2017,2,NSW|VIC,2,0,203,0
-PR-40009254,Sorelle Qld Pty Ltd,Carrara Tiny Tots Pre-Prep,false,company,QLD,02/12/2016,1,QLD,1,0,22,0
 PR-00005794,,,true,likely_individual,NSW,01/09/2009,1,NSW,1,0,74,0
 PR-00005795,Ashbury Kidz Academy Pty Limited,Ashbury Kidz Academy Pty Limited,false,company,NSW,13/05/2011,1,NSW,1,0,32,0
 PR-00005799,,,true,incorporated_association,ACT,01/01/2012,1,ACT,1,0,120,0
@@ -8056,7 +8059,7 @@ PR-00005937,,,true,unknown,TAS,01/01/2012,1,TAS,1,0,122,0
 PR-00005939,Lipscombe Child Care Services Inc,Lipscombe Child Care Services Inc,false,incorporated_association,TAS,01/01/2012,3,TAS,1,0,241,0
 PR-00005940,,,true,trust_or_trustee,TAS,01/01/2012,2,TAS,1,0,97,0
 PR-00005944,,,true,unknown,TAS,01/01/2012,1,TAS,1,0,45,0
-PR-00005946,Thrive Group Tasmania Inc,Thrive Group Tasmania Inc,false,incorporated_association,TAS,01/01/2012,21,TAS,1,1,616,1
+PR-00005946,Thrive Group Tasmania Inc,Thrive Group Tasmania Inc,false,incorporated_association,TAS,01/01/2012,21,TAS,1,1,636,1
 PR-00005947,Northern Midlands Council,Northern Midlands Council,false,government,TAS,01/01/2012,1,TAS,1,0,86,0
 PR-00005951,Phoenix Children's Services Inc,Phoenix Children's Services Inc,false,incorporated_association,TAS,01/01/2012,3,TAS,1,0,213,0
 PR-00005955,,,true,unknown,TAS,01/01/2012,1,TAS,1,0,160,0
@@ -8072,6 +8075,10 @@ PR-00005973,Toddle Inn Child Care Centre Inc.,Toddle Inn Child Care Centre Inc,f
 PR-00005974,Waratah-Wynyard Council,Waratah/Wynyard Council,false,government,TAS,01/01/2012,2,TAS,1,0,105,0
 PR-00005975,,,true,trust_or_trustee,QLD,01/01/2012,0,,0,0,,0
 PR-00005976,Katherine East Child Care Centre Inc,Katherine East Child Care Centre,false,incorporated_association,NT,01/07/2010,1,NT,1,0,50,0
+PR-40001107,,,true,likely_individual,SA,23/09/2013,0,,0,0,,0
+PR-40001110,Major Oak Pty Limited,Sherwood Forest Children's Centre,false,company,NSW,23/09/2013,1,QLD,1,0,75,0
+PR-40001111,,,true,likely_individual,QLD,16/10/2013,0,,0,0,,0
+PR-40001112,Affinity Education Group Pty Limited,,false,company,QLD,04/10/2013,217,ACT|NSW|NT|QLD|VIC|WA,6,0,18047,0
 PR-40001113,Timber Tots Childcare Group Pty Ltd,Timber Tots Childcare Group,false,company,QLD,05/12/2013,1,QLD,1,0,124,0
 PR-40001114,JLM Preschool Pty Ltd,Koala Preschool Tuggerawong,false,company,NSW,23/09/2013,1,NSW,1,0,27,0
 PR-40001120,,,true,trust_or_trustee,QLD,30/10/2013,0,,0,0,,0
@@ -8168,10 +8175,6 @@ PR-40001471,Tranquillity Family Day Care Pty Ltd,,false,company,QLD,16/04/2014,1
 PR-40001472,LIL'ANTZ PTY LTD,Lil' Antz Pty Ltd,false,company,NT,18/12/2013,3,NT,1,0,151,0
 PR-40001473,,,true,likely_individual,QLD,02/06/2014,0,,0,0,,0
 PR-40001475,,,true,trust_or_trustee,VIC,26/02/2014,0,,0,0,,0
-PR-40001479,HUGGY BEAR OPERATIONS PTY LIMITED,,false,company,QLD,13/01/2014,1,WA,1,0,60,0
-PR-40001480,CG Operations Pty Ltd,,false,company,QLD,31/12/2013,3,QLD,1,0,294,0
-PR-40001481,JACARANDA OPERATIONS PTY LIMITED,,false,company,QLD,02/01/2014,1,WA,1,0,112,0
-PR-40001482,Babyco Family Day Care Pty Ltd,,false,company,QLD,20/06/2014,1,QLD,1,1,,1
 PR-00004107,Eminem Kids Academy Pty Ltd,Eminem Kids Academy Pty Ltd,false,company,NSW,01/09/2009,2,NSW,1,0,86,0
 PR-00004110,,,true,unknown,NSW,01/09/2009,2,NSW,1,0,90,0
 PR-00004112,Five Senses Childcare Pty Ltd,Five Senses Childcare Pty Ltd,false,company,NSW,01/09/2009,1,NSW,1,0,45,0
@@ -8372,6 +8375,10 @@ PR-00001109,Kyfho Pty Ltd,Edenbrook Early Learning Centre,false,company,QLD,01/0
 PR-00001110,ACGS Nominees Pty Ltd,,false,company,QLD,01/01/2012,2,QLD,1,0,149,0
 PR-00001111,,,true,incorporated_association,QLD,01/01/2012,0,,0,0,,0
 PR-00001113,,,true,likely_individual,QLD,01/01/2012,0,,0,0,,0
+PR-40017248,Story House Early Learning No 28 Pty Ltd,Story House Early Learning,false,company,QLD,07/09/2018,5,NSW|QLD|VIC,3,0,621,0
+PR-40017260,Yackandandah Health Limited,Little Yacks Learning Years,false,company,VIC,29/11/2018,1,VIC,1,0,44,0
+PR-40017264,LITTLE CREATIVE EXPLORERS PTY LTD,LITTLE CREATIVE EXPLORERS PTY LTD,false,company,VIC,14/06/2019,2,VIC,1,0,108,0
+PR-40017265,C & N INVESTMENTS NO. 3 PTY. LTD.,Frankston House Sanctuary of Early Learning,false,company,VIC,23/10/2018,3,VIC,1,0,251,0
 PR-40017293,Dendy Street Childcare Pty Ltd,,false,company,QLD,14/01/2019,0,,0,0,,0
 PR-40017294,PINK PEARS PTY LTD,Little Tinkers Family Day Care,false,company,VIC,26/11/2018,1,VIC,1,1,,1
 PR-40017309,,,true,trust_or_trustee,NSW,28/09/2018,1,NSW,1,0,94,0
@@ -8433,7 +8440,7 @@ PR-40017803,Abernethy Enterprises Pty Ltd,,false,company,NSW,08/11/2018,1,NSW,1,
 PR-40017814,GUNGAHLIN MONTESSORI ACADEMY PTY LTD,Gungahlin Montessori Academy,false,company,NSW,12/11/2018,1,ACT,1,0,113,0
 PR-40017815,Edge Early Learning Marsden Pty Ltd (Administrators Appointed),Edge Early Learning Marsden,false,company,QLD,26/11/2018,1,QLD,1,0,134,0
 PR-40017830,Willowvale Childcare Pty Ltd as Trustee for Willowvale Childcare Trust,The Montessori Farm,false,trust_or_trustee,QLD,25/02/2019,1,QLD,1,0,142,0
-PR-40017833,,,true,likely_individual,NSW,14/12/2018,2,NSW,1,0,52,0
+PR-40017833,,,true,likely_individual,NSW,14/12/2018,2,NSW,1,0,55,0
 PR-40017839,ROSEGUM ELC PTY LTD,Ripples Early Learning Centre,false,company,NSW,12/11/2018,1,NSW,1,0,93,0
 PR-40017840,AUSTRALIAN SKILLS & ASSESSMENT CENTRE PTY LTD,,false,company,NSW,29/04/2019,0,,0,0,,0
 PR-40017915,,,true,likely_individual,VIC,03/05/2019,0,,0,0,,0
@@ -8468,10 +8475,6 @@ PR-40018167,KINDLEY HOLDINGS PTY LTD,FICA CHILDCARE AND EARLY LEARNING CENTRE,fa
 PR-40018169,,,true,likely_individual,QLD,08/02/2019,0,,0,0,,0
 PR-40018181,SHAKEN ENTERPRISE PTY LTD,,false,company,QLD,11/02/2019,1,NSW,1,0,72,0
 PR-40018198,Abu Sefein Operating Pty Ltd,Endeavour Early Education Concord,false,company,NSW,31/01/2019,1,NSW,1,0,100,0
-PR-40018203,OBO CO. PTY LTD,,false,company,WA,17/01/2019,1,WA,1,0,36,0
-PR-40018211,Happy Tone Education and Service Group Pty Ltd,Happy Tone Children's Wonderland,false,company,WA,06/12/2018,0,,0,0,,0
-PR-40018230,Bambini Childcare Group Pty Ltd,Bambini Childcare Group,false,company,VIC,19/02/2019,6,VIC,1,0,517,0
-PR-40018243,Augusta Commercial Pty Ltd,,false,company,NSW,22/02/2019,8,NSW,1,0,293,0
 PR-00007638,,,true,unknown,WA,01/08/2012,1,WA,1,0,150,0
 PR-00007640,Treehouse Childcare Centre Inc.,Treehouse Childcare Centre Inc.,false,incorporated_association,WA,01/08/2012,1,WA,1,0,36,0
 PR-00007641,Treloar Child Care Centre Incorporated,Treloar Child Care Centre Incorporated,false,incorporated_association,WA,01/08/2012,1,WA,1,0,71,0
@@ -8572,6 +8575,10 @@ PR-00007837,Hornsby North Community Care Association Incorporated,Hornsby North 
 PR-00007841,,,true,likely_individual,NSW,21/05/2013,0,,0,0,,0
 PR-00007846,Woodcroft Montessori Pty Ltd,Woodcroft Montessori Pty Ltd.,false,company,SA,10/09/2012,1,SA,1,0,60,0
 PR-00007848,Waverley Community Out of School Care Centre Inc.,WCOOSC,false,incorporated_association,NSW,03/06/2013,1,NSW,1,0,161,0
+PR-40032939,SPARROW NEST EARLY LEARNING 101 PTY LTD and Sparrow Nest Early Learning 101 Pty Ltd,,false,company,QLD,05/07/2023,1,QLD,1,0,75,0
+PR-40032942,,,true,likely_individual,QLD,26/06/2023,0,,0,0,,0
+PR-40032954,LAUGH AND GROW ACADEMY PTY LTD,Laugh and Grow Academy,false,company,NSW,18/08/2023,1,NSW,1,0,79,0
+PR-40032955,BRIGHT CAMP PTY LTD,Cub Care Early Learning Centre,false,company,TAS,25/09/2024,0,,0,0,,0
 PR-40032979,JENMAX KINDERHAUS PTY. LTD.,Songbird Early Learning Centre,false,company,VIC,14/07/2023,2,VIC,1,0,94,0
 PR-40032988,,,true,likely_individual,QLD,11/07/2023,0,,0,0,,0
 PR-40032997,SE Hakim PTY LTD,,false,company,NSW,30/06/2023,2,NSW,1,0,84,0
@@ -8668,10 +8675,10 @@ PR-40033813,MP EDUCATION PTY LTD,Miss Parker's Preschool,false,company,NSW,17/11
 PR-40033821,ASPIRE EARLY EDUCATION & KINDERGARTEN TARNEIT (SAYERS) PTY LTD,ASPIRE EARLY EDUCATION & KINDERGARTEN TARNEIT SAYERS,false,company,VIC,23/06/2023,1,VIC,1,0,120,0
 PR-40033822,Aspire Early Education & Kindergarten Baldivis Pty Ltd,ASPIRE EARLY EDUCATION & KINDERGARTEN BALDIVIS,false,company,VIC,16/10/2023,2,WA,1,0,196,0
 PR-40033823,ASPIRE EARLY EDUCATION & KINDERGARTEN ROCKBANK PTY LTD,ASPIRE EARLY EDUCATION & KINDERGARTEN ROCKBANK,false,company,VIC,23/06/2023,1,VIC,1,0,120,0
-PR-40033827,MD EDUCATION PTY LTD,,false,company,NSW,15/08/2023,0,,0,0,,0
-PR-40033849,TREASURED TOTS EARLY EDUCATION BENNETT SPRINGS PTY LTD,Treasured Tots Early Education Bennett Springs,false,company,WA,07/08/2023,1,WA,1,0,106,0
-PR-40033869,MYSTIC ENTERPRISES PTY LTD,,false,company,VIC,25/01/2024,0,,0,0,,0
-PR-40033878,,,true,likely_individual,QLD,24/10/2023,0,,0,0,,0
+PR-40016047,,,true,incorporated_association,QLD,17/07/2018,1,QLD,1,0,200,0
+PR-40016048,PRECIOUS GEMS CHILDCARE PTY LTD,KIDS HAVEN CHILDCARE,false,company,VIC,16/10/2018,1,VIC,1,0,102,0
+PR-40016049,GREEN LEAVES (QLD11) EARLY LEARNING CENTRES PTY LTD,,false,company,QLD,10/08/2018,1,QLD,1,0,76,0
+PR-40016057,,,true,likely_individual,QLD,09/08/2018,1,QLD,1,0,20,0
 PR-40016061,PPDL EDUCATION PTY LTD,Little Minds Montessori and Ealry Learning Centre,false,company,VIC,29/10/2018,1,VIC,1,0,60,0
 PR-40016068,The Learning Cove Pty Ltd ATF Childcare Investments Unit Trust,The Learning Cove,false,trust_or_trustee,VIC,29/10/2018,0,,0,0,,0
 PR-40016081,,,true,trust_or_trustee,VIC,23/10/2018,0,,0,0,,0
@@ -8768,10 +8775,10 @@ PR-40017210,SUN FAMILY MANAGEMENT PTY LTD,,false,company,NSW,08/10/2018,1,NSW,1,
 PR-40017240,COORARA PRIMARY SCHOOL GOVERNING COUNCIL INC,,false,incorporated_association,SA,17/09/2018,1,SA,1,0,50,0
 PR-40017246,Story House Early Learning No 26 Pty Ltd,Story House Early Learning,false,company,QLD,06/09/2018,0,,0,0,,0
 PR-40017247,Story House Early Learning No 27 Pty Ltd,Story House Early Learning,false,company,QLD,07/09/2018,2,VIC,1,0,217,0
-PR-40017248,Story House Early Learning No 28 Pty Ltd,Story House Early Learning,false,company,QLD,07/09/2018,5,NSW|QLD|VIC,3,0,621,0
-PR-40017260,Yackandandah Health Limited,Little Yacks Learning Years,false,company,VIC,29/11/2018,1,VIC,1,0,44,0
-PR-40017264,LITTLE CREATIVE EXPLORERS PTY LTD,LITTLE CREATIVE EXPLORERS PTY LTD,false,company,VIC,14/06/2019,2,VIC,1,0,108,0
-PR-40017265,C & N INVESTMENTS NO. 3 PTY. LTD.,Frankston House Sanctuary of Early Learning,false,company,VIC,23/10/2018,3,VIC,1,0,251,0
+PR-40024767,MOUNTHI PTY LTD,MOUNTHI PTY LTD,false,company,QLD,14/12/2020,0,,0,0,,0
+PR-40024769,Ascolta Early Learning and Care PTY LTD,Ascolta Early Learning and Care PTY LTD,false,company,WA,26/02/2021,7,WA,1,0,601,0
+PR-40024780,Trayhern Family Investments Pty Ltd,Family First Early Learning,false,company,NT,08/02/2021,1,NT,1,0,135,0
+PR-40024786,Warlpiri Youth Development Aboriginal Corporation,Warlpiri Youth Development Aboriginal Corporation,false,unknown,NT,02/06/2021,0,,0,0,,0
 PR-40024787,M & I Play Pty Ltd,Walkerston Day Care Centre,false,company,QLD,25/01/2021,1,QLD,1,0,94,0
 PR-40024821,,,true,incorporated_association,QLD,22/01/2021,1,QLD,1,0,21,0
 PR-40024831,,,true,likely_individual,VIC,02/07/2021,0,,0,0,,0
@@ -8868,10 +8875,10 @@ PR-40025638,MARKET STREET CO PTY LTD,First Steps Early Learning Centres,false,co
 PR-40025645,,,true,likely_individual,QLD,30/03/2021,0,,0,0,,0
 PR-40025647,MARZGAC PTY LTD,,false,company,QLD,22/04/2021,0,,0,0,,0
 PR-40025652,,,true,trust_or_trustee,QLD,14/06/2021,0,,0,0,,0
-PR-40025657,SHINE LEARNING CENTRE PTY LTD,Shine Learning Centre,false,company,NSW,14/07/2021,0,,0,0,,0
-PR-40025663,,,true,trust_or_trustee,QLD,26/05/2021,1,QLD,1,0,50,0
-PR-40025664,TODDLER TOWN DAY CARE PTY LTD,TODDLER TOWN DAY CARE PTY LTD,false,company,QLD,27/07/2021,1,QLD,1,0,75,0
-PR-40025682,Whiz Kidz Centres Pty Ltd,Whiz Kidz Centres,false,company,NSW,16/07/2021,0,,0,0,,0
+PR-40029327,SIBLINGS EARLY LEARNING PTY LTD,Siblings Early Learning Pty Ltd,false,company,QLD,18/05/2022,1,QLD,1,0,112,0
+PR-40029330,LNS ENTERPRISES (QLD) PTY LTD,,false,company,QLD,28/06/2022,1,QLD,1,0,49,0
+PR-40029334,,,true,likely_individual,QLD,07/06/2022,5,QLD,1,0,237,0
+PR-40029338,ROADSHOW HOLDINGS PTY LTD,Roadshow Holdings PTY LTD,false,company,WA,24/05/2022,4,WA,1,0,193,0
 PR-40029343,YICHENG MANAGEMENT PTY LTD,,false,company,NSW,06/10/2022,1,NSW,1,0,83,0
 PR-40029362,HEATHMONT MONTESSORI PTY LTD,Heathmont Kindergarten,false,company,VIC,09/08/2022,1,VIC,1,0,65,0
 PR-40029368,Bossy Boots Early Learning Kingscliff PTY LTD,Bossy Boots Early Learning Centre,false,company,NSW,05/09/2022,3,NSW,1,0,275,0
@@ -8968,10 +8975,7 @@ PR-40030237,,,true,trust_or_trustee,VIC,28/11/2022,1,VIC,1,0,92,0
 PR-40030244,,,true,trust_or_trustee,NSW,06/10/2022,1,NSW,1,0,90,0
 PR-40030249,,,true,likely_individual,NSW,15/12/2022,1,NSW,1,0,39,0
 PR-40030255,POBBLEBONKS ELC PTY LTD,Pobblebonks ELC Pty Ltd,false,company,TAS,07/09/2022,1,TAS,1,0,35,0
-PR-40030260,,,true,trust_or_trustee,NSW,23/12/2022,0,,0,0,,0
-PR-40030265,SENSORY COVE DEVELOPMENTS PTY LTD,Wauchope Little Learners,false,company,NSW,26/09/2022,0,,0,0,,0
-PR-40030273,ANTARA BEXLEY PTY LTD,,false,company,NSW,08/09/2022,1,NSW,1,0,39,0
-PR-40030299,Manulevu Trading Company PTY LTD,IKAL and Co Pty Ltd,false,company,QLD,19/08/2022,0,,0,0,,0
+PR-00011853,H.C & B.T ENTERPRISES PTY LTD,New Horizon's Battery Point (pending service approval transfer),false,company,TAS,14/04/2026,1,TAS,1,0,60,0
 PR-00011861,RATNAKUMARS SERVICES PTY LTD,Stellar Nest Education and Care,false,company,NSW,16/03/2026,0,,0,0,,0
 PR-00011867,HESTIA EARLY LEARNING PTY LTD,Hestia Early Learning Pty Ltd,false,company,NSW,09/04/2026,0,,0,0,,0
 PR-00011884,,,true,trust_or_trustee,QLD,07/05/2026,0,,0,0,,0
@@ -9071,7 +9075,6 @@ PR-00012131,BOURCHIER STREET PRIMARY SCHOOL SHEPPARTON COUNCIL,,false,government
 PR-00012132,CoOeee Bush Kindy Inc,CoOeee,false,incorporated_association,NSW,16/07/2026,0,,0,0,,0
 PR-00012135,BRENTWOOD CHILDCARE PTY LTD ATF Brentwood Childcare Trust,Brentwood Early Learning Centre,false,trust_or_trustee,VIC,21/09/2026,0,,0,0,,0
 PR-00012136,COBDOGLA PRIMARY SCHOOL COUNCIL INC,Cobdogla Primary School OSHC,false,incorporated_association,SA,14/05/2026,1,SA,1,0,24,0
-PR-00012137,BUNGALOW RUSSELL VALE PTY LTD,,false,company,NSW,10/09/2026,0,,0,0,,0
 PR-00006494,Our Space OOSH Pty Ltd,Our Space OOSH Pty Ltd,false,company,NSW,19/06/2012,1,NSW,1,0,135,0
 PR-00006495,Avalon Public School P&C Assoc. Inc.,Avalon School OOSH,false,incorporated_association,NSW,06/12/2012,1,NSW,1,0,85,0
 PR-00006496,,,true,trust_or_trustee,VIC,29/02/2012,0,,0,0,,0
@@ -9172,6 +9175,10 @@ PR-00006751,,,true,unknown,NSW,24/07/2012,1,NSW,1,0,95,0
 PR-00006755,Little Learning Education Pty Ltd,,false,company,NSW,16/04/2012,3,NSW,1,0,99,0
 PR-00006757,Association for Christian Education Mount Evelyn Inc,Mount Evelyn Christian School,false,incorporated_association,VIC,16/08/2012,1,VIC,1,0,56,0
 PR-00006766,Rose Grange Investment Pty Ltd,Early Learning Centre Rose Grande,false,company,QLD,14/06/2012,1,VIC,1,0,120,0
+PR-40011930,,,true,trust_or_trustee,NSW,15/09/2017,1,NSW,1,0,60,0
+PR-40011939,Kids Spring Pty Ltd as Trustee for Kids Spring Trust,,false,trust_or_trustee,QLD,21/09/2017,1,QLD,1,0,75,0
+PR-40011948,BIRKDALE CHILD CARE CENTRE PTY LTD,,false,company,QLD,09/08/2017,3,QLD,1,0,251,0
+PR-40011949,Advanced Early Learning Centre Pty Ltd,Advanced Early Learning Centre Pty Ltd,false,company,SA,27/06/2017,1,SA,1,0,114,0
 PR-40011953,Montessori Beginnings Thomastown Pty Ltd,Montessori Beginnings Thomastown,false,company,VIC,08/12/2017,3,VIC,1,0,333,0
 PR-40011962,EUNOIA EDUCATION PTY LTD,Eunoia Education,false,company,VIC,26/06/2018,1,VIC,1,0,80,0
 PR-40011970,Meek's Day Care Pty Ltd,Meek's Day Care,false,company,NSW,09/02/2018,1,NSW,1,0,42,0
@@ -9268,10 +9275,10 @@ PR-40012634,,,true,trust_or_trustee,QLD,12/11/2017,1,QLD,1,0,95,0
 PR-40012648,TOP TALENT EDUCATION (AUSTRALIA) PTY LTD,,false,company,VIC,22/01/2018,2,VIC,1,0,83,0
 PR-40012654,SATHMI PTY LTD,,false,company,VIC,15/05/2018,1,VIC,1,0,130,0
 PR-40012663,,,true,likely_individual,QLD,10/10/2017,0,,0,0,,0
-PR-40012671,AUSTRA BT PTY LTD,AUSTRA BT PTY LTD,false,company,NSW,12/12/2017,1,NSW,1,0,24,0
-PR-40012681,,,true,trust_or_trustee,VIC,03/10/2017,1,VIC,1,0,130,0
-PR-40012697,BELIEVE PLAYSCHOOL PTY LTD,Lyson,false,company,NSW,20/02/2018,1,NSW,1,0,60,0
-PR-40012698,,,true,trust_or_trustee,NSW,15/02/2018,1,VIC,1,0,130,0
+PR-40002838,PALLAMAR HOLDINGS PTY. LTD.,Croydon Tennis Centre OOSH,false,company,NSW,21/01/2015,2,NSW,1,0,120,0
+PR-40002839,,,true,likely_individual,NSW,19/12/2014,1,NSW,1,0,44,0
+PR-40002846,BAIB ENTERPRISE PTY LTD,BAIB ENTERPRISE PTY LTD,false,company,NSW,11/02/2015,0,,0,0,,0
+PR-40002860,CUZENT PTY LTD,Kiama Stars of the Future Child Care Centre,false,company,NSW,30/01/2015,1,NSW,1,0,28,0
 PR-40002864,At Home Family Day Care Scheme Pty Ltd,,false,company,QLD,04/02/2015,1,QLD,1,1,,1
 PR-40002866,Tilly's Dream PTY LTD,Greater Kids,false,company,NSW,11/02/2015,6,NSW|VIC,2,0,161,0
 PR-40002881,GW KATOOMBA PTY LTD,Greenwood Katoomba,false,company,QLD,03/02/2015,1,NSW,1,0,120,0
@@ -9368,10 +9375,6 @@ PR-40003765,Kin Early Education PTY LTD ATF Gloury Trust,Kin Early Education Yar
 PR-40003831,Sydney Local Health District Trading As Concord Repatriation General Hospital,Concord Repatriation General Hospital,false,government,NSW,22/06/2015,1,NSW,1,0,60,0
 PR-40003832,,,true,trust_or_trustee,VIC,07/09/2015,2,VIC,1,0,104,0
 PR-40003835,,,true,likely_individual,VIC,19/06/2015,1,VIC,1,0,48,0
-PR-40003861,,,true,trust_or_trustee,QLD,15/05/2015,1,QLD,1,0,94,0
-PR-40003863,,,true,trust_or_trustee,QLD,15/05/2015,1,QLD,1,0,75,0
-PR-40003864,,,true,trust_or_trustee,QLD,15/05/2015,1,QLD,1,0,75,0
-PR-40003865,Bambini Early Childhood Development Meridan Pty Ltd,,false,company,QLD,15/05/2015,1,QLD,1,0,180,0
 PR-00009642,NEXTGEN FAMILY DAY CARE PTY LTD,NEXTGEN FAMILY DAY CARE PTY LTD,false,company,VIC,22/08/2024,2,NSW|VIC,2,2,,2
 PR-00009644,,,true,trust_or_trustee,QLD,06/08/2024,1,QLD,1,0,100,0
 PR-00009646,DAHIYA GROUP HOLDINGS PTY LTD,,false,company,NSW,11/10/2024,0,,0,0,,0
@@ -9472,6 +9475,10 @@ PR-00009863,MINI BOOKWORMS PTY LTD,,false,company,NSW,03/10/2024,0,,0,0,,0
 PR-00009864,INSIGHT EARLY LEARNING DUNSBOROUGH PTY LTD,Insight Early Learning Dunsborough,false,company,ACT,08/11/2024,1,WA,1,0,94,0
 PR-00009875,BLOOMING MINDS EARLY LEARNING CENTRE PTY LTD,,false,company,VIC,08/12/2024,0,,0,0,,0
 PR-00009876,SPEEDY KIDS PTY LTD,,false,company,VIC,07/05/2025,0,,0,0,,0
+PR-40021142,GREEN LEAVES (QLD12) EARLY LEARNING CENTRES PTY LTD,,false,company,QLD,05/11/2019,1,QLD,1,0,91,0
+PR-40021143,NIET ASSET HOLDING PTY LTD,NIET ASSET HOLDING Pty Ltd,false,company,QLD,30/09/2019,0,,0,0,,0
+PR-40021147,,,true,likely_individual,NSW,18/12/2019,0,,0,0,,0
+PR-40021148,GREEN LEAVES (QLD16) EARLY LEARNING CENTRES PTY LTD,,false,company,QLD,15/11/2019,1,QLD,1,0,126,0
 PR-40021149,GREEN LEAVES (QLD15) EARLY LEARNING CENTRES PTY LTD,,false,company,QLD,15/11/2019,1,QLD,1,0,132,0
 PR-40021157,KIS EARLY EDUCATION PTY LTD,,false,company,NSW,12/02/2020,1,NSW,1,0,84,0
 PR-40021172,SHINING LIGHTS EARLY LEARNING CENTRE PTY LTD,Shining Lights Early Learning Centre Pty Ltd,false,company,VIC,20/12/2019,2,VIC,1,0,66,0
@@ -9524,7 +9531,7 @@ PR-40021594,Early Years Learning and Development Pty Ltd,Landsdale school of ear
 PR-40021596,HEARTCO LTD,,false,company,NSW,11/12/2019,3,NSW,1,0,84,0
 PR-40021599,,,true,likely_individual,VIC,04/03/2020,0,,0,0,,0
 PR-40021608,CLYDE NTH BUSINESS ONE EEG PTY LTD,,false,company,VIC,18/12/2019,1,VIC,1,0,122,0
-PR-40021632,,,true,trust_or_trustee,QLD,17/01/2020,1,QLD,1,0,38,0
+PR-40021632,,,true,trust_or_trustee,QLD,17/01/2020,1,QLD,1,0,73,0
 PR-40021633,Mitchelton Early Learning Pty Ltd,,false,company,QLD,19/12/2019,2,QLD,1,0,150,0
 PR-40021640,ASPIRE EARLY EDUCATION BENDIGO PTY LTD,Aspire Early Education Bendigo,false,company,VIC,20/12/2019,2,VIC,1,0,222,0
 PR-40021652,,,true,likely_individual,WA,19/12/2019,0,,0,0,,0
@@ -9568,10 +9575,6 @@ PR-40021938,TLTW2 PTY LTD,,false,company,QLD,31/01/2020,1,QLD,1,0,46,0
 PR-40021953,MARYAN FAMILY DAY CARE PTY LTD,Maryan Family Day Care Pty Ltd,false,company,QLD,01/05/2020,0,,0,0,,0
 PR-40021968,Insight Early Learning Joondalup Pty Ltd,Freo Kids Early Learning Joondalup,false,company,ACT,30/01/2020,1,WA,1,0,120,0
 PR-40021975,,,true,trust_or_trustee,NSW,05/03/2020,2,NSW|VIC,2,0,105,0
-PR-40021980,Muzznkaz Investments Pty Ltd,kidz b kidz,false,company,QLD,10/01/2020,0,,0,0,,0
-PR-40021989,CHLOE & JACK PTY LTD,Lilly Pilly South Early Learning Centre,false,company,NSW,11/05/2020,1,NSW,1,0,30,0
-PR-40021992,,,true,unknown,NSW,13/02/2020,1,NSW,1,0,20,0
-PR-40021999,ETZ CHAIM LTD,,false,company,NSW,10/03/2020,1,NSW,1,0,60,0
 PR-00003350,EKB Holdings Pty Ltd,EKB Holdings Pty Ltd,false,company,NSW,10/03/2011,1,NSW,1,0,89,0
 PR-00003351,ESB Holdings Pty Ltd,ESB Holdings Pty Ltd,false,company,NSW,01/09/2009,1,NSW,1,0,29,0
 PR-00003352,Ausscot Care Pty Ltd,Ausscot Care Pty Ltd,false,company,NSW,01/09/2009,1,NSW,1,1,,1
@@ -9924,7 +9927,7 @@ PR-00005146,Rigate Holdings Pty Ltd,Rigate Holdings Pty Ltd,false,company,NSW,01
 PR-00005148,DUBBO REGIONAL COUNCIL,Western Plains Regional Council,false,government,NSW,01/09/2009,2,NSW,1,1,58,1
 PR-00005153,Greenhills Child Care Centre Incorporated,Greenhills Child Care Centre Incorporated,false,incorporated_association,NSW,01/09/2009,1,NSW,1,0,48,0
 PR-00005154,All Saints Pre-School Albion Park Inc,All Saints Pre-School Albion Park Inc,false,incorporated_association,NSW,01/09/2009,1,NSW,1,0,30,0
-PR-00005155,Canterbury-Bankstown Council,Canterbury-Bankstown Council,false,government,NSW,01/09/2009,8,NSW,1,1,368,1
+PR-00005155,Canterbury-Bankstown Council,Canterbury-Bankstown Council,false,government,NSW,01/09/2009,8,NSW,1,1,404,1
 PR-00005156,,,true,unknown,NSW,01/09/2009,1,NSW,1,0,24,0
 PR-00005157,JINDERA PRE SCHOOL ASSOCIATION INC,Jindera Preschool Association Inc,false,incorporated_association,NSW,28/04/2008,1,NSW,1,0,31,0
 PR-00005161,Toodle Pip Pty Ltd,Toodle Pip Pty Ltd,false,company,NSW,01/09/2009,1,NSW,1,0,46,0

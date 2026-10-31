@@ -1,28 +1,28 @@
 {
-  "generated_at": "2026-10-30T22:46:16.459262+00:00",
+  "generated_at": "2026-10-31T07:28:42.697128+00:00",
   "inputs": {
     "providers_file": "data/processed/acecqa-providers-latest.csv",
     "services_file": "data/processed/acecqa-services-latest.csv",
-    "provider_rows": 10073,
-    "service_rows": 18186,
-    "snapshot_last_modified_providers": "Wed, 28 Oct 2026 19:28:17 GMT",
-    "snapshot_last_modified_services": "Wed, 28 Oct 2026 19:28:15 GMT",
+    "provider_rows": 10076,
+    "service_rows": 18191,
+    "snapshot_last_modified_providers": "Fri, 30 Oct 2026 19:24:49 GMT",
+    "snapshot_last_modified_services": "Fri, 30 Oct 2026 19:24:47 GMT",
     "raw_inputs": [
       "data/processed/acecqa-providers-latest.csv",
-      "data/raw/acecqa-providers/2026-10-29T2316Z.csv.gz",
-      "data/raw/acecqa-providers/2026-10-29T2316Z.csv.gz.meta.json",
+      "data/raw/acecqa-providers/2026-10-30T2257Z.csv.gz",
+      "data/raw/acecqa-providers/2026-10-30T2257Z.csv.gz.meta.json",
       "data/processed/acecqa-services-latest.csv",
-      "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz",
-      "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz.meta.json"
+      "data/raw/acecqa-services/2026-10-30T2257Z.csv.gz",
+      "data/raw/acecqa-services/2026-10-30T2257Z.csv.gz.meta.json"
     ]
   },
   "window_note": "Point-in-time counts from the ACECQA register snapshot named above, not a time series. Denominator for every share: providers in the providers file, or services in the services file.",
-  "providers_total": 10073,
-  "services_total": 18186,
-  "services_linked_to_a_provider_row": 18186,
+  "providers_total": 10076,
+  "services_total": 18191,
+  "services_linked_to_a_provider_row": 18191,
   "services_with_no_provider_approval_number": 0,
   "entity_form_counts": {
-    "company": 4869,
+    "company": 4872,
     "incorporated_association": 2107,
     "cooperative": 61,
     "government": 571,
@@ -32,21 +32,21 @@
     "unknown": 374
   },
   "entity_form_share_of_providers": {
-    "company": 0.4834,
-    "incorporated_association": 0.2092,
+    "company": 0.4835,
+    "incorporated_association": 0.2091,
     "cooperative": 0.0061,
     "government": 0.0567,
     "trust_or_trustee": 0.1197,
     "church_or_religious": 0.0128,
-    "likely_individual": 0.0751,
+    "likely_individual": 0.075,
     "unknown": 0.0371
   },
   "entity_form_service_counts": {
-    "company": 9838,
+    "company": 9841,
     "incorporated_association": 3028,
     "cooperative": 66,
-    "government": 1604,
-    "trust_or_trustee": 1451,
+    "government": 1605,
+    "trust_or_trustee": 1452,
     "church_or_religious": 1079,
     "likely_individual": 510,
     "unknown": 610
@@ -63,19 +63,19 @@
   },
   "likely_individual_providers_names_withheld": 756,
   "providers_names_withheld_total": 2212,
-  "providers_with_no_services_in_services_table": 2871,
+  "providers_with_no_services_in_services_table": 2875,
   "providers_by_service_count_band": {
-    "0": 2871,
-    "1": 5631,
+    "0": 2875,
+    "1": 5629,
     "10-24": 117,
-    "2-4": 1177,
+    "2-4": 1178,
     "25+": 75,
     "5-9": 202
   },
   "providers_operating_in_more_than_one_state": 146,
   "service_type_distribution": {
-    "Centre-Based Care": 17827,
-    "Family Day Care": 359
+    "Centre-Based Care": 17833,
+    "Family Day Care": 358
   },
   "management_type": {
     "available": false,
@@ -175,7 +175,7 @@
       "legal_name": "Department of Education",
       "trading_name": "Department of Education",
       "entity_form": "government",
-      "service_count": 124,
+      "service_count": 125,
       "states_operated_in": "NSW"
     },
     {
@@ -325,7 +325,7 @@
   ],
   "top_30_note": "Providers whose names are withheld are excluded from this list by design. Service count is approved services on the register on the snapshot date, out of the services_total above. A large count does not by itself indicate any compliance concern.",
   "row_level_logs": {
-    "provider_with_no_services_in_services_table": 2871
+    "provider_with_no_services_in_services_table": 2875
   },
   "caveat": "entity_form is heuristic. Absence of a flag is not evidence of safety."
 }
