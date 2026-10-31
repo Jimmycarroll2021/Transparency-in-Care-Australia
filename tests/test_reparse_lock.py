@@ -25,6 +25,7 @@ def setup(tmp_path, monkeypatch):
     (d / "a.csv").write_text("old a\n", encoding="utf-8")
     (d / "enforcement-actions-all.csv").write_text("old join\n", encoding="utf-8")
     monkeypatch.setattr(ro, "PROCESSED_DIR", d)
+    monkeypatch.setattr(common, "PROCESSED_DIR", d)  # the cross-output pass
     monkeypatch.setattr(ro, "acecqa_person_names", lambda: pp.PersonNames())
     monkeypatch.setattr(common, "REPARSE_MARKER", tmp_path / ".reparse-in-progress")
     monkeypatch.setattr(ro, "BACKUP_ROOT", tmp_path / ".reparse-backup")
