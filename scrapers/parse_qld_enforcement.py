@@ -175,24 +175,111 @@ _MONEY_RAW = re.compile(
 )
 _WHOLE_GROUPING = re.compile(r"^(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)$")
 # PR #9: an allowlist (project rule 3: null with a note, never a wrong figure). A figure is
-# recorded only from one of these single-total forms, ending the sentence or clause or followed
-# by a stated reason: 'fined $N', 'was fined $N.', 'fined $N for|after|over|following|in
-# relation to|regarding|relating to ...', 'fined a total of $N', 'total fine of $N'.
+# recorded only from one of these single-total forms in the headline alone, ending the
+# headline or a sentence ('.' then a space or the end; never , ; or :) or followed by a stated
+# reason: 'fined $N', 'was fined $N.', 'fined $N for|after|over|following|in relation
+# to|regarding|relating to ...', 'fined a total of $N', 'total fine of $N'.
 _TOTAL_FORM = re.compile(
     rf"(?i)(?<![a-z])(?:fined(?:[ ]+a[ ]+total[ ]+of)?|total[ ]+fine[ ]+of)[ ]+({_AMOUNT})(?![,.][0-9])"
-    r"(?=[ ]*(?:[.;:,]|$)|[ ]+(?:for|after|over|following|in[ ]+relation[ ]+to|regarding"
+    r"(?=[ ]*(?:[.](?:[ ]|$)|$)|[ ]+(?:for|after|over|following|in[ ]+relation[ ]+to|regarding"
     r"|relating[ ]+to)(?![a-z]))"
 )
-# Qualifiers that make a printed amount other than one total fine, anywhere in the text.
+
+
+def _words(*phrases: str) -> re.Pattern:
+    alternatives = "|".join(p.replace(" ", r"[ ]+") for p in phrases)
+    return re.compile(rf"(?i)(?<![a-z])(?:{alternatives})(?![a-z])")
+
+
+# Guards over all of the row's text (PR #9, Codex round 1): any one gives null.
 _PER_ITEM = re.compile(
-    r"(?i)(?<![a-z])(?:each|every|per|apiece|a[ ]+time|times|respectively)(?![a-z])"
-    r"|(?<![a-z])x[ ]?[0-9]|×"
+    _words(
+        "each",
+        "every",
+        "per",
+        "apiece",
+        "a time",
+        "times",
+        "respectively",
+        # rates
+        "a day",
+        "daily",
+        "a week",
+        "weekly",
+        "a month",
+        "monthly",
+        "a year",
+        "per annum",
+        "annually",
+        "an hour",
+        # multipliers
+        "multiplied",
+        "twice",
+        "thrice",
+        "double",
+        "both",
+    ).pattern
+    + r"|(?<![a-z])x[ ]?[0-9]|×"
 )
 _COSTS = re.compile(
-    r"(?i)(?<![a-z])(?:costs?|plus)(?![a-z])"
-    r"|(?<![a-z])including(?:[ ]+[^ ]+){0,3}?[ ]+(?:costs?(?![a-z])|[$])"
+    _words("costs?", "plus").pattern
+    + r"|(?i:(?<![a-z])including(?:[ ]+[^ ]+){0,3}?[ ]+(?:costs?(?![a-z])|[$]))"
 )
-_SUSPENDED = re.compile(r"(?i)(?<![a-z])(?:part-suspended|suspended|partially)(?![a-z])")
+_NOT_A_TOTAL = _words(
+    "part-suspended",
+    "suspended",
+    "partially",
+    # modality and negation
+    "not",
+    "never",
+    "no fine",
+    "could",
+    # a modal "may" only before a verb, so the month never matches (PR #9, Codex round 1)
+    "may (?:be|face|receive|incur|pay|have|attract)",
+    "might",
+    "would",
+    "faces",
+    "faced",
+    "facing",
+    "potential",
+    "possible",
+    "up to",
+    "maximum",
+    "max",
+    # a changed or deferred figure
+    "originally",
+    "initially",
+    "reduced",
+    "varied",
+    "increased",
+    "appeal",
+    "appealed",
+    "overturned",
+    "set aside",
+    "substituted",
+    "instalments",
+    "to be paid",
+    "payable",
+)
+# Another person fined in a provider's row. Applied only when the row's subject is an
+# organisation or a service: on an individual or role row the word names the subject itself.
+_ROLE_WORDS = _words(
+    "director",
+    "educator",
+    "employee",
+    "staff",
+    "supervisor",
+    "nominated",
+    "individual",
+    "person",
+    "worker",
+    "manager",
+)
+# Amounts in a format the forms do not read ('AUD 4,000', 'A$4,000', '4,000 dollars', a
+# full-width dollar sign): counted, and never recorded.
+_OTHER_AMOUNT = re.compile(
+    r"(?i)(?<![a-z])(?:aud|a[$]|au[$])[ ]?[0-9]|＄|[0-9](?:[0-9,.]*[0-9])?[ ]?(?:dollars?|aud)(?![a-z])"
+)
 
 
 def _dollars(token: str) -> int | float:
@@ -201,20 +288,32 @@ def _dollars(token: str) -> int | float:
     return whole + int(m.group(2)) / 100 if m.group(2) else whole
 
 
-def fine_amount_and_note(text: str | None) -> tuple[int | float | None, str | None]:
+def fine_amount_and_note(
+    text: str | None, row_text: str | None = None, *, subject_is_person: bool = False
+) -> tuple[int | float | None, str | None]:
     """(fine in dollars, note) from a printed headline (Codex round 5, finding 3; PR #7 to #9).
 
     An allowlist that fails closed (project rule 3: null with a note, never a wrong figure).
-    Recorded only when the text prints exactly one dollar amount, as a whole figure (cents
-    optional), in one of the single-total forms of _TOTAL_FORM, and holds no qualifier anywhere
-    (each, every, per, apiece, a time, times, x3, respectively; costs, plus, including costs or
-    an amount; suspended, part-suspended, partially). Otherwise the value is None with the most
-    specific note: abbreviated amount, per-offence wording, costs or more than one amount, or
-    a wording that is not a recognised single total. Never a guess, never scaled."""
-    if not text or not _FINE_WORD.search(text):
+    `text` is the headline; `row_text` is all of the row's details text (every paragraph and
+    label), defaulting to the headline. `subject_is_person` is True on a row whose subject is
+    an individual or a role; the role-word guard is then skipped, every other guard is kept. Recorded only when the row text prints exactly one
+    dollar amount, as a whole figure (cents optional), the headline holds it in one of the
+    single-total forms of _TOTAL_FORM, and no guard word appears anywhere in the row text.
+    Otherwise the value is None with the most specific note: abbreviated amount, per-item or
+    rate wording, costs or more than one amount, or a wording that is not a recognised single
+    total. Never a guess, never scaled."""
+    text = (text or "").replace("\xa0", " ")
+    full = " ".join(t for t in (text, (row_text or "").replace("\xa0", " ")) if t)
+    if not full or not _FINE_WORD.search(full):
         return None, None
-    raw = list(_MONEY_RAW.finditer(text))
-    if not raw:
+    counted = (row_text or text).replace("\xa0", " ")
+    raw = [
+        m
+        for m in _MONEY_RAW.finditer(counted)
+        if not counted[: m.start()].lower().endswith(("a", "au"))
+    ]
+    other = list(_OTHER_AMOUNT.finditer(counted))
+    if not raw and not other:
         return None, None
     for m in raw:
         digits, decimals, magnitude = m.group(1).rstrip(","), m.group(2), m.group(3)
@@ -222,12 +321,13 @@ def fine_amount_and_note(text: str | None) -> tuple[int | float | None, str | No
             return None, FINE_ABBREVIATED_NOTE
         if not _WHOLE_GROUPING.match(digits):
             return None, FINE_ABBREVIATED_NOTE
-    if _PER_ITEM.search(text):
+    if _PER_ITEM.search(full):
         return None, FINE_PER_OFFENCE_NOTE
-    if _COSTS.search(text) or len(raw) != 1:
+    if _COSTS.search(full) or len(raw) + len(other) != 1:
         return None, FINE_NOT_RECORDED_NOTE
     form = _TOTAL_FORM.search(text)
-    if _SUSPENDED.search(text) or not form:
+    role = None if subject_is_person else _ROLE_WORDS.search(full)
+    if other or role or _NOT_A_TOTAL.search(full) or not form:
         return None, FINE_NOT_SINGLE_TOTAL_NOTE
     return _dollars(form.group(1)), None
 
@@ -456,9 +556,13 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         legal_references = []
 
     # Codex round 5: only an amount tied explicitly to the fine is recorded.
-    # PR #9: each printed paragraph is its own clause for the fine forms; labels still count
-    # for the qualifiers.
-    penalty, penalty_note = fine_amount_and_note("; ".join([headline, *extra_labels]))
+    # PR #9: the fine form is read from the headline alone; the guards and the amount count run
+    # over all of the details cell (every paragraph, linked or not, and every label).
+    penalty, penalty_note = fine_amount_and_note(
+        headline,
+        clean(details.get_text(" ")),
+        subject_is_person=kind not in ("entity", "service_only"),
+    )
     if penalty_note:
         notes.append(penalty_note)
         withheld_markers.append(penalty_note)  # a constant phrase, safe on withheld rows
