@@ -733,3 +733,115 @@ def test_cache_restore_needs_the_rows_response_hash(tmp_path):
     _write_cache(tmp_path / "abr-lookup", ["Unrelated"])
     assert al.cached_business_names(ABN, None, tmp_path / "abr-lookup") is None
     assert al.cached_business_names(ABN, "", tmp_path / "abr-lookup") is None
+
+
+# ---------------------------------------------------------------------------
+# Codex round 6: free text may not repeat a withheld name
+# ---------------------------------------------------------------------------
+
+QLD_FIELDS = ["record_id", "service_name", "reason", "notes"]
+
+
+def _write_qld_and_service(tmp_path, monkeypatch, order):
+    root = tmp_path / order
+    monkeypatch.setattr(common, "PROJECT_ROOT", root)
+    monkeypatch.setattr(common, "PROCESSED_DIR", root / "data" / "processed")
+    common.reset_withheld_names()
+    context = AcecqaNameContext()
+    context.withheld["PR-00000009"] = "Jane Sample"
+    common.set_name_context(context)
+    common.set_person_names(PersonNames())
+    outputs = {
+        "qld-enforcement-actions": (
+            [
+                {
+                    "record_id": "q1",
+                    "service_name": "Sample Kids Club",
+                    "reason": "Compliance notice issued to Sample Kids Club after a visit.",
+                    "notes": "duplicate row in source",
+                },
+                {
+                    "record_id": "q2",
+                    "service_name": "Riverside Kids Club",
+                    "reason": "Compliance notice issued to Riverside Kids Club after a visit.",
+                    "notes": None,
+                },
+            ],
+            QLD_FIELDS,
+        ),
+        "by-service": (
+            [{"provider_approval_number": "PR-00000009", "service_name": "Sample Kids Club"}],
+            ["provider_approval_number", "service_name"],
+        ),
+    }
+    names = list(outputs) if order == "ab" else list(reversed(outputs))
+    for name in names:
+        common.write_processed(name, *outputs[name], raw_inputs=[])
+    common.refilter_processed_names()
+    d = root / "data" / "processed"
+    return {n: (d / f"{n}.csv").read_text("utf-8") for n in outputs}
+
+
+def test_prose_repeating_a_withheld_service_name_is_withheld_in_either_order(tmp_path, monkeypatch):
+    ab = _write_qld_and_service(tmp_path, monkeypatch, "ab")
+    ba = _write_qld_and_service(tmp_path, monkeypatch, "ba")
+    assert ab == ba
+    rows = list(csv.DictReader(ab["qld-enforcement-actions"].splitlines()))
+    assert rows[0]["service_name"] == "" and rows[0]["reason"] == ""
+    assert common.PROSE_WITHHELD_NOTE in rows[0]["notes"]
+    assert "duplicate row in source" in rows[0]["notes"]
+    # prose repeating an ordinary, kept service name is kept
+    assert rows[1]["service_name"] == "Riverside Kids Club"
+    assert rows[1]["reason"].startswith("Compliance notice issued to Riverside Kids Club")
+    assert "Sample Kids Club" not in ab["qld-enforcement-actions"]
+
+
+def test_the_prose_rule_does_not_exempt_a_service_name_the_name_rule_withholds(ctx):
+    common.set_person_names(_names("Jane Example"))
+    rows = [
+        {
+            "service_name": "Jane Example Family Day Care",
+            "provider_name": None,
+            "suburb": "Exampleton",
+            "reason": "Breach found at Jane Example Family Day Care.",
+            "notes": None,
+        },
+        {
+            "service_name": "Riverside Family Day Care",
+            "provider_name": None,
+            "suburb": "Exampleton",
+            "reason": "Breach found at Riverside Family Day Care.",
+            "notes": None,
+        },
+    ]
+    counts = common.withhold_prose_naming_people(rows)
+    assert counts.get("reason") == 1
+    assert rows[0]["reason"] is None
+    assert rows[1]["reason"] == "Breach found at Riverside Family Day Care."
+
+
+def test_a_withheld_trading_name_in_free_text_is_withheld(ctx):
+    rows = [
+        {
+            "provider_approval_number": "PR-00000001",
+            "trading_name": "Jane Example",
+            "reason": "Operates as Jane Example in two suburbs.",
+            "notes": None,
+        }
+    ]
+    out, _, counts = common.withhold_person_named_names("x", rows, list(rows[0]))
+    assert out[0]["trading_name"] is None and out[0]["reason"] is None
+    assert counts == {"trading_name": 1, "reason": 1}
+    assert common.PROSE_WITHHELD_NOTE in out[0]["notes"]
+
+
+def test_whole_word_and_hyphen_spacing_in_the_free_text_scan(ctx):
+    common.note_withheld_name("Ann-Marie Sample Kindy")
+    rows = [
+        {"reason": "Visit to Ann Marie Sample Kindy.", "notes": None},
+        {"reason": "Visit to Ann-Marie Sample Kindygarten.", "notes": None},
+    ]
+    out, _, counts = common.withhold_person_named_names("y", rows, ["reason", "notes"])
+    assert out[0]["reason"] is None
+    assert out[1]["reason"] == "Visit to Ann-Marie Sample Kindygarten."
+    assert counts == {"reason": 1}
