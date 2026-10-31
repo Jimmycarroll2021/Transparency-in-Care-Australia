@@ -104,6 +104,7 @@ scrapers/             Collection scripts (Phase 2 onward)
 - Parse WA enforcement register: `python3 scrapers/parse_wa_enforcement.py` (needs `pip install playwright && playwright install chromium`; the ECRU register is a Caspio search form with no static page)
 - Resolve ABNs (needs ABN_LOOKUP_GUID in .env): `python3 scrapers/abn_lookup.py` (stage A: Commonwealth ABNs to `abn-details.csv`; `abn <ABN>` or `name "<name>" --state NSW` for single lookups; `--offline` uses the local cache)
 - Build provider groups: `python3 scrapers/build_provider_groups.py` (stage B providers to ABN, capped by `--max-calls`, default 1500; `--skip-lookup` rebuilds groups from `provider-abn.csv`)
+- Build group edges from the Modern Slavery Register: `python3 scrapers/build_msr_group_edges.py` (statement pages at least 2 s apart; raw MSR files stay in gitignored `data/raw/msr/`; `--no-fetch` rebuilds from local snapshots; `--refresh` re-snapshots pages; exit 2 leaves outputs unchanged when a page is missing)
 
 Add commands here only once the script exists.
 
