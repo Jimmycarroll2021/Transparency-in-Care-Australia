@@ -54,11 +54,10 @@ from scrapers.common import PROCESSED_DIR, PROJECT_ROOT, log  # noqa: E402
 from scrapers.profile_providers import PersonNames, acecqa_person_names  # noqa: E402
 
 PARSERS = [qld, vecra, sa, tas, cth, wa, nsw]
-# PR #12: builders run in the real pass with the run-wide names, before the parsers, so that the
-# name rule on provider-profile.csv trading names uses the same names as every other output.
-# Their summary files (atomic_write_text) are held back too.
+# PR #12: builders run last, after the join and inside the same backup and marker, so that the
+# name rule on provider-profile.csv trading names uses the run-wide names and every name withheld
+# by an earlier output in this run (a name withheld once is withheld everywhere).
 BUILDERS = [profile]
-_BUILDER_WRITERS = ("write_processed", "atomic_write_text")
 # Persistent backups of data/processed, one directory per run (gitignored).
 BACKUP_ROOT = PROJECT_ROOT / "data" / ".reparse-backup"
 # Single-writer lock (Codex round 7, gitignored). Taken with an exclusive create.
@@ -106,11 +105,11 @@ def _capture(module) -> list[dict]:
     return captured
 
 
-def _held_writes(module, writers: tuple[str, ...] = _WRITERS) -> list:
+def _held_writes(module) -> list:
     """Run one parser with its writes held back in memory. Returns the held calls."""
     held: list = []
     saved = {}
-    for attr in writers:
+    for attr in _WRITERS:
         if hasattr(module, attr):
             original = getattr(module, attr)
             saved[attr] = original
@@ -291,8 +290,6 @@ def _run() -> int:
     common.set_person_names(names)
     held: list = []
     try:
-        for module in BUILDERS:
-            held.extend(_held_writes(module, _BUILDER_WRITERS))
         for module in PARSERS:
             held.extend(_held_writes(module))
     except ParserFailed as exc:
@@ -313,6 +310,8 @@ def _run() -> int:
         for fn, args, kwargs in held:
             fn(*args, **kwargs)
         run_join()
+        for module in BUILDERS:
+            _run_parser(module)
     except BaseException as exc:  # includes SystemExit from the join
         log.error("writing or join failed (%r)", exc)
         try:
