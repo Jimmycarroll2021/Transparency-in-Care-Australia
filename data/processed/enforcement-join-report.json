@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-31T07:32:13.878236+00:00",
+  "generated_at": "2026-10-31T09:15:57.804577+00:00",
   "window": {
     "months": 24,
     "start": "2024-10-31",
@@ -1273,5 +1273,6 @@
     "data/processed/enforcement-by-service.csv",
     "data/processed/enforcement-by-provider.csv"
   ],
-  "joined_before_unlisted_stage": 2675
+  "joined_before_unlisted_stage": 2675,
+  "unrestored_withheld_service_names": 0
 }
