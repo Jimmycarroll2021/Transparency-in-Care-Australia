@@ -176,12 +176,12 @@ _MONEY_RAW = re.compile(
 _WHOLE_GROUPING = re.compile(r"^(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)$")
 # PR #9: an allowlist (project rule 3: null with a note, never a wrong figure). A figure is
 # recorded only from one of these single-total forms in the headline alone, ending the
-# headline or a sentence ('.' then a space or the end; never , ; or :) or followed by a stated
+# headline or a sentence ('.' then a capital or the end; never , ; or :) or followed by a stated
 # reason: 'fined $N', 'was fined $N.', 'fined $N for|after|over|following|in relation
 # to|regarding|relating to ...', 'fined a total of $N', 'total fine of $N'.
 _TOTAL_FORM = re.compile(
     rf"(?i)(?<![a-z])(?:fined(?:[ ]+a[ ]+total[ ]+of)?|total[ ]+fine[ ]+of)[ ]+({_AMOUNT})(?![,.][0-9])"
-    r"(?=[ ]*(?:[.](?:[ ]|$)|$)|[ ]+(?:for|after|over|following|in[ ]+relation[ ]+to|regarding"
+    r"(?=[ ]*(?:[.](?-i:[ ]+[A-Z]|[ ]*$)|$)|[ ]+(?:for|after|over|following|in[ ]+relation[ ]+to|regarding"
     r"|relating[ ]+to)(?![a-z]))"
 )
 
@@ -231,8 +231,10 @@ _PER_ITEM = re.compile(
 )
 _COSTS = re.compile(
     _words("costs?", "plus").pattern
-    + r"|(?i:(?<![a-z])including(?:[ ]+[^ ]+){0,3}?[ ]+"
+    + r"|(?i:(?<![a-z])(?:including|includes|included|inclusive[ ]+of)(?:[ ]+[^ ]+){0,3}?[ ]+"
     + r"(?:(?:costs?|fees?|charges?|levy|levies)(?![a-z])|[$]))"
+    + r"|(?i:(?<![a-z])(?:costs?|fees?|charges?|levy|levies)(?:[ ]+[^ ]+){0,3}?[ ]+"
+    + r"(?:including|includes|included)(?![a-z]))"
 )
 _NOT_A_TOTAL = _words(
     "part-suspended",
@@ -293,7 +295,21 @@ _NOT_A_TOTAL = _words(
     "appealed",
     "overturned",
     "set aside",
+    "sets aside",
+    "setting aside",
+    "set-aside",
     "substituted",
+    # annulled or reversed (PR #9, Codex round 3)
+    "annul",
+    "annulled",
+    "annulment",
+    "nullified",
+    "nullify",
+    "void",
+    "voided",
+    "reversed",
+    "reversal",
+    "vacated",
     "instalments",
     "to be paid",
     "payable",
@@ -327,7 +343,11 @@ _ORG_NOUN = _words(
     "entity",
     "business",
     "service",
+    "centre",
+    "center",
 )
+# The row subject's own leading noun phrase ends at the first conjunction or clause break.
+_CONJUNCTION = _words("and", "or", "but", "while", "whereas")
 _CLAUSE_BREAK = re.compile(r"[;:]|[.](?=[ ]+[A-Z])")
 # Amounts in a format the forms do not read ('AUD 4,000', 'A$4,000', '4,000 dollars', a
 # full-width dollar sign): counted, and never recorded.
@@ -386,29 +406,44 @@ def fine_amount_and_note(
     if other or _NOT_A_TOTAL.search(full) or not form:
         return None, FINE_NOT_SINGLE_TOTAL_NOTE
     if len(_FINE_VERB.findall(full)) > 1 or not _subject_is_the_rows_own(
-        text, full, subject_is_person
+        text, full, subject_is_person, form.start()
     ):
         return None, FINE_NOT_SINGLE_TOTAL_NOTE
     return _dollars(form.group(1)), None
 
 
-def _subject_is_the_rows_own(text: str, full: str, subject_is_person: bool) -> bool:
+def _subject_is_the_rows_own(
+    text: str, full: str, subject_is_person: bool, form_start: int | None = None
+) -> bool:
     """False when the one 'fined' may name someone other than the row's subject (PR #9, Codex
-    round 2): a role word anywhere, unless the row's subject is an individual or a role and
-    every role word sits in the headline's first clause before 'fined'; or an organisation
-    noun in a later clause before 'fined'."""
-    verb = _FINE_VERB.search(text)
-    lead = text[: verb.start()] if verb else text
-    first_clause = not _CLAUSE_BREAK.search(lead)
-    roles = list(_ROLE_WORDS.finditer(full))
-    if roles:
-        start = full.find(text)
-        lead_end = start + len(lead)
-        in_lead = all(start <= m.start() and m.end() <= lead_end for m in roles)
-        if not (subject_is_person and start >= 0 and first_clause and in_lead):
+    rounds 2 and 3). The lead is the headline before the total form ('fined', 'total fine of'); its leading noun phrase, up to the
+    first conjunction (and, or, but, while, whereas) or clause break, is the row's own subject.
+    False when an organisation or role noun appears in the lead after that phrase; when the
+    leading phrase of an organisation or service row names no organisation; when a role word
+    appears in the leading phrase of an organisation or service row; or when a role word
+    appears anywhere else in the row text."""
+    if form_start is None:
+        verb = _FINE_VERB.search(text)
+        form_start = verb.start() if verb else len(text)
+    lead = text[:form_start]
+    ends = [m.start() for m in (_CONJUNCTION.search(lead), _CLAUSE_BREAK.search(lead)) if m]
+    own = lead[: min(ends)] if ends else lead
+    rest = lead[len(own) :]
+    if _ORG_NOUN.search(rest) or _ROLE_WORDS.search(rest):
+        return False
+    # On an organisation or service row the leading phrase must name an organisation (or be
+    # empty, as in 'Fined $N for ...' or 'A total fine of $N'); a personal name there may be
+    # someone else's fine.
+    if not subject_is_person and own.strip().lower() not in ("", "a", "an", "the"):
+        if not (_ORG_NOUN.search(own) or _LEGAL.search(own) or _BUSINESS.search(own)):
             return False
-    breaks = list(_CLAUSE_BREAK.finditer(lead))
-    return not (breaks and _ORG_NOUN.search(lead, breaks[0].end()))
+    roles = list(_ROLE_WORDS.finditer(full))
+    if not roles:
+        return True
+    start = full.find(text)
+    own_end = start + len(own)
+    in_own = start >= 0 and all(start <= m.start() and m.end() <= own_end for m in roles)
+    return subject_is_person and in_own
 
 
 def extract_fine_amount(text: str | None) -> int | float | None:
