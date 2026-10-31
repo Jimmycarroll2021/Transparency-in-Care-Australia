@@ -425,28 +425,44 @@ URL_TEXT_WITHHELD = "(URL withheld: may name an individual)"
 # Codex round 6: a URL or path whose file name holds spaces is matched (and checked) whole.
 _EXT = r"\.(?:pdf|docx?|html?|json|csv|xlsx?|txt)\b"
 _TOKEN = r"[^\s'\",;()\[\]<>]+"
+# Follow-up to PR #6: a query string after a document name is part of the URL, and a path may
+# hold folder names with spaces. _SEG is one path segment with no space.
+# PR #7 round 1: a query may hold commas (ids=1,2); a comma or full stop that ends the
+# sentence is trimmed off the match in redact_urls.
+_QUERY = r"(?:[?#][^\s'\"();\[\]<>]*)?"
+_EXT_Q = _EXT + _QUERY
+_SEG = r"[^\s'\",;()\[\]<>:/\\?#]+"
+_SPACED_SEG = _SEG + r"(?:[ ]" + _SEG + r"){0,4}"
 _URL_IN_TEXT = re.compile(
-    # A URL ending in a document name with no space: matched first, so it never runs on into
-    # the following words.
-    r"https?://[^\s'\",;()\[\]<>]+?"
-    + _EXT
-    # A URL whose document name holds spaces.
+    # A URL ending in a document name (and any query) with no space: matched first, so it
+    # never runs on into the following words.
+    r"https?://[^\s'\",;()\[\]<>?#]+?"
+    + _EXT_Q
+    # A URL whose folder or document names hold spaces.
     + r"|https?://"
     + _TOKEN
     + r"(?:[ ]"
     + _TOKEN
     + r"){1,8}?"
-    + _EXT
-    + r"|https?://"
-    + _TOKEN
-    # A path of two or more directories whose file name holds spaces (at most nine words), so
-    # that prose such as 'PDF/Word files ... robots.txt' is not taken for a path.
-    + r"|(?:[^\s'\",;()\[\]<>:/\\]+[/\\]){2,}[^\s'\",;()\[\]<>:/\\]+"
-    + r"(?:[ ][^\s'\",;()\[\]<>:/\\]+){1,8}?"
-    + _EXT
-    # A path or file name with no spaces.
-    + r"|[^\s'\",;()\[\]<>:]+"
-    + _EXT,
+    + _EXT_Q
+    + r"|https?://[^\s'\",;()\[\]<>?#]+"
+    + _QUERY
+    # A path whose folder or file names hold spaces: a first segment with no space, then two or
+    # more segments, so that prose such as 'PDF/Word files ... robots.txt' (one slash) is not
+    # taken for a path.
+    + r"|"
+    + _SEG
+    + r"[/\\](?:"
+    + _SPACED_SEG
+    + r"[/\\])+"
+    + _SEG
+    + r"(?:[ ]"
+    + _SEG
+    + r"){0,8}?"
+    + _EXT_Q
+    # A path or file name with no spaces (PR #7 round 1: with any query after it).
+    + r"|[^\s'\",;()\[\]<>:?#]+"
+    + _EXT_Q,
     re.IGNORECASE,
 )
 
@@ -469,7 +485,28 @@ def url_may_name_person(url: str | None, names=None) -> bool:
     from scrapers.profile_providers import prose_may_name_person
 
     names = _run_wide_names() if names is None else names
-    return prose_may_name_person(_url_words(url), (), names)
+    return any(prose_may_name_person(part, (), names) for part in _location_parts(url))
+
+
+def _location_parts(value: str) -> list[str]:
+    """The words to check for a URL or path (follow-up to PR #6): the whole value, every path
+    segment and every query parameter value, each split the same way (on - _ . / backslash, +
+    and spaces, after percent-decoding)."""
+    parts = [_url_words(value)]
+    if _SCHEME.match(value):
+        split = urlsplit(value)
+        path, query = split.path, split.query
+    else:
+        path, _, query = value.partition("?")
+    for segment in re.split(r"[/\\]", unquote(path)):
+        if segment:
+            parts.append(_URL_SEPARATORS.sub(" ", segment).strip())
+    for pair in query.split("&"):
+        key, _, val = pair.partition("=")
+        for item in (key, val):
+            if item:
+                parts.append(_URL_SEPARATORS.sub(" ", unquote(item.replace("+", " "))).strip())
+    return [p for p in parts if p]
 
 
 def redact_urls(text: str | None, names=None) -> str | None:
@@ -480,9 +517,13 @@ def redact_urls(text: str | None, names=None) -> str | None:
     names = _run_wide_names() if names is None else names
 
     def replace(m):
-        if not url_may_name_person(m.group(0), names):
-            return m.group(0)
-        return URL_TEXT_WITHHELD if _SCHEME.match(m.group(0)) else SNAPSHOT_TEXT_WITHHELD
+        # A comma or full stop that ends the sentence is not part of the URL (PR #7 round 1).
+        found = m.group(0)
+        value = found.rstrip(".,")
+        tail = found[len(value) :]
+        if not value or not url_may_name_person(value, names):
+            return found
+        return (URL_TEXT_WITHHELD if _SCHEME.match(value) else SNAPSHOT_TEXT_WITHHELD) + tail
 
     return _URL_IN_TEXT.sub(replace, text)
 
@@ -531,7 +572,7 @@ def _withhold_locations(row: dict, flagged, counts: dict[str, int]) -> None:
         if not isinstance(value, str) or not value:
             continue
         urls = _URL_LIST_SPLIT.split(value.strip()) if col == "linked_documents" else [value]
-        kept_urls = [u for u in urls if not flagged(_url_words(u))]
+        kept_urls = [u for u in urls if not any(flagged(p) for p in _location_parts(u))]
         if len(kept_urls) != len(urls):
             row[col] = " ".join(kept_urls) or None
             counts[col] = counts.get(col, 0) + 1
@@ -540,7 +581,7 @@ def _withhold_locations(row: dict, flagged, counts: dict[str, int]) -> None:
         _add_note(row, URL_WITHHELD_NOTE)
     for col in SNAPSHOT_COLUMNS:
         value = row.get(col)
-        if isinstance(value, str) and value and flagged(_url_words(value)):
+        if isinstance(value, str) and value and any(flagged(p) for p in _location_parts(value)):
             row[col] = None
             counts[col] = counts.get(col, 0) + 1
             _add_note(row, SNAPSHOT_WITHHELD_NOTE)
