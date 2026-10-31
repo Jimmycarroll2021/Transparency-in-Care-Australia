@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-31T10:23:40.005718+00:00",
+  "generated_at": "2026-10-31T10:53:19.981348+00:00",
   "window": {
     "months": 24,
     "start": "2024-10-31",
@@ -100,20 +100,21 @@
   },
   "overall": {
     "rows_in": 3543,
-    "joined": 3227,
-    "joined_live_spine": 2673,
+    "joined": 3222,
+    "joined_live_spine": 2668,
     "joined_by_unlisted_key": 554,
     "unlisted_service_keys": 106,
     "unlisted_provider_keys": 402,
-    "unmatched": 316,
+    "unmatched": 321,
     "unmatched_residual": {
       "no_key_and_name_withheld": 150,
       "no_key_no_name_match": 159,
-      "ambiguous_name": 6,
+      "ambiguous_name": 1,
+      "abn_business_names_not_restorable": 10,
       "other": 1
     },
-    "match_rate": 0.9108,
-    "match_rate_live_spine_only": 0.7544,
+    "match_rate": 0.9094,
+    "match_rate_live_spine_only": 0.753,
     "match_rate_note": "match_rate counts a row as joined when it joins to the live ACECQA spine or to an unlisted stub by printed key; match_rate_live_spine_only counts the live spine alone. The aim is that every row is joined by key, joined by unique name, or explicitly explained in unmatched_residual, not a 100 per cent match rate."
   },
   "unlisted_spine": {
@@ -138,19 +139,20 @@
       "joined_by_name": 0,
       "joined_by_name_and_suburb": 0,
       "joined_by_name_only": 0,
-      "joined_by_provider_name": 64,
-      "joined_by_provider_name_unpinned": 30,
-      "joined_by_provider_and_service_name": 34,
+      "joined_by_provider_name": 59,
+      "joined_by_provider_name_unpinned": 26,
+      "joined_by_provider_and_service_name": 33,
       "joined_by_abn_entity": 0,
       "joined_by_abn_entity_pinned": 0,
       "joined_by_unlisted_key": 0,
       "joined_by_unlisted_key_service": 0,
       "joined_by_unlisted_key_provider": 0,
-      "unmatched": 172,
+      "unmatched": 177,
       "unmatched_residual": {
         "no_key_and_name_withheld": 75,
         "no_key_no_name_match": 92,
-        "ambiguous_name": 5,
+        "ambiguous_name": 0,
+        "abn_business_names_not_restorable": 10,
         "other": 0
       },
       "unmatched_ambiguous_name": 0,
@@ -162,12 +164,11 @@
         "no service or provider key printed; provider name: no provider in VIC with this normalised name": 18,
         "no service or provider key printed; provider name: no provider in NSW with this normalised name": 13,
         "no service or provider key printed; provider name: no provider in ACT with this normalised name": 2,
-        "no service or provider key printed; ABN entity: ambiguous: business names withheld and not restorable; provider name: no provider in VIC with this normalised name": 4,
+        "no service or provider key printed; ABN entity: not matched: ABR business names withheld and not restorable": 10,
         "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in NSW with this normalised name": 35,
         "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in VIC with this normalised name": 9,
         "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in SA with this normalised name": 3,
         "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in NT with this normalised name": 2,
-        "no service or provider key printed; ABN entity: ambiguous: business names withheld and not restorable; provider name: no provider in TAS with this normalised name": 1,
         "no service or provider key printed; ABN entity: no ACECQA provider has the ABR entity or business name; provider name: no provider in QLD with this normalised name": 2,
         "no service or provider key printed; provider name: no provider in SA with this normalised name": 2
       },
@@ -213,8 +214,8 @@
           "action_type": "ccs_sanction"
         }
       ],
-      "match_rate": 0.2712,
-      "match_rate_live_spine_only": 0.2712
+      "match_rate": 0.25,
+      "match_rate_live_spine_only": 0.25
     },
     "NSW": {
       "rows_in": 1738,
@@ -237,6 +238,7 @@
         "no_key_and_name_withheld": 1,
         "no_key_no_name_match": 0,
         "ambiguous_name": 0,
+        "abn_business_names_not_restorable": 0,
         "other": 1
       },
       "unmatched_ambiguous_name": 0,
@@ -279,6 +281,7 @@
         "no_key_and_name_withheld": 27,
         "no_key_no_name_match": 15,
         "ambiguous_name": 1,
+        "abn_business_names_not_restorable": 0,
         "other": 0
       },
       "unmatched_ambiguous_name": 1,
@@ -357,6 +360,7 @@
         "no_key_and_name_withheld": 21,
         "no_key_no_name_match": 48,
         "ambiguous_name": 0,
+        "abn_business_names_not_restorable": 0,
         "other": 0
       },
       "unmatched_ambiguous_name": 0,
@@ -432,6 +436,7 @@
         "no_key_and_name_withheld": 0,
         "no_key_no_name_match": 0,
         "ambiguous_name": 0,
+        "abn_business_names_not_restorable": 0,
         "other": 0
       },
       "unmatched_ambiguous_name": 0,
@@ -463,6 +468,7 @@
         "no_key_and_name_withheld": 0,
         "no_key_no_name_match": 0,
         "ambiguous_name": 0,
+        "abn_business_names_not_restorable": 0,
         "other": 0
       },
       "unmatched_ambiguous_name": 0,
@@ -494,6 +500,7 @@
         "no_key_and_name_withheld": 26,
         "no_key_no_name_match": 4,
         "ambiguous_name": 0,
+        "abn_business_names_not_restorable": 0,
         "other": 0
       },
       "unmatched_ambiguous_name": 0,
@@ -1264,7 +1271,7 @@
     "Only NSW (from Jan 2025), VIC (from Jan 2026), QLD (from 2017, no keys) are collected; other states are not covered. Absence of an action is not evidence of safety.",
     "Name-withheld providers are excluded from the top lists. A provider with spine_status not_in_current_register appears only when its name is printed on the enforcement register; its service_count is the number of distinct unlisted services seen in the enforcement register, so its rate per service has an actions-derived denominator and is not comparable with a current provider's.",
     "Rows joined by an unlisted key (match_confidence exact_key_unlisted) carry an identity taken from the enforcement register, not from ACECQA: the approval is absent from the current ACECQA export, usually because it has ceased. They hold no current rating. They are reported separately from the live denominators (services and providers in the ACECQA export).",
-    "Every unmatched row has exactly one stated reason in unmatched_residual (no_key_and_name_withheld, no_key_no_name_match, ambiguous_name, other). The aim is that each row is joined by key, joined by unique name, or explained; a 100 per cent match rate is not the goal and would require guessing.",
+    "Every unmatched row has exactly one stated reason in unmatched_residual (no_key_and_name_withheld, no_key_no_name_match, ambiguous_name, abn_business_names_not_restorable, other). The aim is that each row is joined by key, joined by unique name, or explained; a 100 per cent match rate is not the goal and would require guessing.",
     "Rows joined by provider name (provider_name_unique, provider_and_service_name) carry no printed key: they are accepted only when exactly one ACECQA provider has the normalised name, but a name match is weaker evidence than a key. actions_matched_by_name on each table shows how many of a row's counts rest on a name.",
     "Commonwealth CCS sanctions attach to the CCS approved provider, so a provider-name match is provider-level unless the service is pinned. ABNs are carried in enforcement-actions-all.csv.",
     "Rows joined by ABN entity (match_confidence abn_unique_entity) printed an ABN that the ABN Lookup web services resolved to an organisation whose ABR entity or business name, normalised, matches exactly one ACECQA provider. ACECQA holds no ABN, so this is still a name match (ABR name to ACECQA name), anchored by the printed ABN. Individuals and sole traders are never matched."
@@ -1275,9 +1282,7 @@
     "data/processed/enforcement-by-service.csv",
     "data/processed/enforcement-by-provider.csv"
   ],
-  "joined_before_unlisted_stage": 2673,
+  "joined_before_unlisted_stage": 2668,
   "unrestored_withheld_service_names": 0,
-  "abn_entity_rows_business_names_not_restorable": 10,
-  "abn_entity_rows_rescued_by_abn_consistent_name_match": 5,
-  "abn_entity_rows_not_matched_business_names_not_restorable": 5
+  "abn_entity_rows_not_matched_business_names_not_restorable": 10
 }
