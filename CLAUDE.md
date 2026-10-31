@@ -99,7 +99,8 @@ scrapers/             Collection scripts (Phase 2 onward)
 - Parse Queensland enforcement register: `python3 scrapers/parse_qld_enforcement.py`
 - Parse Commonwealth CCS enforcement register: `python3 scrapers/parse_cth_ccs_enforcement.py --current-file F --past-file G` (education.gov.au drops non-browser clients: save both pages from a browser; `--skip-fetch` re-parses the newest snapshots)
 - Parse NSW enforcement register: `python3 scrapers/parse_nsw_enforcement.py`
-- Join enforcement onto the ACECQA spine: `python3 scrapers/join_enforcement.py`
+- Join enforcement onto the ACECQA spine: `python3 scrapers/join_enforcement.py` (needs TICA_JOIN_KEY in .env for the keyed-name stage, which matches names withheld by the shared fail-closed rule on keyed hashes kept in gitignored `data/private/name-keys/`; `--no-keyed-join` joins without it, with fewer joins)
+- Re-parse every enforcement register offline and rejoin: `python3 scrapers/reparse_offline.py` (all or nothing; refuses to start without TICA_JOIN_KEY unless `--no-keyed-join`)
 - Parse SA enforcement register: `python3 scrapers/parse_sa_enforcement.py`
 - Parse WA enforcement register: `python3 scrapers/parse_wa_enforcement.py` (needs `pip install playwright && playwright install chromium`; the ECRU register is a Caspio search form with no static page)
 - Resolve ABNs (needs ABN_LOOKUP_GUID in .env): `python3 scrapers/abn_lookup.py` (stage A: Commonwealth ABNs to `abn-details.csv`; `abn <ABN>` or `name "<name>" --state NSW` for single lookups; `--offline` uses the local cache)
