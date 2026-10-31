@@ -1,0 +1,264 @@
+"""PR #12: the shared person check on trading names and service names. Synthetic names only."""
+
+import csv
+import json
+import pickle
+
+import pytest
+from scrapers import common
+from scrapers import join_enforcement as je
+from scrapers.profile_providers import (
+    AcecqaNameContext,
+    PersonNames,
+    name_has_person_signal,
+    name_may_name_person,
+)
+
+
+def _names(*subjects):
+    names = PersonNames()
+    for s in subjects:
+        names.add_subject(s)
+    return names
+
+
+@pytest.fixture
+def ctx():
+    """An empty ACECQA context and an empty run-wide set, so no local file is read."""
+    context = AcecqaNameContext()
+    common.set_name_context(context)
+    common.set_person_names(PersonNames())
+    return context
+
+
+# ---------------------------------------------------------------------------
+# The check
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "Jane Example",
+        "Mrs Example's Childcare",
+        "Jane Example ATF The Example Family Trust",
+        "Estate of Jane Example",
+    ],
+)
+def test_person_named_trading_name_has_a_person_signal(name):
+    assert name_has_person_signal(name)
+    assert name_may_name_person(name)
+
+
+@pytest.mark.parametrize(
+    "name", ["Little Acorns Early Learning", "Sunny Kids Club", "Riverbend Holdings Pty Ltd"]
+)
+def test_ordinary_trading_name_is_kept(name):
+    assert not name_has_person_signal(name)
+    assert not name_may_name_person(name, _names("Jane Example", "John Sample"))
+
+
+def test_family_day_care_named_after_a_person_in_the_run_wide_set():
+    names = _names("Jane Example")
+    assert name_may_name_person("Jane Example Family Day Care", names)
+    assert not name_may_name_person("Riverside Family Day Care", names)
+
+
+def test_service_repeating_its_own_withheld_provider_surname():
+    own = _names("Jane Sample")
+    assert name_may_name_person("Sample Family Day Care", None, own)
+    assert not name_may_name_person("Sample Family Day Care", None, _names("John Other"))
+
+
+def test_ordinary_word_surname_is_not_used_alone_but_full_names_are():
+    names = _names("Rose Cottage")
+    assert name_may_name_person("Cottage Kids Club", names)
+    assert not name_may_name_person("Cottage Kids Club", names, ordinary={"cottage"})
+    assert name_may_name_person("Rose Cottage Kids Club", names, ordinary={"cottage"})
+
+
+def test_name_context_is_in_memory_only():
+    with pytest.raises(TypeError):
+        pickle.dumps(AcecqaNameContext())
+
+
+# ---------------------------------------------------------------------------
+# The output rule
+# ---------------------------------------------------------------------------
+
+
+def test_trading_name_withheld_with_note_and_ordinary_name_kept(ctx):
+    rows = [
+        {
+            "provider_approval_number": "PR-00000001",
+            "legal_name": "Example Holdings Pty Ltd",
+            "trading_name": "Jane Example",
+            "name_withheld": "false",
+        },
+        {
+            "provider_approval_number": "PR-00000002",
+            "legal_name": "Acorn Group Pty Ltd",
+            "trading_name": "Little Acorns Early Learning",
+            "name_withheld": "false",
+        },
+    ]
+    fields = ["provider_approval_number", "legal_name", "trading_name", "name_withheld"]
+    out, fieldnames, counts = common.withhold_person_named_names("provider-profile", rows, fields)
+    assert counts == {"trading_name": 1}
+    assert "trading_name_note" in fieldnames
+    assert out[0]["trading_name"] is None
+    assert out[0]["trading_name_note"] == common.TRADING_NAME_WITHHELD_NOTE
+    assert out[0]["provider_approval_number"] == "PR-00000001"
+    assert out[0]["legal_name"] == "Example Holdings Pty Ltd"
+    assert out[1]["trading_name"] == "Little Acorns Early Learning"
+    assert not out[1].get("trading_name_note")
+    # the caller's rows are not changed
+    assert rows[0]["trading_name"] == "Jane Example"
+
+
+def test_family_day_care_service_withheld_and_approval_numbers_kept(ctx):
+    ctx.withheld["PR-00000009"] = "Jane Sample"
+    rows = [
+        {
+            "record_id": "r1",
+            "service_approval_number": "SE-00000001",
+            "provider_approval_number": "PR-00000009",
+            "service_name": "Sample Family Day Care",
+            "service_type": "Family Day Care",
+            "notes": "duplicate row in source",
+        },
+        {
+            "record_id": "r2",
+            "service_approval_number": "SE-00000002",
+            "provider_approval_number": "PR-00000010",
+            "service_name": "Riverside Family Day Care",
+            "service_type": "Family Day Care",
+            "notes": None,
+        },
+    ]
+    fields = list(rows[0])
+    out, fieldnames, counts = common.withhold_person_named_names(
+        "x-enforcement-actions", rows, fields
+    )
+    assert counts == {"service_name": 1}
+    assert fieldnames == fields  # the existing notes column holds the note
+    assert out[0]["service_name"] is None
+    assert out[0]["service_approval_number"] == "SE-00000001"
+    assert out[0]["provider_approval_number"] == "PR-00000009"
+    assert out[0]["notes"] == "duplicate row in source; " + common.SERVICE_NAME_WITHHELD_NOTE
+    assert out[1]["service_name"] == "Riverside Family Day Care"
+
+
+def test_service_name_withheld_through_the_subject_of_a_withheld_row(ctx):
+    rows = [{"record_id": "r1", "service_name": "Jane Sample's Little Learners", "notes": None}]
+    rows[0]["_subject_raw"] = "Jane Sample"
+    out, _, counts = common.withhold_person_named_names("y", rows, ["record_id", "service_name"])
+    assert counts == {"service_name": 1} and out[0]["service_name"] is None
+
+
+def test_a_name_withheld_once_is_withheld_in_every_later_output(ctx):
+    ctx.withheld["PR-00000009"] = "Jane Sample"
+    first = [{"provider_approval_number": "PR-00000009", "service_name": "Sample Kids Club"}]
+    common.withhold_person_named_names("a", first, ["provider_approval_number", "service_name"])
+    later = [{"acecqa_service_name": "Sample Kids Club", "notes": None}]
+    out, _, counts = common.withhold_person_named_names(
+        "b", later, ["acecqa_service_name", "notes"]
+    )
+    assert counts == {"acecqa_service_name": 1} and out[0]["acecqa_service_name"] is None
+
+
+def test_service_stub_name_and_variants_withheld_provider_stub_untouched(ctx):
+    names = _names("Jane Example")
+    common.set_person_names(names)
+    rows = [
+        {
+            "key": "SE-00000003",
+            "kind": "service",
+            "name": "Jane Example Family Day Care",
+            "name_withheld": "false",
+            "stub_name_variants": "Riverside Kids Club | Jane Example FDC",
+            "note": "unlisted",
+        },
+        {
+            "key": "PR-00000003",
+            "kind": "provider",
+            "name": "Riverside Holdings Pty Ltd",
+            "name_withheld": "false",
+            "stub_name_variants": None,
+            "note": "unlisted",
+        },
+    ]
+    out, fieldnames, counts = common.withhold_person_named_names(
+        "spine-unlisted", rows, list(rows[0])
+    )
+    assert counts == {"name": 1, "stub_name_variants": 1}
+    assert "name_note" not in fieldnames
+    assert out[0]["name"] is None and out[0]["name_withheld"] == "true"
+    assert out[0]["stub_name_variants"] == "Riverside Kids Club"
+    assert out[0]["note"] == "unlisted; " + common.SERVICE_NAME_WITHHELD_NOTE
+    assert out[1] is rows[1]
+
+
+def test_write_processed_applies_the_rule_and_counts_in_provenance(ctx, tmp_path, monkeypatch):
+    monkeypatch.setattr(common, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(common, "PROCESSED_DIR", tmp_path / "data" / "processed")
+    rows = [
+        {"service_approval_number": "SE-00000001", "service_name": "Mrs Example's Kindy"},
+        {"service_approval_number": "SE-00000002", "service_name": "Little Acorns Early Learning"},
+    ]
+    common.write_processed(
+        "by-service", rows, ["service_approval_number", "service_name"], raw_inputs=[]
+    )
+    with (tmp_path / "data" / "processed" / "by-service.csv").open(encoding="utf-8") as fh:
+        written = list(csv.DictReader(fh))
+    assert written[0]["service_approval_number"] == "SE-00000001"
+    assert written[0]["service_name"] == ""
+    assert written[0]["service_name_note"] == common.SERVICE_NAME_WITHHELD_NOTE
+    assert written[1]["service_name"] == "Little Acorns Early Learning"
+    prov = json.loads(
+        (tmp_path / "data" / "processed" / "by-service.provenance.json").read_text("utf-8")
+    )
+    assert prov["names_withheld"]["counts"] == {"service_name": 1}
+    assert "Example" not in json.dumps(prov)
+
+
+# ---------------------------------------------------------------------------
+# The join
+# ---------------------------------------------------------------------------
+
+
+def test_join_restores_withheld_service_names_in_memory_only(ctx):
+    common.set_person_names(_names("Jane Example"))
+    rows = [
+        {"record_id": "a", "service_name": "Jane Example Family Day Care", "notes": None},
+        {"record_id": "b", "service_name": "Riverside Kids Club", "notes": None},
+    ]
+    out, _, _ = common.withhold_person_named_names(
+        "qld-enforcement-actions", rows, ["record_id", "service_name", "notes"]
+    )
+    # as read back from the CSV: the name is null and the note is set
+    read = [{k: ("" if v is None else v) for k, v in r.items()} for r in out]
+    assert common.unrestored_withheld_names(read) == 1
+    assert common.restore_withheld_names("qld-enforcement-actions", read) == 1
+    assert read[0]["service_name"] == "Jane Example Family Day Care"
+    assert common.SERVICE_NAME_WITHHELD_NOTE in read[0]["notes"]
+    # written again, the restored name is withheld again
+    again, _, counts = common.withhold_person_named_names(
+        "enforcement-actions-all", read, ["record_id", "service_name", "notes"]
+    )
+    assert counts == {"service_name": 1} and again[0]["service_name"] is None
+
+
+def test_restore_skips_a_row_whose_record_id_differs(ctx):
+    common.set_person_names(_names("Jane Example"))
+    rows = [{"record_id": "a", "service_name": "Jane Example Kindy", "notes": None}]
+    common.withhold_person_named_names("z", rows, ["record_id", "service_name", "notes"])
+    read = [{"record_id": "other", "service_name": "", "notes": ""}]
+    assert common.restore_withheld_names("z", read) == 0
+    assert read[0]["service_name"] == ""
+
+
+def test_name_rule_notes_do_not_mark_the_subject_withheld():
+    for note in (common.SERVICE_NAME_WITHHELD_NOTE, common.TRADING_NAME_WITHHELD_NOTE):
+        assert not je.name_withheld_row({"notes": note})
+    assert je.name_withheld_row({"notes": "provider name withheld"})
