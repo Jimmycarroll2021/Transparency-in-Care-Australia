@@ -579,6 +579,14 @@ class PersonNames:
             if len(keys) >= 2:
                 self._full.add(tuple(keys))
                 self._full.add((keys[0], keys[-1]))
+            # PR #12 round 1: a hyphenated name matches its spaced form and the reverse
+            # ('Ann-Marie Example-Sample' and 'Ann Marie Example Sample').
+            split = [part for k in keys for part in k.split("-") if part]
+            if len(split) >= 2 and split != keys:
+                self._full.add(tuple(split))
+            surname_parts = [part for part in keys[-1].split("-") if part]
+            if len(surname_parts) >= 2:
+                self._full.add(tuple(surname_parts))
             if len(keys[-1]) >= 4 and (len(keys) >= 2 or family):
                 self._surnames.add(keys[-1])
 
@@ -588,15 +596,21 @@ class PersonNames:
         if not text or not self:
             return False
         tokens = _NAME_TOKEN.findall(text)
-        keys = [t.lower() for t in tokens]
-        for i in range(len(keys)):
-            for n in range(2, 6):
-                if i + n <= len(keys) and tuple(keys[i : i + n]) in self._full:
-                    return True
-        return any(
-            t[0].isupper() and k in self._surnames and k not in ordinary
-            for t, k in zip(tokens, keys, strict=True)
-        )
+        # PR #12 round 1: hyphen and space variants alike. The words of the text are checked as
+        # printed and with every hyphenated word split into its parts.
+        parts = [p for t in tokens for p in t.split("-") if p]
+        for words in (tokens, parts):
+            keys = [t.lower() for t in words]
+            for i in range(len(keys)):
+                for n in range(2, 6):
+                    if i + n <= len(keys) and tuple(keys[i : i + n]) in self._full:
+                        return True
+            if any(
+                t[0].isupper() and k in self._surnames and k not in ordinary
+                for t, k in zip(words, keys, strict=True)
+            ):
+                return True
+        return False
 
 
 def acecqa_person_names(path: Path | None = None, abr_types: dict | None = None) -> PersonNames:

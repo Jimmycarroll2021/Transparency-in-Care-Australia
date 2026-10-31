@@ -310,8 +310,12 @@ def _run() -> int:
         for fn, args, kwargs in held:
             fn(*args, **kwargs)
         run_join()
+        # PR #12 round 1: the cross-output pass, then the builders (which see every withheld
+        # name), then the pass again, so that every output agrees whatever the write order.
+        common.refilter_processed_names()
         for module in BUILDERS:
             _run_parser(module)
+        common.refilter_processed_names()
     except BaseException as exc:  # includes SystemExit from the join
         log.error("writing or join failed (%r)", exc)
         try:

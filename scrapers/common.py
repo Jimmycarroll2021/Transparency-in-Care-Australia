@@ -809,9 +809,13 @@ def withhold_person_named_names(
             withheld[col] = value
         return changed, withheld
 
-    # Two passes, so that a name withheld on a later row is withheld on an earlier row too.
-    decisions = [decide(row) for row in rows]
-    decisions = [d if d[0] else decide(row) for row, d in zip(rows, decisions, strict=True)]
+    # Fixed point (PR #12 round 1): every row and every column is decided again until no new
+    # withheld name appears, so a name withheld on a later row is withheld on an earlier row too.
+    while True:
+        before = len(_WITHHELD_NAME_STRINGS)
+        decisions = [decide(row) for row in rows]
+        if len(_WITHHELD_NAME_STRINGS) == before:
+            break
     out: list[dict] = []
     for index, (row, (changed, withheld)) in enumerate(zip(rows, decisions, strict=True)):
         if not changed:
@@ -827,6 +831,9 @@ def withhold_person_named_names(
             _append_note(new, column, NAME_COLUMN_NOTES[col])
         if "name" in withheld and "name_withheld" in new:
             new["name_withheld"] = "true"
+        previous = _WITHHELD_NAME_VALUES.get((output, index))
+        if previous is not None and previous[0] == row.get("record_id"):
+            withheld = {**withheld, **previous[1]}  # a later pass keeps the first values
         _WITHHELD_NAME_VALUES[(output, index)] = (row.get("record_id"), _InMemory(withheld))
         out.append(new)
     return out, fieldnames, counts
@@ -1018,6 +1025,66 @@ def refuse_if_reparse_incomplete() -> bool:
     return True
 
 
+def _write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
+    with atomic_open(path, newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=fieldnames, extrasaction="ignore")
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({k: ("" if row.get(k) is None else row.get(k)) for k in fieldnames})
+
+
+def refilter_processed_names(names: list[str] | None = None) -> dict[str, dict[str, int]]:
+    """Make the name rule order independent across outputs (PR #12 round 1).
+
+    After every output of a run is written, the name rule is applied again to each processed CSV
+    named in `names` (default: every CSV in data/processed) that has a trading-name or
+    service-name column, now with every name withheld anywhere in this process. A file that
+    changes is rewritten atomically, with the same writer, and the counts in its provenance file
+    are raised; the other provenance fields stay. Passes repeat until no file changes (a fixed
+    point). Returns the cells newly withheld per output and column. Counts only are logged."""
+    ensure_person_names()
+    targets = names if names is not None else sorted(p.stem for p in PROCESSED_DIR.glob("*.csv"))
+    added: dict[str, dict[str, int]] = {}
+    while True:
+        changed = False
+        for name in targets:
+            path = PROCESSED_DIR / f"{name}.csv"
+            if not path.exists():
+                continue
+            with path.open(newline="", encoding="utf-8") as fh:
+                reader = csv.DictReader(fh)
+                fieldnames = list(reader.fieldnames or [])
+                rows = list(reader)
+            if not any(c in fieldnames for c in NAME_COLUMN_NOTES):
+                continue
+            rows, fieldnames, counts = withhold_person_named_names(name, rows, fieldnames)
+            if not counts:
+                continue
+            changed = True
+            _write_csv(path, rows, fieldnames)
+            sidecar = PROCESSED_DIR / f"{name}.provenance.json"
+            if sidecar.exists():
+                prov = json.loads(sidecar.read_text(encoding="utf-8"))
+                block = prov.setdefault(
+                    "names_withheld",
+                    {
+                        "rule": "trading and service names withheld when they may name an "
+                        "individual (scrapers.common.withhold_person_named_names)",
+                        "counts": {},
+                    },
+                )
+                for col, n in counts.items():
+                    block["counts"][col] = block["counts"].get(col, 0) + n
+                block["counts"] = dict(sorted(block["counts"].items()))
+                atomic_write_text(sidecar, json.dumps(prov, indent=2) + "\n")
+            for col, n in counts.items():
+                added.setdefault(name, {})
+                added[name][col] = added[name].get(col, 0) + n
+            log.info("%s: names withheld by the cross-output pass %s", name, counts)
+        if not changed:
+            return added
+
+
 def write_processed(
     name: str,
     rows: list[dict],
@@ -1039,11 +1106,7 @@ def write_processed(
             log.info("%s: names withheld by the name rule %s", name, names_withheld)
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     out = PROCESSED_DIR / f"{name}.csv"
-    with atomic_open(out, newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=fieldnames, extrasaction="ignore")
-        writer.writeheader()
-        for row in rows:
-            writer.writerow({k: ("" if row.get(k) is None else row.get(k)) for k in fieldnames})
+    _write_csv(out, rows, fieldnames)
     provenance = {
         "output": out.relative_to(PROJECT_ROOT).as_posix(),
         "written_at": utc_now().isoformat(),

@@ -99,6 +99,7 @@ try:
         log,
         normalise_pr,
         normalise_se,
+        refilter_processed_names,
         restore_withheld_names,
         unrestored_withheld_names,
         utc_now,
@@ -118,6 +119,7 @@ except ImportError:  # run as a plain script: python3 scrapers/join_enforcement.
         log,
         normalise_pr,
         normalise_se,
+        refilter_processed_names,
         restore_withheld_names,
         unrestored_withheld_names,
         utc_now,
@@ -1732,6 +1734,15 @@ def main() -> None:
         )
     ]
     report["joined_before_unlisted_stage"] = matched_before
+    # PR #12 round 1: a name withheld in a later output is withheld in the earlier ones too.
+    refilter_processed_names(
+        [
+            SPINE_UNLISTED_NAME,
+            "enforcement-actions-all",
+            "enforcement-by-service",
+            "enforcement-by-provider",
+        ]
+    )
     atomic_write_text(REPORT_JSON, json.dumps(report, indent=2) + "\n")
     log.info("wrote %s", REPORT_JSON.relative_to(PROJECT_ROOT))
     for j, s in report["per_jurisdiction"].items():
