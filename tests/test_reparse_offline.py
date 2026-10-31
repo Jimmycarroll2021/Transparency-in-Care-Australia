@@ -44,6 +44,8 @@ def processed(tmp_path, monkeypatch):
     monkeypatch.setattr(ro, "BACKUP_ROOT", tmp_path / ".reparse-backup")
     monkeypatch.setattr(ro, "LOCK_PATH", tmp_path / ".reparse.lock")  # Codex round 7
     monkeypatch.setattr(ro, "BUILDERS", [])  # PR #12: no provider profile in these tests
+    monkeypatch.setattr(ro, "PRE_JOIN_BUILDERS", [])
+    monkeypatch.setattr(ro, "ABN_DETAILS_PATH", tmp_path / "no-abn-details.csv")
 
     def join_ok():
         (d / "enforcement-actions-all.csv").write_text("new join\n", encoding="utf-8")

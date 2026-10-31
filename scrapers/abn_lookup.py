@@ -268,6 +268,28 @@ def name_is_safe(name: str | None, known_org_names: set[str] | None = None) -> b
     return normalise_provider_name(name) in (known_org_names or set()) or not name_is_withheld(name)
 
 
+def cached_business_names(
+    abn: str | None, expected_sha256: str | None = None, cache_dir: Path | None = None
+) -> list[str] | None:
+    """PR #12 round 3: the FULL ABR business-name list of an ABN, from the local gitignored
+    cache (data/raw/abr-lookup/), for the join's uniqueness check. In memory only: the caller
+    must never write it. None when it cannot be restored: no cache, no cached AbnDetails
+    response for the ABN, or a cached response that is not the one the abn-details row was
+    built from (expected_sha256). No network call is made."""
+    digits = re.sub(r"\D", "", abn or "")
+    cache_dir = cache_dir or RAW_DIR / SOURCE
+    if len(digits) != 11 or not cache_dir.exists():
+        return None
+    client = AbnLookupClient(None, cache_dir=cache_dir, offline=True)
+    hit = client.cached(ENDPOINT_ABN, {"abn": digits})
+    if hit is None or (expected_sha256 and hit.sha256 != expected_sha256):
+        return None
+    names = hit.data.get("BusinessName") or []
+    if isinstance(names, str):
+        names = [names]
+    return [n.strip() for n in names if isinstance(n, str) and n.strip()]
+
+
 def business_name_may_name_person(name: str | None) -> bool:
     """PR #12: an ABR business name is a trading name, so the shared name rule
     (scrapers.common.name_may_name_person_in_row) applies too, whatever the organisation evidence

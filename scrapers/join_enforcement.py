@@ -577,7 +577,44 @@ def load_abn_details(path: Path = ABN_DETAILS_CSV) -> dict[str, dict] | None:
         abn = re.sub(r"\D", "", row.get("abn") or "")
         if abn:
             out[abn] = row
+    restore_business_names(out)
     return out
+
+
+ABN_NOT_RESTORABLE_NOTE = "ambiguous: business names withheld and not restorable"
+
+
+def _withheld_business_count(record: dict) -> int:
+    try:
+        return int(record.get("business_names_withheld") or 0)
+    except ValueError:
+        return 1  # unreadable count: treat as withheld (fail closed)
+
+
+def restore_business_names(abn_details: dict[str, dict], cache_dir: Path | None = None) -> int:
+    """PR #12 round 3: for each ok abn-details row with business names withheld, put the FULL
+    business-name list from the local ABR cache into the row, in memory only
+    (_business_names_full), so that the ABN entity stage checks uniqueness against every
+    name. A row whose list cannot be restored is marked (_business_names_unrestored): its
+    ABN entity match fails closed. Returns the number of rows that could not be restored."""
+    try:
+        from scrapers.abn_lookup import cached_business_names
+    except ImportError:  # run as a plain script
+        from abn_lookup import cached_business_names  # type: ignore[no-redef]
+
+    unrestored = 0
+    for abn, record in abn_details.items():
+        if (record.get("lookup_status") or "").strip() != "ok":
+            continue
+        if _withheld_business_count(record) <= 0:
+            continue
+        full = cached_business_names(abn, record.get("response_sha256"), cache_dir)
+        if full is None:
+            record["_business_names_unrestored"] = True
+            unrestored += 1
+        else:
+            record["_business_names_full"] = full
+    return unrestored
 
 
 def match_by_abn_entity(
@@ -594,10 +631,14 @@ def match_by_abn_entity(
     status = (record.get("lookup_status") or "").strip()
     if status != "ok":
         return None, f"ABR lookup status {status or 'unknown'}; not matched"
+    # PR #12 round 3: uniqueness is checked against the FULL business-name list (in memory);
+    # when names were withheld and the list cannot be restored, the match fails closed.
+    if record.get("_business_names_unrestored"):
+        return None, ABN_NOT_RESTORABLE_NOTE
     entity_key = normalise_provider_name(record.get("entity_name"))
-    business = [
-        normalise_provider_name(n) for n in (record.get("business_names") or "").split("; ") if n
-    ]
+    full = record.get("_business_names_full")
+    names = full if full is not None else (record.get("business_names") or "").split("; ")
+    business = [normalise_provider_name(n) for n in names if n]
     by_entity = set(spine.provider_names.get(entity_key, set())) if entity_key else set()
     by_business: set = set()
     for key in business:
@@ -1588,6 +1629,13 @@ UNRESTORED_MESSAGE = (
     "`python scrapers/reparse_offline.py`, which re-parses the registers and runs the join in the "
     "same process. Nothing was written. To write anyway (fewer joins), pass --allow-unrestored."
 )
+ABN_UNRESTORED_MESSAGE = (
+    "Refusing to write: {n} enforcement rows reach the ABN entity stage for an ABN whose withheld "
+    "ABR business names cannot be restored from the local cache (data/raw/abr-lookup/), so the "
+    "match fails closed and joins would be lost. Restore the cache (scrapers/abn_lookup.py stage "
+    "A, which needs ABN Lookup access) and run `python scrapers/reparse_offline.py`. Nothing was "
+    "written. To write anyway (fewer joins), pass --allow-unrestored."
+)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -1654,6 +1702,20 @@ def main(argv: list[str] | None = None) -> None:
             unrestored,
         )
     joined = join_actions(actions, spine, abn_details)
+    # PR #12 round 3: rows whose ABN entity match failed closed because withheld business names
+    # could not be restored. Like unrestored service names: refuse before writing anything.
+    abn_unrestored = sum(1 for r in joined if ABN_NOT_RESTORABLE_NOTE in (r.get("join_note") or ""))
+    if abn_unrestored and not args.allow_unrestored:
+        message = ABN_UNRESTORED_MESSAGE.format(n=abn_unrestored)
+        log.error(message)
+        print(message)
+        raise SystemExit(UNRESTORED_EXIT)
+    if abn_unrestored:
+        log.warning(
+            "--allow-unrestored: %d rows not matched by ABN entity because withheld business names "
+            "cannot be restored; the count is recorded in the join report",
+            abn_unrestored,
+        )
     matched_before = sum(1 for r in joined if r["match_confidence"] != CONFIDENCE_NONE)
     stubs = add_unlisted_stage(joined, spine, end)
     # Only claim CTH coverage in notes if CTH rows actually joined to a service or provider.
@@ -1767,6 +1829,7 @@ def main(argv: list[str] | None = None) -> None:
     # Round 2: rows whose withheld service name was not available for the name match (0 under
     # scrapers/reparse_offline.py; above 0 only with --allow-unrestored).
     report["unrestored_withheld_service_names"] = unrestored
+    report["abn_entity_rows_not_matched_business_names_not_restorable"] = abn_unrestored
     # PR #12 round 1: a name withheld in a later output is withheld in the earlier ones too.
     refilter_processed_names(
         [

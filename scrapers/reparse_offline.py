@@ -22,11 +22,13 @@ prints recovery instructions. Only a fully successful run removes the marker and
 
 The set exists only in memory. It is never written, logged or printed; only counts are logged.
 
-Usage: python scrapers/reparse_offline.py   (no network; the same as each parser's --skip-fetch)
+Usage: python scrapers/reparse_offline.py [--allow-unrestored]   (no network; the same as each
+parser's --skip-fetch)
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import secrets
@@ -62,6 +64,11 @@ PARSERS = [qld, vecra, sa, tas, cth, wa, nsw]
 # Round 2: the ABR tables (business names) and the provider groups are rebuilt too, offline: the
 # re-filter of abn-details.csv and stage C of the groups from provider-abn.csv (no ABN Lookup call).
 BUILDERS = [(profile, []), (abn_lookup, ["refilter"]), (groups, ["--skip-lookup"])]
+# Round 3: the ABR re-filter also runs before the join, so that the join reads the same
+# abn-details.csv as the end of the run; the join is repeated until abn-details.csv no longer
+# changes, so that a second run uses the same candidate set and writes the same outputs.
+PRE_JOIN_BUILDERS = [(abn_lookup, ["refilter"])]
+ABN_DETAILS_PATH = PROCESSED_DIR / "abn-details.csv"
 # Persistent backups of data/processed, one directory per run (gitignored).
 BACKUP_ROOT = PROJECT_ROOT / "data" / ".reparse-backup"
 # Single-writer lock (Codex round 7, gitignored). Taken with an exclusive create.
@@ -130,8 +137,16 @@ def _held_writes(module) -> list:
     return held
 
 
+# PR #12 round 3: passed to the join by --allow-unrestored (fewer joins, recorded in the report).
+ALLOW_UNRESTORED = False
+
+
 def run_join() -> None:
-    join_enforcement.main([])
+    join_enforcement.main(["--allow-unrestored"] if ALLOW_UNRESTORED else [])
+
+
+def _sha_or_none(path: Path) -> str | None:
+    return common.file_sha256(path) if path.exists() else None
 
 
 def _fsync_file(path: Path) -> None:
@@ -263,6 +278,15 @@ def _release_lock() -> None:
 def main(argv: list[str] | None = None) -> int:
     """Single writer (Codex round 7): the lock is taken before anything is read or written and
     released on every exit path. A held or stale lock is reported, never removed."""
+    global ALLOW_UNRESTORED
+    ap = argparse.ArgumentParser(description=__doc__.split(chr(10) * 2)[0])
+    ap.add_argument(
+        "--allow-unrestored",
+        action="store_true",
+        help="let the join write even when withheld names cannot be restored in memory (fewer "
+        "joins; the counts are recorded in the join report)",
+    )
+    ALLOW_UNRESTORED = ap.parse_args(argv).allow_unrestored
     try:
         _acquire_lock()
     except LockHeld:
@@ -313,16 +337,23 @@ def _run() -> int:
     try:
         for fn, args, kwargs in held:
             fn(*args, **kwargs)
-        run_join()
-        # PR #12 round 1: the cross-output pass, then the builders (which see every withheld
-        # name), then the pass again, so that every output agrees whatever the write order.
-        common.refilter_processed_names()
-        # Round 2: builders, then the cross-output pass, until the pass changes nothing (the set
-        # of withheld names only grows, so this ends).
+        for module, argv in PRE_JOIN_BUILDERS:
+            _run_parser(module, argv)
         while True:
-            for module, argv in BUILDERS:
-                _run_parser(module, argv)
-            if not common.refilter_processed_names():
+            abn_before = _sha_or_none(ABN_DETAILS_PATH)
+            run_join()
+            # PR #12 round 1: the cross-output pass, then the builders (which see every withheld
+            # name), then the pass again, so that every output agrees whatever the write order.
+            common.refilter_processed_names()
+            # Round 2: builders, then the cross-output pass, until the pass changes nothing (the
+            # set of withheld names only grows, so this ends).
+            while True:
+                for module, argv in BUILDERS:
+                    _run_parser(module, argv)
+                if not common.refilter_processed_names():
+                    break
+            # Round 3: the join read abn-details.csv; if the passes changed it, join again.
+            if _sha_or_none(ABN_DETAILS_PATH) == abn_before:
                 break
     except BaseException as exc:  # includes SystemExit from the join
         log.error("writing or join failed (%r)", exc)
