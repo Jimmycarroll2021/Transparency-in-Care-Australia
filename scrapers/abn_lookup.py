@@ -297,7 +297,8 @@ def safe_business_names(
         name = (name or "").strip()
         if not name:
             continue
-        if not name_is_safe(name, known_org_names) or business_name_may_name_person(name):
+        # The person check runs first so that a name it flags is always noted (round 2).
+        if business_name_may_name_person(name) or not name_is_safe(name, known_org_names):
             withheld += 1
             continue
         if name not in kept:

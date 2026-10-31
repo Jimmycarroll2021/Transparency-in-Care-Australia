@@ -364,3 +364,168 @@ def test_hyphenated_business_words_are_not_taken_for_a_name():
     assert not names.found_in("Riverside Pre School")
     assert not names.found_in("Riverside Pre-School")
     assert names.found_in("Jane Example Pre-School")
+
+
+# ---------------------------------------------------------------------------
+# Codex round 2
+# ---------------------------------------------------------------------------
+
+
+def _csv(path, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="", encoding="utf-8") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+@pytest.fixture
+def join_dir(tmp_path, monkeypatch, ctx):
+    d = tmp_path / "data" / "processed"
+    for mod in (common, je):
+        monkeypatch.setattr(mod, "PROJECT_ROOT", tmp_path)
+        monkeypatch.setattr(mod, "PROCESSED_DIR", d)
+    monkeypatch.setattr(je, "SERVICES_CSV", d / "acecqa-services-latest.csv")
+    monkeypatch.setattr(je, "PROVIDERS_CSV", d / "acecqa-providers-latest.csv")
+    monkeypatch.setattr(je, "PROFILE_CSV", d / "provider-profile.csv")
+    monkeypatch.setattr(je, "ABN_DETAILS_CSV", d / "abn-details.csv")
+    monkeypatch.setattr(je, "REPORT_JSON", d / "enforcement-join-report.json")
+    _csv(
+        d / "acecqa-services-latest.csv",
+        [
+            {
+                "ServiceApprovalNumber": "SE-00000001",
+                "service_approval_number": "SE-00000001",
+                "ServiceName": "Riverside Kids Club",
+                "State": "QLD",
+                "Suburb": "Exampleton",
+                "provider_approval_number": "PR-00000001",
+                "ServiceType": "Centre-Based Care",
+                "snapshot_last_modified": "Fri, 30 Oct 2026 00:00:00 GMT",
+            }
+        ],
+    )
+    _csv(
+        d / "acecqa-providers-latest.csv",
+        [{"provider_approval_number": "PR-00000001", "Legal Name": "Riverside Pty Ltd"}],
+    )
+    _csv(
+        d / "provider-profile.csv",
+        [
+            {
+                "provider_approval_number": "PR-00000001",
+                "legal_name": "Riverside Pty Ltd",
+                "trading_name": "",
+                "name_withheld": "false",
+                "entity_form": "company",
+                "service_count": "1",
+            }
+        ],
+    )
+    _csv(
+        d / "qld-enforcement-actions.csv",
+        [
+            {
+                "record_id": "q1",
+                "jurisdiction": "QLD",
+                "source_register": "x",
+                "captured_at": "2026-10-29",
+                "service_name": "",
+                "state": "QLD",
+                "action_type": "compliance_notice",
+                "action_type_raw": "Compliance notice",
+                "date_issued": "2026-01-01",
+                "notes": common.SERVICE_NAME_WITHHELD_NOTE,
+            }
+        ],
+    )
+    monkeypatch.setattr(je, "discover_action_files", lambda: [d / "qld-enforcement-actions.csv"])
+    return d
+
+
+def test_standalone_join_refuses_when_withheld_names_cannot_be_restored(join_dir, capsys):
+    with pytest.raises(SystemExit) as exc:
+        je.main([])
+    assert exc.value.code == je.UNRESTORED_EXIT
+    assert "reparse_offline.py" in capsys.readouterr().out
+    assert not (join_dir / "enforcement-actions-all.csv").exists()
+    assert not (join_dir / "enforcement-join-report.json").exists()
+
+
+def test_allow_unrestored_writes_and_records_the_count(join_dir):
+    je.main(["--allow-unrestored"])
+    report = json.loads((join_dir / "enforcement-join-report.json").read_text("utf-8"))
+    assert report["unrestored_withheld_service_names"] == 1
+    assert (join_dir / "enforcement-actions-all.csv").exists()
+
+
+def test_business_name_equal_to_a_later_withheld_service_name_in_either_order(
+    tmp_path, monkeypatch
+):
+    def run(order):
+        root = tmp_path / order
+        monkeypatch.setattr(common, "PROJECT_ROOT", root)
+        monkeypatch.setattr(common, "PROCESSED_DIR", root / "data" / "processed")
+        common.reset_withheld_names()
+        context = AcecqaNameContext()
+        context.withheld["PR-00000009"] = "Jane Sample"
+        common.set_name_context(context)
+        common.set_person_names(PersonNames())
+        outputs = {
+            "provider-abn": (
+                [
+                    {
+                        "provider_approval_number": "PR-00000002",
+                        "business_names": "Sample Kids Club; Riverside Kids",
+                        "note": None,
+                    }
+                ],
+                ["provider_approval_number", "business_names", "note"],
+            ),
+            "by-service": (
+                [{"provider_approval_number": "PR-00000009", "service_name": "Sample Kids Club"}],
+                ["provider_approval_number", "service_name"],
+            ),
+        }
+        names = list(outputs) if order == "ab" else list(reversed(outputs))
+        for name in names:
+            common.write_processed(name, *outputs[name], raw_inputs=[])
+        common.refilter_processed_names()
+        d = root / "data" / "processed"
+        return {n: (d / f"{n}.csv").read_text("utf-8") for n in outputs}
+
+    ab, ba = run("ab"), run("ba")
+    assert ab == ba
+    rows = list(csv.DictReader(ab["provider-abn"].splitlines()))
+    assert rows[0]["business_names"] == "Riverside Kids"
+    assert rows[0]["note"] == common.BUSINESS_NAME_WITHHELD_NOTE
+
+
+def test_a_name_withheld_from_abr_propagates_to_trading_name(ctx):
+    from scrapers import abn_lookup as al
+
+    common.set_person_names(_names("Jane Example"))
+    kept, withheld = al.safe_business_names(["Jane Example Kindy", "Sunny Kids Club"], set())
+    assert withheld >= 1 and "Jane Example Kindy" not in kept
+    # A later output in the same process, with no names that would fire by themselves.
+    common.set_person_names(PersonNames())
+    rows = [{"provider_approval_number": "PR-00000003", "trading_name": "Jane Example Kindy"}]
+    out, _, counts = common.withhold_person_named_names(
+        "provider-profile", rows, ["provider_approval_number", "trading_name"]
+    )
+    assert counts == {"trading_name": 1} and out[0]["trading_name"] is None
+
+
+def test_business_names_withheld_count_column_is_raised(ctx):
+    common.set_person_names(_names("Jane Example"))
+    rows = [{"business_names": "Jane Example Kindy; Sunny Kids Club", "business_names_withheld": 1}]
+    out, _, _ = common.withhold_person_named_names(
+        "abn-details", rows, ["business_names", "business_names_withheld", "note"]
+    )
+    assert out[0]["business_names"] == "Sunny Kids Club"
+    assert out[0]["business_names_withheld"] == 2
+
+
+def test_known_name_window_covers_hyphen_splits_longer_than_five_words():
+    names = _names("Ann-Marie Jo-Anne Example-Sample")
+    assert names.found_in("Ann Marie Jo Anne Example Sample Family Day Care")
