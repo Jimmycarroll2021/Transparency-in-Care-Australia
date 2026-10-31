@@ -807,6 +807,66 @@ def test_screened_provider_with_individual_abr_never_appears_in_any_output():
     assert "PR-00000002" not in repr(out) and "Wattle" not in repr(out)
 
 
+PERSON_TRUST = "The Trustee for the Jane Example Family Trust"
+PERSON_COMPANY = "Dr Jane Example Pty Ltd"
+
+
+@pytest.mark.parametrize(
+    "legal,form", [(PERSON_TRUST, "trust_or_trustee"), (PERSON_COMPANY, "company")]
+)
+def test_screening_applies_the_shared_name_classifier(legal, form):
+    # Rebuilt on main: even when the profile row says the name is shown, the shared classifier
+    # (profile_providers.name_is_withheld) is applied again and a person signal excludes it.
+    person_abn = make_abn(55)
+    profiles = PROFILES + [prof("PR-00000055", legal, form=form)]
+    rows = ABN_ROWS + [abn_row("PR-00000055", legal, person_abn)]
+    ok, stats = screened(profiles, rows)
+    assert "PR-00000055" not in ok
+    assert stats["excluded_classifier_withholds_name"] == 1
+
+
+def test_person_named_provider_matched_by_abn_never_appears_in_any_output():
+    person_abn = make_abn(56)
+    profiles = PROFILES + [prof("PR-00000056", PERSON_TRUST, form="trust_or_trustee")]
+    rows = ABN_ROWS + [abn_row("PR-00000056", PERSON_TRUST, person_abn)]
+    out = layer(stmt([PARENT], [("x", person_abn)]), profiles=profiles, abn_rows=rows)
+    assert out["edges"] == [] and out["review"] == []
+    assert "Jane" not in repr(out) and "PR-00000056" not in repr(out)
+
+
+def test_statement_urls_naming_a_person_are_withheld_whole():
+    rows = [
+        {
+            "statement_url": "https://example.org/docs/Jane%20Example.pdf",
+            "statement_urls": "https://modernslaveryregister.gov.au/statements/12/; "
+            "https://example.org/docs/Jane%20Example.pdf",
+        },
+        {
+            "statement_url": "https://modernslaveryregister.gov.au/statements/12/",
+            "statement_urls": "https://modernslaveryregister.gov.au/statements/12/",
+        },
+    ]
+    counts = msr.withhold_statement_urls(rows)
+    assert rows[0]["statement_url"] is None
+    assert rows[0]["statement_urls"] == "https://modernslaveryregister.gov.au/statements/12/"
+    assert rows[1]["statement_url"] == "https://modernslaveryregister.gov.au/statements/12/"
+    assert counts == {"statement_url": 1, "statement_urls": 1}
+    assert "Jane" not in repr(rows)
+
+
+def test_summary_paths_and_urls_naming_a_person_are_withheld(tmp_path, monkeypatch):
+    monkeypatch.setattr(msr, "SUMMARY_JSON", tmp_path / "summary.json")
+    msr.write_summary(
+        {
+            "inputs": ["data/raw/msr/Jane Example/x.html", "data/processed/provider-abn.csv"],
+            "source": {"csv_url": "https://example.org/docs/Jane%20Example.pdf"},
+        }
+    )
+    text = (tmp_path / "summary.json").read_text(encoding="utf-8")
+    assert "Jane" not in text
+    assert "data/processed/provider-abn.csv" in text
+
+
 def test_abn_index_holds_screened_providers_only():
     # A duplicate profile row excludes PR-00000002; its ABN must not match anything.
     out = layer(

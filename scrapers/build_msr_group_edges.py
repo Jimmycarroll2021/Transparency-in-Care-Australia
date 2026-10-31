@@ -84,32 +84,46 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 try:
     from scrapers.common import (
         PROCESSED_DIR,
+        SNAPSHOT_TEXT_WITHHELD,
+        URL_TEXT_WITHHELD,
         Fetched,
+        atomic_write_text,
+        ensure_person_names,
         fetch,
         list_snapshots,
         log,
         normalise_pr,
+        redact_urls_in_obj,
+        url_may_name_person,
         utc_now,
         write_processed,
         write_snapshot,
     )
     from scrapers.join_enforcement import normalise_provider_name
+    from scrapers.profile_providers import name_is_withheld
 except ImportError:  # run as a plain script
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from scrapers.common import (
         PROCESSED_DIR,
+        SNAPSHOT_TEXT_WITHHELD,
+        URL_TEXT_WITHHELD,
         Fetched,
+        atomic_write_text,
+        ensure_person_names,
         fetch,
         list_snapshots,
         log,
         normalise_pr,
+        redact_urls_in_obj,
+        url_may_name_person,
         utc_now,
         write_processed,
         write_snapshot,
     )
     from scrapers.join_enforcement import normalise_provider_name
+    from scrapers.profile_providers import name_is_withheld
 
 BASE_URL = "https://modernslaveryregister.gov.au"
 RESOURCES_URL = f"{BASE_URL}/resources/"
@@ -214,6 +228,7 @@ SCREEN_REASONS = [
     "excluded_not_positively_organisation",
     "excluded_name_withheld",
     "excluded_blank_legal_name",
+    "excluded_classifier_withholds_name",
     "excluded_abn_step_individual_or_unknown",
     "excluded_abr_individual",
     "excluded_abr_type_conflict",
@@ -809,6 +824,13 @@ def _screen_reason(
         return "excluded_name_withheld"
     if not (p.get("legal_name") or "").strip():
         return "excluded_blank_legal_name"
+    # The shared fail-closed classifier (profile_providers.name_is_withheld), applied again here:
+    # a person signal or no positive organisation evidence excludes the provider even when the
+    # profile row says the name is shown. The ABR type counts only from an accepted ABN row.
+    accepted = [r for r in abn_rows if (r.get("match_kind") or "").strip() in ACCEPTED_KINDS]
+    abr_code = (accepted[0].get("entity_type_code") or "").strip() if accepted else None
+    if name_is_withheld(p["legal_name"].strip(), p["entity_form"].strip(), abr_code):
+        return "excluded_classifier_withholds_name"
     for r in abn_rows:
         kind = (r.get("match_kind") or "").strip()
         if kind == "excluded_individual_abr":
@@ -1093,6 +1115,61 @@ def build_layer(
         "screened_abn_count": sum(1 for info in screened.values() if info["abn"]),
         "screened_prs": sorted(screened),
     }
+
+
+# ---------------------------------------------------------------------------
+# URL and path rule (shared, scrapers.common)
+# ---------------------------------------------------------------------------
+
+URL_ROW_COLUMNS = ("statement_url", "statement_urls")
+
+
+def withhold_statement_urls(rows: list[dict]) -> dict[str, int]:
+    """The shared URL rule (common.url_may_name_person) on the statement URL columns, in place.
+
+    Each URL is kept whole or dropped; statement_urls is a '; ' list, and only its flagged URLs
+    are dropped. Returns counts of fields changed. Register statement URLs end in a page number,
+    so none is expected to be flagged.
+    """
+    counts: dict[str, int] = {}
+    for row in rows:
+        for col in URL_ROW_COLUMNS:
+            value = row.get(col)
+            if not isinstance(value, str) or not value:
+                continue
+            urls = value.split("; ") if col == "statement_urls" else [value]
+            kept = [u for u in urls if not url_may_name_person(u)]
+            if len(kept) != len(urls):
+                row[col] = "; ".join(kept) or None
+                counts[col] = counts.get(col, 0) + 1
+    return counts
+
+
+_WHOLE_LOCATION = re.compile(r"(?i)^(?:https?://|data/)")
+
+
+def _withhold_whole_locations(obj):
+    """Every string that is itself a URL or a project path is checked whole with the shared
+    rule (common.url_may_name_person) and replaced whole by the shared fixed text when flagged.
+    This also catches a path whose directory name holds a space, which the in-text matcher of
+    common.redact_urls reads only from its last segment."""
+    if isinstance(obj, str):
+        if _WHOLE_LOCATION.match(obj) and url_may_name_person(obj):
+            return URL_TEXT_WITHHELD if obj.lower().startswith("http") else SNAPSHOT_TEXT_WITHHELD
+        return obj
+    if isinstance(obj, dict):
+        return {k: _withhold_whole_locations(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_withhold_whole_locations(v) for v in obj]
+    return obj
+
+
+def write_summary(summary: dict) -> None:
+    """Write the summary JSON atomically after the shared URL and path rule: whole URLs and paths
+    first (_withhold_whole_locations), then any URL or path inside other text
+    (common.redact_urls_in_obj)."""
+    clean = redact_urls_in_obj(_withhold_whole_locations(summary))
+    atomic_write_text(SUMMARY_JSON, json.dumps(clean, indent=2) + "\n")
 
 
 # ---------------------------------------------------------------------------
@@ -1434,6 +1511,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 2
     details = _load_csv(ABN_DETAILS_CSV) if ABN_DETAILS_CSV.exists() else []
+    ensure_person_names()  # in-memory ACECQA names for the shared URL and path rule
     abr_types = abr_types_from(abn_rows, details)
     screened, _ = screen_providers(profiles, abn_rows, abr_types)
     provider_abns = {info["abn"] for info in screened.values() if info["abn"]}
@@ -1481,6 +1559,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     layer = build_layer(candidates, profiles, abn_rows, abr_types)
+    url_counts: dict[str, int] = {}
+    for key in ("edges", "heads", "coreported", "review"):
+        for col, n in withhold_statement_urls(layer[key]).items():
+            url_counts[col] = url_counts.get(col, 0) + n
     services = _load_csv(SERVICES_CSV) if SERVICES_CSV.exists() else None
     if services is None:
         log.warning("%s missing: service counts are null (unknown)", SERVICES_CSV.name)
@@ -1529,6 +1611,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     summary = summarise(layer, abn_rows, services, candidates_count=len(candidates))
     summary["counts"]["candidate_pages_missing"] = 0
+    summary["counts"]["statement_url_fields_withheld"] = url_counts
     summary["counts"]["csv_columns_dropped"] = len(
         csv_meta.get("columns_dropped_for_privacy") or []
     )
@@ -1568,7 +1651,7 @@ def main(argv: list[str] | None = None) -> int:
         f"data/processed/{p.name}"
         for p in (PROVIDER_ABN_CSV, ABN_DETAILS_CSV, PROFILE_CSV, SERVICES_CSV)
     ] + ["data/raw/msr/ (local only)"]
-    SUMMARY_JSON.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    write_summary(summary)
     log.info("summary: %s", json.dumps(summary["counts"]))
     return 0
 
