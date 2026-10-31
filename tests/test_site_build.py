@@ -519,3 +519,82 @@ def test_mismatched_totals_fail_the_build(tmp_path):
     write_csv(path, SERVICE_HEADER, rows)
     with pytest.raises(SystemExit):
         bs.build(tmp_path / "data", tmp_path / "dist")
+
+
+def test_charts_have_titles_descriptions_and_tables(built):
+    _, pages = built
+    home = pages["index.html"]
+    charts = re.findall(r'<svg class="chart"[^>]*>.*?</svg>', home, re.S)
+    assert len(charts) == 2
+    for svg in charts:
+        assert 'role="img"' in svg
+        ids = re.search(r'aria-labelledby="([^"]+)"', svg).group(1).split()
+        title = re.search(r'<title id="([^"]+)">([^<]+)</title>', svg)
+        desc = re.search(r'<desc id="([^"]+)">([^<]+)</desc>', svg)
+        assert title and desc
+        assert ids == [title.group(1), desc.group(1)]
+        assert "of 6" in svg  # every bar value keeps its denominator
+    assert home.count('<details class="chart-table">') == 2
+    assert "Rows by publishing regulator" in home
+    assert "Rows by action category" in home
+    for name, text in html_pages(pages).items():
+        for svg in re.findall(r'<svg[^>]*role="img"[^>]*>.*?</svg>', text, re.S):
+            assert re.search(r"<title[^>]*>[^<]+</title>", svg), name
+
+
+def test_sparklines_have_text_titles(built):
+    _, pages = built
+    prov = pages["provider/PR-00000001.html"]
+    sparks = re.findall(r'<svg class="spark"[^>]*>.*?</svg>', prov, re.S)
+    assert sparks
+    for svg in sparks:
+        assert re.search(r"<title>Actions per year at this service, \d{4} to \d{4}\. ", svg)
+
+
+def test_badges_carry_text_labels(built):
+    _, pages = built
+    seen = 0
+    for name, text in html_pages(pages).items():
+        opened = text.count('class="badge ')
+        found = re.findall(r'<span class="badge cat-([a-z_]+)">([^<]*)</span>', text)
+        assert opened == len(found), name
+        for cat, label in found:
+            assert cat in bs.TYPE_LABELS, (name, cat)
+            assert label == bs.TYPE_LABELS[cat] and label.strip(), (name, cat, label)
+        seen += len(found)
+    assert seen > 10
+    svc = pages["service/SE-00000001.html"]
+    # The register's own label sits alongside this site's category.
+    assert "Compliance notice issued" in svc
+    assert '<span class="badge cat-compliance_notice">Compliance notice</span>' in svc
+    assert '<span class="badge cat-prosecution">Prosecution</span>' in svc
+
+
+def test_pages_need_no_inline_style_or_script(built):
+    """The Content-Security-Policy allows 'self' only: no inline styles or scripts."""
+    _, pages = built
+    for name, text in html_pages(pages).items():
+        assert "style=" not in text, name
+        assert "<style" not in text, name
+        for tag in re.findall(r"<script[^>]*>", text):
+            assert 'src="' in tag, (name, tag)
+
+
+def test_recent_actions_list_newest_first(built):
+    _, pages = built
+    home = pages["index.html"]
+    recent = re.search(r'<ol class="recent">(.*?)</ol>', home, re.S).group(1)
+    dates = re.findall(r'<time datetime="([\d-]+)">', recent)
+    assert dates == ["2026-02-27", "2025-11-11", "2025-07-04"]  # a2, a5, a1; a3 and a4 not listed
+    assert 'href="service/SE-00000001.html"' in recent
+    assert "Service name withheld" in recent
+    assert "Withheld: subject is an individual" in recent
+    assert WITHHELD_PERSON not in recent
+
+
+def test_service_timeline_is_newest_first(built):
+    _, pages = built
+    svc = pages["service/SE-00000001.html"]
+    timeline = re.search(r'<ol class="timeline">(.*?)</ol>', svc, re.S).group(1)
+    assert re.findall(r'<time datetime="([\d-]+)">', timeline) == ["2026-02-27", "2025-07-04"]
+    assert timeline.count("View source record") == 2
