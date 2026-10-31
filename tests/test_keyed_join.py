@@ -26,12 +26,14 @@ def _spine(*, second_provider_named_alike=False):
     services = [
         {
             "ServiceApprovalNumber": "SE-00000101",
+            "service_approval_number": "SE-00000101",
             "ServiceName": SERVICE,
             "State": "QLD",
             "Provider Approval Number": "PR-00000001",
         },
         {
             "ServiceApprovalNumber": "SE-00000102",
+            "service_approval_number": "SE-00000102",
             "ServiceName": "Other Learning Centre",
             "State": "QLD",
             "Provider Approval Number": "PR-00000001",
@@ -53,6 +55,7 @@ def _spine(*, second_provider_named_alike=False):
         services.append(
             {
                 "ServiceApprovalNumber": "SE-00000201",
+                "service_approval_number": "SE-00000201",
                 "ServiceName": "Another Service",
                 "State": "QLD",
                 "Provider Approval Number": "PR-00000002",
@@ -73,19 +76,19 @@ def _spine(*, second_provider_named_alike=False):
     return je.Spine(services, profiles, providers), providers
 
 
-def _withheld_row(record_id="r1"):
+def _withheld_row(record_id="r1", jurisdiction="QLD"):
     return {
         "record_id": record_id,
-        "jurisdiction": "QLD",
+        "jurisdiction": jurisdiction,
         "provider_name": None,
         "service_name": None,
         "notes": "provider name withheld: may identify an individual",
     }
 
 
-def _keyed(spine, providers, record_id="r1"):
+def _keyed(spine, providers, record_id="r1", service=SERVICE):
     rows = {
-        record_id: (common.provider_name_key(PROVIDER, KEY), common.service_name_key(SERVICE, KEY))
+        record_id: (common.provider_name_key(PROVIDER, KEY), common.service_name_key(service, KEY))
     }
     return je.KeyedNames(spine, KEY, rows, providers)
 
@@ -100,9 +103,19 @@ def test_the_name_key_is_deterministic_and_depends_on_the_key():
     assert len(a) == 64 and PROVIDER.lower() not in a
 
 
-def test_a_recovered_join_gets_the_right_approval_numbers():
+def test_a_qld_row_is_matched_on_its_keyed_service_name_first():
     spine, providers = _spine()
     [out] = je.join_actions([_withheld_row()], spine, None, _keyed(spine, providers))
+    assert out["join_key_kind"] == "name_match"
+    assert out["acecqa_service_approval_number"] == "SE-00000101"
+    assert out["acecqa_provider_approval_number"] == "PR-00000001"
+    assert out["acecqa_service_name"] is None and out["acecqa_provider_legal_name"] is None
+
+
+def test_a_recovered_join_gets_the_right_approval_numbers():
+    spine, providers = _spine()
+    row = _withheld_row(jurisdiction="CTH")
+    [out] = je.join_actions([row], spine, None, _keyed(spine, providers))
     assert out["acecqa_provider_approval_number"] == "PR-00000001"
     assert out["acecqa_service_approval_number"] == "SE-00000101"
     assert out["join_key_kind"] == "provider_name_match"
@@ -119,7 +132,7 @@ def test_without_the_keyed_stage_the_row_stays_unmatched():
 
 def test_an_ambiguous_key_stays_unmatched_with_the_existing_reason():
     spine, providers = _spine(second_provider_named_alike=True)
-    [out] = je.join_actions([_withheld_row()], spine, None, _keyed(spine, providers))
+    [out] = je.join_actions([_withheld_row()], spine, None, _keyed(spine, providers, service=None))
     assert out["match_confidence"] == je.CONFIDENCE_NONE
     assert out["acecqa_provider_approval_number"] is None
     assert je.residual_reason(out) == "no_key_and_name_withheld"
@@ -128,7 +141,7 @@ def test_an_ambiguous_key_stays_unmatched_with_the_existing_reason():
 def test_a_provider_that_reads_as_an_individual_is_never_matched():
     spine, providers = _spine()
     spine.profiles["PR-00000001"]["entity_form"] = "likely_individual"
-    [out] = je.join_actions([_withheld_row()], spine, None, _keyed(spine, providers))
+    [out] = je.join_actions([_withheld_row()], spine, None, _keyed(spine, providers, service=None))
     assert out["match_confidence"] == je.CONFIDENCE_NONE
 
 
