@@ -440,6 +440,7 @@ def join_dir(tmp_path, monkeypatch, ctx):
         ],
     )
     monkeypatch.setattr(je, "discover_action_files", lambda: [d / "qld-enforcement-actions.csv"])
+    monkeypatch.setattr(je, "load_abn_details", lambda: None)
     return d
 
 
@@ -529,3 +530,153 @@ def test_business_names_withheld_count_column_is_raised(ctx):
 def test_known_name_window_covers_hyphen_splits_longer_than_five_words():
     names = _names("Ann-Marie Jo-Anne Example-Sample")
     assert names.found_in("Ann Marie Jo Anne Example Sample Family Day Care")
+
+
+# ---------------------------------------------------------------------------
+# Codex round 3: ABN entity stage on the full business-name list
+# ---------------------------------------------------------------------------
+
+ABN = "12345678901"
+_REAL_LOAD_ABN = je.load_abn_details
+
+
+def _abn_spine():
+    providers = [
+        {
+            "provider_approval_number": "PR-00000101",
+            "Legal Name": "Alpha Holdings Pty Ltd",
+            "Trading Name": "",
+            "State": "NSW",
+        },
+        {
+            "provider_approval_number": "PR-00000202",
+            "Legal Name": "Bravo Group Pty Ltd",
+            "Trading Name": "Bravo Kids Club",
+            "State": "NSW",
+        },
+    ]
+    profiles = [
+        {"provider_approval_number": p["provider_approval_number"], "name_withheld": "false"}
+        for p in providers
+    ]
+    return je.Spine([], profiles, providers)
+
+
+def _write_cache(cache_dir, business_names):
+    import hashlib
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    body = json.dumps(
+        {"Abn": ABN, "EntityName": "Alpha Holdings Pty Ltd", "BusinessName": business_names}
+    )
+    data = f"callback({body})".encode()
+    (cache_dir / "2026-10-30T0000Z-details.json").write_bytes(data)
+    (cache_dir / "2026-10-30T0000Z-details.json.meta.json").write_text(
+        json.dumps(
+            {
+                "endpoint": "AbnDetails.aspx",
+                "query": {"abn": ABN},
+                "fetched_at": "2026-10-30T00:00:00+00:00",
+            }
+        ),
+        encoding="utf-8",
+    )
+    return hashlib.sha256(data).hexdigest()
+
+
+def _details(sha=None):
+    return {
+        ABN: {
+            "abn": ABN,
+            "lookup_status": "ok",
+            "entity_name": "Alpha Holdings Pty Ltd",
+            "business_names": "",
+            "business_names_withheld": "1",
+            "response_sha256": sha or "0" * 64,
+        }
+    }
+
+
+def test_withheld_business_name_matching_a_second_provider_stays_ambiguous(tmp_path):
+    sha = _write_cache(tmp_path / "abr-lookup", ["Bravo Kids Club"])
+    details = _details(sha)
+    assert je.restore_business_names(details, tmp_path / "abr-lookup") == 0
+    pr, note = je.match_by_abn_entity(ABN, details, _abn_spine())
+    assert pr is None and "ambiguous" in note
+    # the restored list is in memory only, never in a published column
+    assert details[ABN]["business_names"] == ""
+
+
+def test_unique_match_is_still_accepted_with_the_full_list_restored(tmp_path):
+    sha = _write_cache(tmp_path / "abr-lookup", ["Unrelated Learning Centre"])
+    details = _details(sha)
+    assert je.restore_business_names(details, tmp_path / "abr-lookup") == 0
+    pr, _ = je.match_by_abn_entity(ABN, details, _abn_spine())
+    assert pr == "PR-00000101"
+
+
+def test_no_cache_fails_closed(tmp_path):
+    details = _details()
+    assert je.restore_business_names(details, tmp_path / "missing") == 1
+    pr, note = je.match_by_abn_entity(ABN, details, _abn_spine())
+    assert pr is None and note == je.ABN_NOT_RESTORABLE_NOTE
+
+
+def test_a_cached_response_that_is_not_the_rows_response_fails_closed(tmp_path):
+    _write_cache(tmp_path / "abr-lookup", ["Unrelated Learning Centre"])
+    details = _details("f" * 64)
+    assert je.restore_business_names(details, tmp_path / "abr-lookup") == 1
+    assert je.match_by_abn_entity(ABN, details, _abn_spine())[0] is None
+
+
+def test_row_with_nothing_withheld_needs_no_cache(tmp_path):
+    details = _details()
+    details[ABN]["business_names_withheld"] = "0"
+    assert je.restore_business_names(details, tmp_path / "missing") == 0
+    assert je.match_by_abn_entity(ABN, details, _abn_spine())[0] == "PR-00000101"
+
+
+def test_abn_stage_is_idempotent_across_runs(tmp_path):
+    sha = _write_cache(tmp_path / "abr-lookup", ["Bravo Kids Club", "Unrelated"])
+    results = []
+    for _ in range(2):
+        details = _details(sha)
+        je.restore_business_names(details, tmp_path / "abr-lookup")
+        results.append(je.match_by_abn_entity(ABN, details, _abn_spine()))
+    assert results[0] == results[1]
+
+
+def test_standalone_join_refuses_when_abn_business_names_cannot_be_restored(
+    join_dir, monkeypatch, capsys
+):
+    # Only the ABN guard: the QLD row's service name is not withheld here.
+    qld = join_dir / "qld-enforcement-actions.csv"
+    _csv(
+        qld,
+        [
+            {
+                "record_id": "c1",
+                "jurisdiction": "CTH",
+                "source_register": "x",
+                "captured_at": "2026-10-29",
+                "service_name": "",
+                "state": "",
+                "action_type": "ccs_sanction",
+                "action_type_raw": "Sanction",
+                "date_issued": "2026-01-01",
+                "notes": f"ccs_identifier: ABN {ABN}",
+            }
+        ],
+    )
+    _csv(join_dir / "abn-details.csv", [_details()[ABN]])
+    monkeypatch.setattr(
+        je, "load_abn_details", lambda: _REAL_LOAD_ABN(join_dir / "abn-details.csv")
+    )
+    with pytest.raises(SystemExit) as exc:
+        je.main([])
+    assert exc.value.code == je.UNRESTORED_EXIT
+    assert "abr-lookup" in capsys.readouterr().out
+    assert not (join_dir / "enforcement-join-report.json").exists()
+    je.main(["--allow-unrestored"])
+    report = json.loads((join_dir / "enforcement-join-report.json").read_text("utf-8"))
+    assert report["abn_entity_rows_not_matched_business_names_not_restorable"] == 1
