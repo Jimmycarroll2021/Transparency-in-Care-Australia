@@ -96,7 +96,10 @@ def test_an_unclear_or_per_offence_fine_is_null_with_a_note(text):
 def test_one_unambiguous_total_fine_is_recorded():
     from scrapers.parse_qld_enforcement import fine_amount_and_note
 
-    assert fine_amount_and_note("Approved provider fined $12,000 for missing child") == (12000, None)
+    assert fine_amount_and_note("Approved provider fined $12,000 for missing child") == (
+        12000,
+        None,
+    )
     assert fine_amount_and_note("A fine of $5,000.50 was imposed") == (5000.5, None)
     assert fine_amount_and_note("Approved provider fined $35,000 for leaving child on bus") == (
         35000,
