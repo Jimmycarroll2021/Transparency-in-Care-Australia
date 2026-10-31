@@ -204,10 +204,16 @@ def _acquire_lock() -> None:
         fd = os.open(LOCK_PATH, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError as exc:
         raise LockHeld(str(LOCK_PATH)) from exc
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        fh.write(f"pid {os.getpid()} at {common.utc_now().isoformat()}\n")
-        fh.flush()
-        os.fsync(fh.fileno())
+    # Follow-up to PR #6: this process created the lock, so if its body cannot be written the
+    # lock is removed here. A lock that already existed never reaches this point.
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(f"pid {os.getpid()} at {common.utc_now().isoformat()}\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+    except BaseException:
+        LOCK_PATH.unlink(missing_ok=True)
+        raise
 
 
 def _release_lock() -> None:
