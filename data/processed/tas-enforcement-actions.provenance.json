@@ -1,6 +1,6 @@
 {
   "output": "data/processed/tas-enforcement-actions.csv",
-  "written_at": "2026-10-31T08:18:19.483236+00:00",
+  "written_at": "2026-10-31T11:32:30.151086+00:00",
   "rows": 1,
   "schema": "data/schemas/enforcement-action.schema.json",
   "raw_inputs": [
@@ -8,7 +8,7 @@
   ],
   "notes": "Tasmania ECU published enforcement actions. Joined with SE- and PR- keys.",
   "names_withheld": {
-    "rule": "trading and service names withheld when they may name an individual (scrapers.common.withhold_person_named_names)",
+    "rule": "trading, service and business names withheld when they may name an individual, and free text repeating a withheld name (scrapers.common.withhold_person_named_names)",
     "counts": {}
   }
 }
