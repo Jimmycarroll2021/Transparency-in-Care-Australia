@@ -164,6 +164,25 @@ _TIED_FINE = re.compile(
 FINE_NOT_RECORDED_NOTE = (
     "penalty amount not recorded: the printed amount is not tied explicitly and solely to the fine"
 )
+# Follow-up to PR #6: an amount printed with a magnitude word or abbreviation ('$1.5 million',
+# '$15k'), a decimal that is not cents, or digit grouping that is not standard is not a whole,
+# unambiguous figure; nothing is scaled or completed.
+FINE_ABBREVIATED_NOTE = (
+    "penalty amount not recorded: the printed amount is abbreviated or not a whole dollar figure"
+)
+# A per-offence or 'each' amount may not be the total fine.
+FINE_PER_OFFENCE_NOTE = (
+    "penalty amount not recorded: the printed amount may be per offence, not the total fine"
+)
+_MONEY_RAW = re.compile(
+    r"(?i)[$][ ]?([0-9][0-9,]*)(?:[.]([0-9]+))?"
+    r"(?:[ ]?(k|m|bn|b|million|millions|thousand|thousands|billion|mil)(?![a-z]))?"
+)
+_WHOLE_GROUPING = re.compile(r"^(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)$")
+_PER_OFFENCE = re.compile(
+    r"(?i)(?<![a-z])(?:each|per[ ]+(?:offence|offense|charge|count|breach|contravention|"
+    r"child|incident|day)|for[ ]+every)(?![a-z])"
+)
 
 
 def _dollars(token: str) -> int | float:
@@ -175,12 +194,24 @@ def _dollars(token: str) -> int | float:
 def fine_amount_and_note(text: str | None) -> tuple[int | float | None, str | None]:
     """(fine in dollars, note) from a printed headline (Codex round 5, finding 3).
 
-    Recorded only when the text prints exactly one dollar amount and ties it explicitly to the
-    fine or penalty ('fined $12,000', 'a fine of $5,000', '$7,500 penalty'). When the text speaks
-    of a fine or penalty and prints an amount that is costs, untied or one of several, the value
-    is None and FINE_NOT_RECORDED_NOTE says so. Never a guess."""
+    Recorded only when the text prints exactly one dollar amount, as a whole figure (cents
+    optional), and ties it explicitly to the fine or penalty ('fined $12,000', 'a fine of
+    $5,000', '$7,500 penalty'). Otherwise the value is None with a note: an abbreviated amount
+    or magnitude word ('$1.5 million', '$15k'), per-offence or 'each' wording, costs, an untied
+    amount, or more than one amount. Never a guess, never scaled."""
     if not text or not _FINE_WORD.search(text):
         return None, None
+    raw = list(_MONEY_RAW.finditer(text))
+    if not raw:
+        return None, None
+    for m in raw:
+        digits, decimals, magnitude = m.group(1).rstrip(","), m.group(2), m.group(3)
+        if magnitude or (decimals is not None and len(decimals) != 2):
+            return None, FINE_ABBREVIATED_NOTE
+        if not _WHOLE_GROUPING.match(digits):
+            return None, FINE_ABBREVIATED_NOTE
+    if _PER_OFFENCE.search(text):
+        return None, FINE_PER_OFFENCE_NOTE
     amounts = {_dollars(m.group(0)) for m in _DOLLARS.finditer(text)}
     if not amounts:
         return None, None
