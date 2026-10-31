@@ -1,0 +1,2390 @@
+{
+  "generated_at": "2026-10-31T00:15:52.614858+00:00",
+  "definitions": [
+    "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched only by the included entity's ABN on the statement page equalling the provider's ABN. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
+    "group_parent_self: the provider, matched by ABN, is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",
+    "co_reported_joint: the provider is named by ABN (as a reporting or included entity) in a Joint statement. Joint statements can combine unrelated bodies, so these rows are never edges."
+  ],
+  "counts": {
+    "candidate_statements": 136,
+    "included_entities_parsed": 530,
+    "included_entities_with_abn": 350,
+    "relations_total": 75,
+    "relations_by_class": {
+      "co_reported_joint": 36,
+      "controlled_entity_of": 11,
+      "group_parent_self": 3,
+      "self_report_no_included_entities": 25
+    },
+    "controlled_entity_of": {
+      "edges": 7,
+      "distinct_providers": 6,
+      "groups": 6,
+      "priority_providers_gained_edge": 6,
+      "services_of_those_providers": 150
+    },
+    "group_parent_self_not_ownership_edges": {
+      "rows": 2,
+      "distinct_providers": 2,
+      "services_of_those_providers": 298
+    },
+    "co_reported_joint_not_ownership": {
+      "rows": 36,
+      "distinct_providers": 13,
+      "statements": 22,
+      "providers_with_only_joint_relations": 11
+    },
+    "priority_providers_total": 1210,
+    "priority_providers_with_abn": 901,
+    "priority_providers_screened_in": 1030,
+    "screened_providers_with_valid_abn": 893,
+    "services_total": 18186,
+    "services_note": null,
+    "review_queue": 115,
+    "review_by_reason": {
+      "fuzzy_corporate_suffix_differs": 9,
+      "name_match_provider_abn_not_resolved": 53,
+      "name_match_without_msr_abn": 53
+    },
+    "name_matches_to_excluded_providers": 0,
+    "screening": {
+      "providers_considered": 10073,
+      "providers_screened_in": 7830,
+      "excluded_missing_profile": 0,
+      "excluded_duplicate_profile_rows": 0,
+      "excluded_duplicate_provider_abn_rows": 0,
+      "excluded_not_positively_organisation": 1130,
+      "excluded_name_withheld": 1113,
+      "excluded_blank_legal_name": 0,
+      "excluded_classifier_withholds_name": 0,
+      "excluded_abn_step_individual_or_unknown": 0,
+      "excluded_abr_individual": 0,
+      "excluded_abr_type_conflict": 0,
+      "screened_abn_failing_checksum_not_used": 0,
+      "rule": "A provider is used only with exactly one provider-profile.csv row positively classified as an organisation, not withheld, with a legal name, at most one provider-abn.csv row, and no local ABR source marking it as an individual or disagreeing on its ABN's type. Each excluded provider is counted once, under the first reason that applies."
+    },
+    "candidate_pages_missing": 0,
+    "statement_url_fields_withheld": {},
+    "csv_columns_dropped": 0,
+    "abn_placeholders_read_as_no_abn": 1
+  },
+  "window": {
+    "note": "Each edge shows its latest statement; statement_ids lists every statement that links the provider to the group, across all reporting years.",
+    "latest_statement_period_earliest": "2023-07-01 to 2024-06-30",
+    "latest_statement_period_latest": "2025-01-01 to 2025-12-31",
+    "all_edge_statement_periods": [
+      "2023-01-01 to 2023-12-31",
+      "2023-07-01 to 2024-06-30",
+      "2024-01-01 to 2024-12-31",
+      "2025-01-01 to 2025-12-31"
+    ]
+  },
+  "groups": [
+    {
+      "group_key": "68670538780",
+      "group_abn": "68670538780",
+      "controlled_providers": 2,
+      "services_of_controlled_providers": 46,
+      "head_provider": null
+    },
+    {
+      "group_key": "32025287736",
+      "group_abn": "32025287736",
+      "controlled_providers": 1,
+      "services_of_controlled_providers": 6,
+      "head_provider": null
+    },
+    {
+      "group_key": "39703442583",
+      "group_abn": "39703442583",
+      "controlled_providers": 1,
+      "services_of_controlled_providers": 89,
+      "head_provider": null
+    },
+    {
+      "group_key": "46141203125",
+      "group_abn": "46141203125",
+      "controlled_providers": 1,
+      "services_of_controlled_providers": 4,
+      "head_provider": null
+    },
+    {
+      "group_key": "65124826722",
+      "group_abn": "65124826722",
+      "controlled_providers": 1,
+      "services_of_controlled_providers": 5,
+      "head_provider": null
+    },
+    {
+      "group_key": "90952801237",
+      "group_abn": "90952801237",
+      "controlled_providers": 1,
+      "services_of_controlled_providers": 4,
+      "head_provider": null
+    }
+  ],
+  "joint_statements_for_manual_confirmation": [
+    {
+      "statement_id": "2024-1335",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18637/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "reporting_entity_count": 53,
+      "reporting_entity_abns": "15050192660; 42624828306; 64047619369; 72823907843; 29608297012; 76000005210; 55210770582; 73470086952; 22616685167; 94493967364; 94643894384; 47634504135; 21578907988; 69064946318; 85744325709; 46619593369; 66661001798; 68629894686; 93638070836; 91621266993; 54610124322; 11079815697; 79078299288; 76654014794; 83096708922; 77191901062; 31098197490; 96487116582; 51166477318; 69154531870; 89614115856; 58072422925; 24097986470; 76131082374; 65104033471; 21930207958; 91161127340; 14211506904; 75073503536; 25328758007; 35020644975; 49991006857; 21528592597; 50979741889; 52768159282; 69330643210; 47824127996; 67786923621; 96372268340; 36345537994; 62089182027; 92119459853; 32004364103",
+      "included_providers": [
+        "PR-40015072",
+        "PR-40023899",
+        "PR-40028424"
+      ]
+    },
+    {
+      "statement_id": "2025-1579",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23594/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "reporting_entity_count": 44,
+      "reporting_entity_abns": "90702916776; 15050192660; 42624828306; 64047619369; 72823907843; 58600950933; 29608297012; 15679442089; 94643894384; 47634504135; 69064946318; 46619593369; 66661001798; 68629894686; 93638070836; 91621266993; 54610124322; 11079815697; 79078299288; 76654014794; 83096708922; 31098197490; 69154531870; 89614115856; 58072422925; 24097986470; 76131082374; 65104033471; 55046572944; 21930207958; 91161127340; 14211506904; 75073503536; 25328758007; 21528592597; 54281755117; 69330643210; 47824127996; 67786923621; 96372268340; 36345537994; 62089182027; 92119459853; 32004364103",
+      "included_providers": [
+        "PR-00007426",
+        "PR-40015072",
+        "PR-40023899",
+        "PR-40028424"
+      ]
+    }
+  ],
+  "name_policy": "Names in MSR outputs: the only name is provider_legal_name, the ACECQA legal name keyed by provider_approval_number, for providers that pass screening. No group name is written; a group is identified by the reporting entity's ABN or by its statement page. No name read from the register is ever written.",
+  "review_reasons": "name_match_without_msr_abn: the entity's name equals one screened provider's legal name but the statement gives no ABN for it. msr_abn_differs_from_provider_abn: the name matches but the statement's ABN differs from the provider's. name_match_provider_abn_not_resolved: the name matches and the statement gives an ABN, but the provider has no accepted ABN. ambiguous_matches_several_providers: the name equals several providers' legal names. fuzzy_corporate_suffix_differs: the names match only without a PTY LTD, LTD or INC suffix.",
+  "caveats": [
+    "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched only by the included entity's ABN on the statement page equalling the provider's ABN. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
+    "group_parent_self: the provider, matched by ABN, is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",
+    "co_reported_joint: the provider is named by ABN (as a reporting or included entity) in a Joint statement. Joint statements can combine unrelated bodies, so these rows are never edges.",
+    "The register covers entities with annual consolidated revenue of at least AUD 100 million, plus voluntary reporters. Absence of an edge says nothing about ownership.",
+    "Edges need an ABN on the statement page. An included entity listed without an ABN never makes an edge; when its name matches a provider it is in the review queue.",
+    "Each edge is collapsed to one row per provider and group from the latest statement; statement_ids lists every statement. A provider in an older statement may since have changed hands.",
+    "MSR licence unclear (Copyright Attorney-General's Department). Raw MSR files are not committed. Ask the department before any public display.",
+    "Service counts are current ACECQA service approvals from acecqa-services-latest.csv. ACECQA content is not openly licensed."
+  ],
+  "abn_placeholders_read_as_no_abn": [
+    {
+      "statement_id": "2022-3013",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11943/",
+      "msr_role": "reporting_entity",
+      "value": "00649711026"
+    }
+  ],
+  "source": {
+    "csv_url_pattern": "https://modernslaveryregister.gov.au/resources/all-statement-information_<date>.csv",
+    "csv_fetched_at": "2026-10-30T19:32:05.492982+00:00",
+    "csv_url": "https://modernslaveryregister.gov.au/resources/all-statement-information_2026-10-31.csv",
+    "csv_sha256": "462075541ee2bfdbf84cebb7a55be12ff953ab77da48998d7857c0f195fb2a76",
+    "csv_statement_rows": 18869,
+    "columns_kept": [
+      "IDX",
+      "PeriodStart",
+      "PeriodEnd",
+      "Type",
+      "VoluntaryCompliance",
+      "HeadquarteredCountries",
+      "AnnualRevenue",
+      "ReportingEntities",
+      "IncludedEntities",
+      "ABN",
+      "ACN",
+      "ARBN",
+      "Link",
+      "IndustrySectors",
+      "RelatedStatements"
+    ],
+    "columns_dropped_for_privacy": [],
+    "robots": "robots.txt honoured via scrapers.common.fetch; statement pages fetched at least 2 s apart",
+    "licence": "No licence shown; 'Copyright Attorney-General's Department'. Raw not committed."
+  },
+  "candidate_statements": [
+    {
+      "statement_id": "2020-138",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/428/",
+      "reporting_period": "2019-07-01 to 2020-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "75148177959",
+        "46080075314"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2020-135",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/400/",
+      "reporting_period": "2019-07-01 to 2020-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 10,
+      "reporting_entity_abns": [
+        "32082447827",
+        "88774033774",
+        "39703442583",
+        "41075948444",
+        "39075948435",
+        "19628178816",
+        "46102469821",
+        "31640217803",
+        "69134589745",
+        "81098317125"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-979",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/2719/",
+      "reporting_period": "2019-07-01 to 2020-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "42164655145"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1031",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/2903/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "34169198421"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1147",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/3056/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "69139967794"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1285",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/3203/",
+      "reporting_period": "2019-07-01 to 2020-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 6,
+      "reporting_entity_abns": [
+        "34601105319",
+        "78114135563",
+        "81056887757",
+        "21090052350",
+        "39010129325",
+        "65120069570"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1527",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/3441/",
+      "reporting_period": "2019-07-01 to 2020-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 8,
+      "reporting_entity_abns": [
+        "31619359590",
+        "81174456784",
+        "94081270706",
+        "75092818445",
+        "42858439742",
+        "16148092148",
+        "88151552322",
+        "77606062793"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1879",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/4282/",
+      "reporting_period": "2020-04-01 to 2021-03-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "33603224728",
+        "99154937005"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2110",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/4680/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "55635178166",
+        "81600793388"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2203",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/4811/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 9,
+      "reporting_entity_abns": [
+        "84640640035",
+        "56617423775",
+        "24615339949",
+        "37002745879",
+        "13003698726",
+        "45454866057",
+        "36143775230",
+        "73640782059",
+        "98060671646"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2228",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/4386/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "91621266993"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2263",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/4901/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 3,
+      "reporting_entity_abns": [
+        "63625478015",
+        "82625449809",
+        "20168187979"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1704",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/3905/",
+      "reporting_period": "2019-07-01 to 2020-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "96060703120"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2390",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/5010/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "59150737849"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1629",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/3762/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "95123828553"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-1994",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/4497/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "37163864195"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2632",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/5409/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "59117676463"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2663",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/5458/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "13622319794"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-2896",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/5780/",
+      "reporting_period": "2020-01-01 to 2020-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 34,
+      "reporting_entity_abns": [
+        "15050192660",
+        "42624828306",
+        "64047619369",
+        "72823907843",
+        "76000005210",
+        "92119459853",
+        "73470086952",
+        "85176448204",
+        "22616685167",
+        "86875623906",
+        "47634504135",
+        "69064946318",
+        "85744325709",
+        "46619593369",
+        "93638070836",
+        "11079815697",
+        "83096708922",
+        "69154531870",
+        "89614115856",
+        "24097986470",
+        "50979741889",
+        "76131082374",
+        "21930207958",
+        "91161127340",
+        "14211506904",
+        "25328758007",
+        "96993674415",
+        "26158447082",
+        "69330643210",
+        "47824127996",
+        "67786923621",
+        "96372268340",
+        "62089182027",
+        "32004364103"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3178",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/6253/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "75148177959",
+        "46080075314"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3270",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/6169/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "42164655145"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3776",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/7162/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 41,
+      "reporting_entity_abns": [
+        "42081878453",
+        "27081870653",
+        "40081870706",
+        "31008466840",
+        "26003921891",
+        "99132459931",
+        "51008408151",
+        "91008410302",
+        "57080982207",
+        "25011027115",
+        "26002992896",
+        "86152253837",
+        "82147368358",
+        "41083189897",
+        "83126232504",
+        "75147653825",
+        "11093539452",
+        "72166188610",
+        "97009643672",
+        "72001175355",
+        "78006799757",
+        "55097089944",
+        "56079613308",
+        "91080073070",
+        "80000063623",
+        "38068106356",
+        "39125475863",
+        "98004093092",
+        "70125356916",
+        "18125357066",
+        "96003466591",
+        "34082051287",
+        "83078991803",
+        "12007551886",
+        "47102473049",
+        "73147653816",
+        "57005010195",
+        "43081835074",
+        "62081835154",
+        "68083878460",
+        "29000003832"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3997",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/7066/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 13,
+      "reporting_entity_abns": [
+        "13419019806",
+        "11073098718",
+        "95487784757",
+        "42003692733",
+        "87109950361",
+        "85006162152",
+        "35086004097",
+        "47072232083",
+        "11131047268",
+        "46322942323",
+        "79159257093",
+        "40098046854",
+        "34009577806"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3886",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/7332/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3853",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/7284/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 6,
+      "reporting_entity_abns": [
+        "34601105319",
+        "78114135563",
+        "81056887757",
+        "21090052350",
+        "39010129325",
+        "65120069570"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-4053",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/7484/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "96060703120"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3541",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/6810/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 10,
+      "reporting_entity_abns": [
+        "32082447827",
+        "88774033774",
+        "39703442583",
+        "41075948444",
+        "39075948435",
+        "19628178816",
+        "46102469821",
+        "31640217803",
+        "69134589745",
+        "81098317125"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-480",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/8418/",
+      "reporting_period": "2020-10-01 to 2021-09-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 7,
+      "reporting_entity_abns": [
+        "41000683125",
+        "82089388143",
+        "80089388134",
+        "60129203998",
+        "79114320615",
+        "98113561363",
+        "64157852054"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1261",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9530/",
+      "reporting_period": "2021-04-01 to 2022-03-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "33603224728",
+        "99154937005"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1010",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9233/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "59150737849"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1351",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9643/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 39,
+      "reporting_entity_abns": [
+        "15050192660",
+        "42624828306",
+        "64047619369",
+        "72823907843",
+        "76000005210",
+        "73470086952",
+        "22616685167",
+        "94493967364",
+        "86875623906",
+        "47634504135",
+        "69064946318",
+        "85744325709",
+        "46619593369",
+        "68629894686",
+        "93638070836",
+        "11079815697",
+        "79078299288",
+        "83096708922",
+        "18643442371",
+        "77191901062",
+        "51166477318",
+        "69154531870",
+        "89614115856",
+        "58072422925",
+        "24097986470",
+        "76131082374",
+        "22649097021",
+        "21930207958",
+        "91161127340",
+        "14211506904",
+        "25328758007",
+        "50979741889",
+        "26158447082",
+        "69330643210",
+        "47824127996",
+        "67786923621",
+        "96372268340",
+        "62089182027",
+        "32004364103"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1309",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9596/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 3,
+      "reporting_entity_abns": [
+        "63625478015",
+        "82625449809",
+        "20168187979"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1032",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9265/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 8,
+      "reporting_entity_abns": [
+        "89109598905",
+        "15085694695",
+        "34169198421",
+        "83121768426",
+        "29411978418",
+        "24830510866",
+        "80991443722",
+        "18282739596"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1099",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9367/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "95123828553"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-924",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9125/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "37163864195"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2021-3922",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/7369/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 3,
+      "reporting_entity_abns": [
+        "82002796232",
+        "69139967794",
+        "26133530364"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-1535",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/9928/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "59117676463"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2350",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11121/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "69139967794"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2619",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11364/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "75148177959"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2238",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/10973/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 5,
+      "reporting_entity_abns": [
+        "88774033774",
+        "39703442583",
+        "19628178816",
+        "46102469821",
+        "81098317125"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2198",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/10899/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 17,
+      "reporting_entity_abns": [
+        "54117167307",
+        "53139076636",
+        "13419019806",
+        "84092419960",
+        "11073098718",
+        "30006070828",
+        "42003692733",
+        "87109950361",
+        "35086004097",
+        "47072232083",
+        "85006162152",
+        "11131047268",
+        "61010617044",
+        "79159257093",
+        "40098046854",
+        "82010704613",
+        "34009577806"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2714",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11588/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 37,
+      "reporting_entity_abns": [
+        "42081878453",
+        "27081870653",
+        "40081870706",
+        "26003921891",
+        "99132459931",
+        "51008408151",
+        "91008410302",
+        "57080982207",
+        "26002992896",
+        "25011027115",
+        "86152253837",
+        "82147368358",
+        "83126232504",
+        "75147653825",
+        "11093539452",
+        "72166188610",
+        "97009643672",
+        "72001175355",
+        "78006799757",
+        "55097089944",
+        "56079613308",
+        "91080073070",
+        "80000063623",
+        "38068106356",
+        "98004093092",
+        "18125357066",
+        "96003466591",
+        "34082051287",
+        "83078991803",
+        "12007551886",
+        "47102473049",
+        "73147653816",
+        "57005010195",
+        "43081835074",
+        "62081835154",
+        "68083878460",
+        "29000003832"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2940",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11835/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "96060703120"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2648",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11506/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "33074318602"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-3013",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11943/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2022-2398",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/11193/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "42164655145"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-203",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/12371/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 7,
+      "reporting_entity_abns": [
+        "41000683125",
+        "82089388143",
+        "80089388134",
+        "60129203998",
+        "79114320615",
+        "98113561363",
+        "64157852054"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-226",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/12401/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 5,
+      "reporting_entity_abns": [
+        "78114135563",
+        "81056887757",
+        "21090052350",
+        "39010129325",
+        "65120069570"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-353",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/12597/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 8,
+      "reporting_entity_abns": [
+        "89109598905",
+        "15085694695",
+        "34169198421",
+        "83121768426",
+        "29411978418",
+        "24830510866",
+        "80991443722",
+        "18282739596"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-488",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/12806/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "34002919584"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-524",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/12856/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 9,
+      "reporting_entity_abns": [
+        "37163864195",
+        "20153144935",
+        "69150259546",
+        "48153143803",
+        "16150036936",
+        "82041817285",
+        "31769446861",
+        "30214474616",
+        "69793173131"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-721",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/13149/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 3,
+      "reporting_entity_abns": [
+        "65335795326",
+        "25166750107",
+        "43912374223"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1130",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/13742/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "95123828553"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1361",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/14013/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "59150737849"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1306",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/13919/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "33603224728",
+        "99154937005"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1195",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/13790/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 95,
+      "reporting_entity_abns": [
+        "43854833448",
+        "15050192660",
+        "33370684005",
+        "91637994720",
+        "24624981326",
+        "72823907843",
+        "90507529241",
+        "79984899862",
+        "76000005210",
+        "73866037848",
+        "21429090329",
+        "99716962606",
+        "55210770582",
+        "92119459853",
+        "73470086952",
+        "22616685167",
+        "94493967364",
+        "86875623906",
+        "47634504135",
+        "69064946318",
+        "85744325709",
+        "46619593369",
+        "23154824969",
+        "51626296801",
+        "27086647298",
+        "68629894686",
+        "93638070836",
+        "11079815697",
+        "79078299288",
+        "34050463717",
+        "50148130349",
+        "83096708922",
+        "28109834719",
+        "37653741612",
+        "18643442371",
+        "75653741836",
+        "77191901062",
+        "31098197490",
+        "96487116582",
+        "51166477318",
+        "69154531870",
+        "89614115856",
+        "73107275230",
+        "26412756615",
+        "82068291234",
+        "53075648350",
+        "74762230429",
+        "21612759654",
+        "77896699763",
+        "58072422925",
+        "58089460935",
+        "24097986470",
+        "24097986470",
+        "98643978205",
+        "76131082374",
+        "27004788612",
+        "57714505919",
+        "94424754630",
+        "60606404915",
+        "53066805132",
+        "21930207958",
+        "18152874845",
+        "36064831965",
+        "96397668255",
+        "13120232163",
+        "91161127340",
+        "14211506904",
+        "31618167632",
+        "15146972303",
+        "49094645262",
+        "50055210378",
+        "75073503536",
+        "46095382791",
+        "22052110755",
+        "77054038872",
+        "61083645505",
+        "77795370902",
+        "99269630262",
+        "25328758007",
+        "35020644975",
+        "49991006857",
+        "21528592597",
+        "50979741889",
+        "52768159282",
+        "38841427747",
+        "96723184640",
+        "26158447082",
+        "64786814301",
+        "69330643210",
+        "47824127996",
+        "67786923621",
+        "96372268340",
+        "62089182027",
+        "32004364103",
+        "24547377893"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1488",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/14143/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 3,
+      "reporting_entity_abns": [
+        "63625478015",
+        "82625449809",
+        "20168187979"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1852",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/14693/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "59117676463",
+        "84008664766"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-2011",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/14898/",
+      "reporting_period": "2021-01-01 to 2021-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "91621266993"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-1714",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/14493/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "89755348137"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2023-2263",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/15268/",
+      "reporting_period": "2022-01-01 to 2022-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "91621266993"
+      ],
+      "included_entities": 44
+    },
+    {
+      "statement_id": "2023-2461",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/15563/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "69139967794"
+      ],
+      "included_entities": 3
+    },
+    {
+      "statement_id": "2023-2536",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/15643/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 5,
+      "reporting_entity_abns": [
+        "88774033774",
+        "39703442583",
+        "19628178816",
+        "46102469821",
+        "81098317125"
+      ],
+      "included_entities": 5
+    },
+    {
+      "statement_id": "2023-2782",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/15972/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "42164655145"
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2023-2959",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/16195/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 37,
+      "reporting_entity_abns": [
+        "42081878453",
+        "27081870653",
+        "40081870706",
+        "26003921891",
+        "99132459931",
+        "51008408151",
+        "91008410302",
+        "57080982207",
+        "26002992896",
+        "25011027115",
+        "86152253837",
+        "82147368358",
+        "83126232504",
+        "75147653825",
+        "11093539452",
+        "72166188610",
+        "97009643672",
+        "72001175355",
+        "78006799757",
+        "55097089944",
+        "56079613308",
+        "91080073070",
+        "80000063623",
+        "38068106356",
+        "98004093092",
+        "96003466591",
+        "34082051287",
+        "83078991803",
+        "12007551886",
+        "47102473049",
+        "73147653816",
+        "57005010195",
+        "43081835074",
+        "62081835154",
+        "68083878460",
+        "29000003832",
+        "78089574489"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-26",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/16747/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "33074318602"
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2023-3409",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/16700/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [],
+      "included_entities": 7
+    },
+    {
+      "statement_id": "2024-34",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/16762/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 5,
+      "reporting_entity_abns": [
+        "78114135563",
+        "81056887757",
+        "21090052350",
+        "39010129325",
+        "65120069570"
+      ],
+      "included_entities": 3
+    },
+    {
+      "statement_id": "2023-3320",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/16604/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "75148177959"
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2024-267",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/17154/",
+      "reporting_period": "2022-10-01 to 2023-09-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 7,
+      "reporting_entity_abns": [
+        "41000683125",
+        "82089388143",
+        "80089388134",
+        "60129203998",
+        "79114320615",
+        "98113561363",
+        "64157852054"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-316",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/17221/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 8,
+      "reporting_entity_abns": [
+        "89109598905",
+        "15085694695",
+        "34169198421",
+        "83121768426",
+        "29411978418",
+        "24830510866",
+        "80991443722",
+        "18282739596"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-513",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/17514/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "65124826722"
+      ],
+      "included_entities": 11
+    },
+    {
+      "statement_id": "2024-1021",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18265/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "84010547994"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-1143",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18440/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "32025287736"
+      ],
+      "included_entities": 14
+    },
+    {
+      "statement_id": "2024-1133",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18433/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "95123828553"
+      ],
+      "included_entities": 73
+    },
+    {
+      "statement_id": "2024-1139",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18298/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "90952801237"
+      ],
+      "included_entities": 4
+    },
+    {
+      "statement_id": "2024-1225",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18539/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "34002919584"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-1335",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18637/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 53,
+      "reporting_entity_abns": [
+        "15050192660",
+        "42624828306",
+        "64047619369",
+        "72823907843",
+        "29608297012",
+        "76000005210",
+        "55210770582",
+        "73470086952",
+        "22616685167",
+        "94493967364",
+        "94643894384",
+        "47634504135",
+        "21578907988",
+        "69064946318",
+        "85744325709",
+        "46619593369",
+        "66661001798",
+        "68629894686",
+        "93638070836",
+        "91621266993",
+        "54610124322",
+        "11079815697",
+        "79078299288",
+        "76654014794",
+        "83096708922",
+        "77191901062",
+        "31098197490",
+        "96487116582",
+        "51166477318",
+        "69154531870",
+        "89614115856",
+        "58072422925",
+        "24097986470",
+        "76131082374",
+        "65104033471",
+        "21930207958",
+        "91161127340",
+        "14211506904",
+        "75073503536",
+        "25328758007",
+        "35020644975",
+        "49991006857",
+        "21528592597",
+        "50979741889",
+        "52768159282",
+        "69330643210",
+        "47824127996",
+        "67786923621",
+        "96372268340",
+        "36345537994",
+        "62089182027",
+        "92119459853",
+        "32004364103"
+      ],
+      "included_entities": 63
+    },
+    {
+      "statement_id": "2024-1378",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18698/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "59150737849"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-1385",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18685/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "37163864195"
+      ],
+      "included_entities": 8
+    },
+    {
+      "statement_id": "2024-1513",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/18827/",
+      "reporting_period": "2023-01-01 to 2023-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "33603224728",
+        "99154937005"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-2081",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/19403/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2024-2666",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/20448/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [],
+      "included_entities": 2
+    },
+    {
+      "statement_id": "2024-2758",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/20567/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "75148177959"
+      ],
+      "included_entities": 5
+    },
+    {
+      "statement_id": "2024-2665",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/20442/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [],
+      "included_entities": 7
+    },
+    {
+      "statement_id": "2024-3118",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/20947/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 36,
+      "reporting_entity_abns": [
+        "42081878453",
+        "27081870653",
+        "40081870706",
+        "26003921891",
+        "99132459931",
+        "51008408151",
+        "91008410302",
+        "57080982207",
+        "26002992896",
+        "25011027115",
+        "86152253837",
+        "82147368358",
+        "83126232504",
+        "75147653825",
+        "11093539452",
+        "72166188610",
+        "97009643672",
+        "72001175355",
+        "78006799757",
+        "55097089944",
+        "56079613308",
+        "91080073070",
+        "80000063623",
+        "38068106356",
+        "98004093092",
+        "96003466591",
+        "34082051287",
+        "83078991803",
+        "12007551886",
+        "47102473049",
+        "73147653816",
+        "57005010195",
+        "43081835074",
+        "62081835154",
+        "68083878460",
+        "78089574489"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-3070",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/20964/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "39703442583"
+      ],
+      "included_entities": 10
+    },
+    {
+      "statement_id": "2024-3487",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/21454/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "42164655145"
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2024-3358",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/21322/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "19004398145"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2024-3665",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/21103/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 55,
+      "reporting_entity_abns": [],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-329",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/22085/",
+      "reporting_period": "2023-10-01 to 2024-09-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 7,
+      "reporting_entity_abns": [
+        "41000683125",
+        "82089388143",
+        "80089388134",
+        "60129203998",
+        "79114320615",
+        "98113561363",
+        "64157852054"
+      ],
+      "included_entities": 6
+    },
+    {
+      "statement_id": "2024-2571",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/20307/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 7,
+      "reporting_entity_abns": [
+        "21087648879",
+        "21087648879",
+        "21087648879",
+        "21087648879",
+        "21087648879",
+        "95196764032",
+        "71990561840"
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2024-3526",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/21491/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "33074318602"
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2025-785",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/22830/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "68670538780"
+      ],
+      "included_entities": 31
+    },
+    {
+      "statement_id": "2025-1019",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23172/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "59150737849"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-1018",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23118/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "90952801237"
+      ],
+      "included_entities": 4
+    },
+    {
+      "statement_id": "2025-1222",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23391/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [],
+      "included_entities": 8
+    },
+    {
+      "statement_id": "2025-1002",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23141/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "65124826722"
+      ],
+      "included_entities": 14
+    },
+    {
+      "statement_id": "2025-1400",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23664/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "32025287736"
+      ],
+      "included_entities": 15
+    },
+    {
+      "statement_id": "2025-1485",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23758/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "95123828553"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-1579",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23594/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 44,
+      "reporting_entity_abns": [
+        "90702916776",
+        "15050192660",
+        "42624828306",
+        "64047619369",
+        "72823907843",
+        "58600950933",
+        "29608297012",
+        "15679442089",
+        "94643894384",
+        "47634504135",
+        "69064946318",
+        "46619593369",
+        "66661001798",
+        "68629894686",
+        "93638070836",
+        "91621266993",
+        "54610124322",
+        "11079815697",
+        "79078299288",
+        "76654014794",
+        "83096708922",
+        "31098197490",
+        "69154531870",
+        "89614115856",
+        "58072422925",
+        "24097986470",
+        "76131082374",
+        "65104033471",
+        "55046572944",
+        "21930207958",
+        "91161127340",
+        "14211506904",
+        "75073503536",
+        "25328758007",
+        "21528592597",
+        "54281755117",
+        "69330643210",
+        "47824127996",
+        "67786923621",
+        "96372268340",
+        "36345537994",
+        "62089182027",
+        "92119459853",
+        "32004364103"
+      ],
+      "included_entities": 68
+    },
+    {
+      "statement_id": "2025-1782",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/24079/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "84010547994"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-1144",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23357/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "44651726859",
+        "12650967703"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-1308",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/23574/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "34002919584"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2551",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25237/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "81174456784",
+        "75092818445"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2545",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25227/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "33074318602",
+        "57005102983"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2202",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/24706/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "19004398145"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2201",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/24704/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 41,
+      "reporting_entity_abns": [
+        "64113150800",
+        "24107869652",
+        "36313402012",
+        "76958486785",
+        "18918418601",
+        "91637748906",
+        "54312188609",
+        "72175383956",
+        "75045975416",
+        "25063680139",
+        "33564840238",
+        "93253197624",
+        "24620192136",
+        "18347641419",
+        "62639931230",
+        "75692565034",
+        "72005269554",
+        "63220072037",
+        "86922833438",
+        "17398312682",
+        "27318798461",
+        "41023427450",
+        "77293895257",
+        "92626057716",
+        "68621312990",
+        "22383554742",
+        "24671806567",
+        "88447370208",
+        "46621313264",
+        "12357811650",
+        "45574371481",
+        "19179772790",
+        "33626253487",
+        "21628088979",
+        "95004238948",
+        "71615878848",
+        "53645934239",
+        "38875400714",
+        "80167682043",
+        "51621514172"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2299",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/24847/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "59117676463",
+        "84008664766"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2106",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/24566/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "91922863387"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-170",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/27289/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "81174456784",
+        "75092818445"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-2795",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25594/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 5,
+      "reporting_entity_abns": [
+        "32082447827",
+        "19628178816",
+        "31640217803",
+        "69134589745",
+        "81098317125"
+      ],
+      "included_entities": 5
+    },
+    {
+      "statement_id": "2025-2897",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25744/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [],
+      "included_entities": 2
+    },
+    {
+      "statement_id": "2025-2935",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25804/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "75148177959"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-3076",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25998/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 36,
+      "reporting_entity_abns": [],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2025-3682",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/26771/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "42164655145"
+      ],
+      "included_entities": 1
+    },
+    {
+      "statement_id": "2025-2439",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/25083/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "89755348137"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-341",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/27579/",
+      "reporting_period": "2024-07-01 to 2025-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "96060703120"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-340",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/27577/",
+      "reporting_period": "2023-07-01 to 2024-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "96060703120"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-338",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/27576/",
+      "reporting_period": "2022-07-01 to 2023-06-30",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "96060703120"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-386",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/27639/",
+      "reporting_period": "2024-10-01 to 2025-09-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 7,
+      "reporting_entity_abns": [
+        "41000683125",
+        "82089388143",
+        "80089388134",
+        "60129203998",
+        "79114320615",
+        "98113561363",
+        "64157852054"
+      ],
+      "included_entities": 6
+    },
+    {
+      "statement_id": "2026-793",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/27847/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "34169198421",
+        "80991443722"
+      ],
+      "included_entities": 6
+    },
+    {
+      "statement_id": "2026-953",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/28532/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "59150737849"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-990",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/28586/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-701",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/28116/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "65124826722"
+      ],
+      "included_entities": 8
+    },
+    {
+      "statement_id": "2026-1156",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/28864/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "44651726859",
+        "12650967703"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-1300",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/28997/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "46141203125"
+      ],
+      "included_entities": 4
+    },
+    {
+      "statement_id": "2026-1352",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29120/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-1450",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29210/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 4,
+      "reporting_entity_abns": [],
+      "included_entities": 79
+    },
+    {
+      "statement_id": "2026-1539",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29345/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "84010547994"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-1648",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29430/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "95123828553"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-1775",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29606/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "abn_match",
+      "reporting_entity_count": 44,
+      "reporting_entity_abns": [
+        "90702916776",
+        "15050192660",
+        "42624828306",
+        "64047619369",
+        "72823907843",
+        "29608297012",
+        "55210770582",
+        "73470086952",
+        "22616685167",
+        "86875623906",
+        "94643894384",
+        "47634504135",
+        "69064946318",
+        "68629894686",
+        "93638070836",
+        "91621266993",
+        "54610124322",
+        "11079815697",
+        "79078299288",
+        "76654014794",
+        "83096708922",
+        "31098197490",
+        "69154531870",
+        "89614115856",
+        "58072422925",
+        "76131082374",
+        "65104033471",
+        "18773507851",
+        "55046572944",
+        "21930207958",
+        "91161127340",
+        "14211506904",
+        "75073503536",
+        "25328758007",
+        "21528592597",
+        "26158447082",
+        "69330643210",
+        "47824127996",
+        "67786923621",
+        "96372268340",
+        "36345537994",
+        "62089182027",
+        "92119459853",
+        "32004364103"
+      ],
+      "included_entities": 7
+    },
+    {
+      "statement_id": "2026-1755",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29573/",
+      "reporting_period": "2025-01-01 to 2025-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 41,
+      "reporting_entity_abns": [
+        "64113150800",
+        "24107869652",
+        "36313402012",
+        "76958486785",
+        "18918418601",
+        "91637748906",
+        "54312188609",
+        "72175383956",
+        "75045975416",
+        "25063680139",
+        "33564840238",
+        "93253197624",
+        "24620192136",
+        "18347641419",
+        "62639931230",
+        "75692565034",
+        "72005269554",
+        "63220072037",
+        "86922833438",
+        "17398312682",
+        "27318798461",
+        "41023427450",
+        "77293895257",
+        "98419515730",
+        "92626057716",
+        "68621312990",
+        "22383554742",
+        "24671806567",
+        "88447370208",
+        "46621313264",
+        "12357811650",
+        "45574371481",
+        "19179772790",
+        "33626253487",
+        "21628088979",
+        "95004238948",
+        "71615878848",
+        "53645934239",
+        "38875400714",
+        "80167682043",
+        "51621514172"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-1929",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29819/",
+      "reporting_period": "2021-07-01 to 2022-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "63008597831"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-1928",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29818/",
+      "reporting_period": "2020-07-01 to 2021-06-30",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 1,
+      "reporting_entity_abns": [
+        "63008597831"
+      ],
+      "included_entities": 0
+    },
+    {
+      "statement_id": "2026-2022",
+      "statement_url": "https://modernslaveryregister.gov.au/statements/29931/",
+      "reporting_period": "2024-01-01 to 2024-12-31",
+      "candidate_reason": "childcare_term",
+      "reporting_entity_count": 2,
+      "reporting_entity_abns": [
+        "33603224728",
+        "99154937005"
+      ],
+      "included_entities": 0
+    }
+  ],
+  "inputs": [
+    "data/processed/provider-abn.csv",
+    "data/processed/abn-details.csv",
+    "data/processed/provider-profile.csv",
+    "data/processed/acecqa-services-latest.csv",
+    "data/raw/msr/ (local only)"
+  ]
+}
