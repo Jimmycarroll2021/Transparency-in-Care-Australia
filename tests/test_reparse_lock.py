@@ -29,6 +29,7 @@ def setup(tmp_path, monkeypatch):
     monkeypatch.setattr(common, "REPARSE_MARKER", tmp_path / ".reparse-in-progress")
     monkeypatch.setattr(ro, "BACKUP_ROOT", tmp_path / ".reparse-backup")
     monkeypatch.setattr(ro, "LOCK_PATH", tmp_path / ".reparse.lock")
+    monkeypatch.setattr(ro, "BUILDERS", [])  # PR #12: no provider profile in these tests
 
     def join_ok():
         (d / "enforcement-actions-all.csv").write_text("new join\n", encoding="utf-8")
