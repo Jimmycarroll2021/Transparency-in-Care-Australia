@@ -48,6 +48,7 @@ from scrapers.common import (
     assign_record_ids,
     ensure_person_names,
     fetch,
+    keep_withheld_names,
     list_snapshots,
     log,
     normalise_pr,
@@ -511,6 +512,18 @@ def classify_subject(first: str, *, has_service_line: bool) -> str:
     return "individual"
 
 
+def withheld_by_shared_rule_only(first: str, *, has_service_line: bool) -> bool:
+    """True when the subject reads as an organisation by this register's own markers and is
+    withheld only by the shared fail-closed rule (PR #11: such names are kept as keyed hashes for
+    the join; a subject that reads as a person or a role never is)."""
+    return (
+        not _ROLE_PREFIX.match(first)
+        and classify_entity_form(first) != "likely_individual"
+        and bool(_LEGAL.search(first) or (_BUSINESS.search(first) and has_service_line))
+        and name_is_withheld(first)
+    )
+
+
 # A word of any letters, accented ones included ('Zoë' must not split into 'Zo' and 'e').
 _WORD = re.compile(r"[^\W\d_](?:[^\W\d_]|['’\-])+")
 
@@ -736,6 +749,9 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         # whole. Structured fields stay.
         withhold_free_text(row, (NO_APPROVAL_NOTE, *withheld_markers))
         note_withheld_subject(first)  # in-memory name set, never written
+        if withheld_by_shared_rule_only(first, has_service_line=bool(service_parts)):
+            # PR #11: the names, for their keyed hashes in the private join sidecar only.
+            keep_withheld_names(row, provider=first, service="; ".join(service_parts) or None)
     return row
 
 

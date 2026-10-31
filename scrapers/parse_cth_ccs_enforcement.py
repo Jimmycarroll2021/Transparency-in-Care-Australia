@@ -66,6 +66,7 @@ from scrapers.common import (
     assign_record_ids,
     ensure_person_names,
     fetch,
+    keep_withheld_names,
     list_snapshots,
     log,
     note_withheld_subject,
@@ -319,8 +320,12 @@ def is_individual(provider: str) -> bool:
     The shared fail-closed rule (profile_providers.name_is_withheld) applies first, so a
     company or trust word cannot carry an individual trustee or a person-named trust through.
     """
-    if name_is_withheld(provider):
-        return True
+    return name_is_withheld(provider) or reads_as_person(provider)
+
+
+def reads_as_person(provider: str) -> bool:
+    """The register's own person reading, without the shared fail-closed rule (PR #11: a
+    provider withheld only by the shared rule is kept as a keyed hash for the join)."""
     if _TITLE.search(provider) or _PARTNERSHIP_OF.match(provider):
         return True
     if _STRONG.search(provider):
@@ -564,6 +569,9 @@ def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
     if withheld:
         withhold_free_text(row, tuple(withheld_markers))
         note_withheld_subject(provider_raw)  # in-memory name set, never written
+        if not reads_as_person(stripped):
+            # PR #11: withheld by the shared rule alone; keyed hashes in the private sidecar only.
+            keep_withheld_names(row, provider=stripped, service=clean(entry["service"]) or None)
     return row
 
 

@@ -32,3 +32,6 @@ data/raw/abr-lookup/
 data/.reparse-backup/
 data/.reparse-in-progress
 data/.reparse.lock
+
+# Keyed join (PR #11): private name-key sidecars (keyed hashes of withheld names). Never committed.
+data/private/

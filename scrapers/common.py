@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import hmac
 import json
 import logging
 import os
@@ -282,6 +283,182 @@ def normalise_pr(value: str | None) -> str | None:
         return None
     m = _PR.search(value)
     return f"PR-{int(m.group(1)):08d}" if m else None
+
+
+# Name normalisation for the enforcement join (moved here from join_enforcement so that the
+# parsers' name keys use exactly the join's normalisation; join_enforcement re-exports them).
+_NAME_STOPWORDS = {"PTY", "LTD", "LIMITED", "INC", "THE"}
+
+
+def normalise_service_name(name: str | None) -> str:
+    """Upper case, drop apostrophes, other punctuation to space, drop corporate words, collapse."""
+    if not name:
+        return ""
+    text = name.upper().replace("&", " AND ")
+    text = re.sub(r"['’`]", "", text)
+    text = re.sub(r"[^A-Z0-9 ]+", " ", text)
+    words = [w for w in text.split() if w not in _NAME_STOPWORDS]
+    return " ".join(words)
+
+
+def normalise_provider_name(name: str | None) -> str:
+    """Upper case; strip punctuation; collapse spaces; drop a trailing ABN; canonicalise suffixes.
+
+    PTY LTD / PTY LIMITED / PROPRIETARY LIMITED -> PTY LTD, LIMITED -> LTD, INCORPORATED -> INC,
+    leading THE dropped. ATF and trust names are kept intact.
+    """
+    if not name:
+        return ""
+    text = name.upper().replace("&", " AND ")
+    text = re.sub(r"['’`]", "", text)
+    text = re.sub(r"[^A-Z0-9 ]+", " ", text)
+    text = " ".join(text.split())
+    text = re.sub(r"\s*\bABN\b.*$", "", text)
+    text = re.sub(r"\b(?:PTY LIMITED|PROPRIETARY LIMITED|PTY LTD)\b", "PTY LTD", text)
+    text = re.sub(r"\bLIMITED\b", "LTD", text)
+    text = re.sub(r"\bINCORPORATED\b", "INC", text)
+    text = re.sub(r"^THE\s+", "", text)
+    return text.strip()
+
+
+# ---------------------------------------------------------------------------
+# Keyed names for the join (PR #11): a withheld name is kept internally only as a keyed hash
+# ---------------------------------------------------------------------------
+
+JOIN_KEY_VAR = "TICA_JOIN_KEY"
+ENV_FILE = PROJECT_ROOT / ".env"
+NAME_KEY_COLUMNS = ["record_id", "provider_key", "service_key"]
+# The first data row of every sidecar: a keyed constant, so a sidecar written with another key is
+# detected. It reveals nothing about the key or any name.
+KEY_CHECK_ID = "__key_check__"
+_KEY_CHECK_TEXT = "tica-join-key-check"
+
+
+class JoinKeyMissing(RuntimeError):
+    pass
+
+
+def name_keys_dir() -> Path:
+    """data/private/name-keys, beside data/processed (gitignored). Holds (record_id, keyed
+    provider name, keyed service name) for rows whose names a parser withheld. Never a name in
+    plain text; never published."""
+    return PROCESSED_DIR.parent / "private" / "name-keys"
+
+
+def load_join_key(env_file: Path | None = None, environ=None) -> bytes | None:
+    """TICA_JOIN_KEY from the environment, else from .env, as bytes. Never printed or logged."""
+    environ = os.environ if environ is None else environ
+    value = (environ.get(JOIN_KEY_VAR) or "").strip()
+    env_file = ENV_FILE if env_file is None else env_file
+    if not value and env_file.exists():
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("export "):
+                line = line[len("export ") :].strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            name, _, val = line.partition("=")
+            if name.strip() == JOIN_KEY_VAR:
+                value = val.strip().strip("\"'").strip()
+                break
+    if not value:
+        return None
+    try:
+        key = bytes.fromhex(value)
+    except ValueError:
+        raise JoinKeyMissing(f"{JOIN_KEY_VAR} is not hex") from None
+    if len(key) < 32:
+        raise JoinKeyMissing(f"{JOIN_KEY_VAR} is shorter than 32 bytes")
+    return key
+
+
+def name_key(normalised: str | None, key: bytes) -> str | None:
+    """HMAC-SHA256 of an already normalised name under the join key, or None when empty."""
+    if not normalised:
+        return None
+    return hmac.new(key, normalised.encode("utf-8"), hashlib.sha256).hexdigest()
+
+
+def provider_name_key(name: str | None, key: bytes) -> str | None:
+    return name_key(normalise_provider_name(name), key)
+
+
+def service_name_key(name: str | None, key: bytes) -> str | None:
+    return name_key(normalise_service_name(name), key)
+
+
+def key_check(key: bytes) -> str:
+    return name_key(_KEY_CHECK_TEXT, key)
+
+
+# In memory only: token -> (raw provider name, raw service name) of rows a parser withheld. A row
+# carries only the opaque token (_withheld_ref), never the names (PR #11).
+_WITHHELD_NAMES: dict[int, tuple[str | None, str | None]] = {}
+
+
+def remember_withheld_names(provider: str | None = None, service: str | None = None) -> int | None:
+    """Keep, in memory only, the raw names a parser withholds, so that write_processed can store
+    their keyed hashes in the private sidecar. Returns an opaque token, or None."""
+    if not (provider or service):
+        return None
+    token = len(_WITHHELD_NAMES) + 1
+    _WITHHELD_NAMES[token] = (provider or None, service or None)
+    return token
+
+
+def keep_withheld_names(row: dict, provider: str | None = None, service: str | None = None) -> None:
+    """Attach the token of remember_withheld_names to a row (never the names themselves)."""
+    token = remember_withheld_names(provider, service)
+    if token is not None:
+        row["_withheld_ref"] = token
+
+
+def _write_name_keys(name: str, rows: list[dict]) -> None:
+    """Write data/private/name-keys/<name>.csv for rows carrying _withheld_ref. Without
+    TICA_JOIN_KEY nothing is written (an older sidecar stays: a record_id always stands for the
+    same printed row, so its entries stay right)."""
+    kept = [r for r in rows if r.get("_withheld_ref") in _WITHHELD_NAMES and r.get("record_id")]
+    if not kept:
+        return
+    key = load_join_key()
+    if key is None:
+        log.warning("name keys for %s not written: %s is not set", name, JOIN_KEY_VAR)
+        return
+    path = name_keys_dir() / f"{name}.csv"
+    seen: dict[str, tuple] = {}
+    for row in kept:
+        provider, service = _WITHHELD_NAMES[row["_withheld_ref"]]
+        seen.setdefault(
+            row["record_id"], (provider_name_key(provider, key), service_name_key(service, key))
+        )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with atomic_open(path, newline="") as fh:
+        writer = csv.writer(fh)
+        writer.writerow(NAME_KEY_COLUMNS)
+        writer.writerow([KEY_CHECK_ID, key_check(key), ""])
+        for rid, (pk, sk) in sorted(seen.items()):
+            writer.writerow([rid, pk or "", sk or ""])
+    log.info("name keys for %s: %d rows (private, gitignored)", name, len(seen))
+
+
+def read_name_keys(name: str, key: bytes) -> dict[str, tuple[str | None, str | None]]:
+    """record_id -> (provider key, service key) from data/private/name-keys/<name>.csv; {} when
+    absent. Raises JoinKeyMissing when the sidecar was written with another key."""
+    path = name_keys_dir() / f"{name}.csv"
+    if not path.exists():
+        return {}
+    out: dict[str, tuple[str | None, str | None]] = {}
+    with path.open(newline="", encoding="utf-8") as fh:
+        for row in csv.DictReader(fh):
+            if row["record_id"] == KEY_CHECK_ID:
+                if row["provider_key"] != key_check(key):
+                    raise JoinKeyMissing(
+                        f"name-keys/{path.name} was written with another {JOIN_KEY_VAR}; run "
+                        "python scrapers/reparse_offline.py again"
+                    )
+                continue
+            out[row["record_id"]] = (row["provider_key"] or None, row["service_key"] or None)
+    return out
 
 
 def record_hash(*parts: str | None) -> str:
@@ -854,4 +1031,5 @@ def write_processed(
         PROCESSED_DIR / f"{name}.provenance.json", json.dumps(provenance, indent=2) + "\n"
     )
     log.info("processed %s (%d rows)", out.relative_to(PROJECT_ROOT), len(rows))
+    _write_name_keys(name, rows)  # PR #11: keyed names of withheld rows, private sidecar
     return out

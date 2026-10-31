@@ -80,6 +80,7 @@ Run: python3 scrapers/join_enforcement.py
 
 from __future__ import annotations
 
+import argparse
 import calendar
 import csv
 import json
@@ -93,10 +94,16 @@ try:
     from scrapers.common import (
         PROCESSED_DIR,
         PROJECT_ROOT,
+        JoinKeyMissing,
         atomic_write_text,
+        load_join_key,
         log,
+        name_key,
         normalise_pr,
+        normalise_provider_name,
         normalise_se,
+        normalise_service_name,
+        read_name_keys,
         utc_now,
         write_processed,
     )
@@ -108,10 +115,16 @@ except ImportError:  # run as a plain script: python3 scrapers/join_enforcement.
     from scrapers.common import (
         PROCESSED_DIR,
         PROJECT_ROOT,
+        JoinKeyMissing,
         atomic_write_text,
+        load_join_key,
         log,
+        name_key,
         normalise_pr,
+        normalise_provider_name,
         normalise_se,
+        normalise_service_name,
+        read_name_keys,
         utc_now,
         write_processed,
     )
@@ -246,7 +259,6 @@ COVERAGE = {
 NOT_COLLECTED = "{state} register: not yet collected"
 SAFETY_SENTENCE = "Absence of an action is not evidence of safety."
 
-_NAME_STOPWORDS = {"PTY", "LTD", "LIMITED", "INC", "THE"}
 # A printed name that pairs a person with a role ("<person>, director of <company>") identifies an
 # individual. Such a name is never carried into a stub or the joined output.
 _PERSON_ROLE = re.compile(
@@ -273,37 +285,6 @@ def blank_to_none(value: str | None) -> str | None:
         return None
     value = value.strip()
     return value or None
-
-
-def normalise_service_name(name: str | None) -> str:
-    """Upper case, drop apostrophes, other punctuation to space, drop corporate words, collapse."""
-    if not name:
-        return ""
-    text = name.upper().replace("&", " AND ")
-    text = re.sub(r"['’`]", "", text)
-    text = re.sub(r"[^A-Z0-9 ]+", " ", text)
-    words = [w for w in text.split() if w not in _NAME_STOPWORDS]
-    return " ".join(words)
-
-
-def normalise_provider_name(name: str | None) -> str:
-    """Upper case; strip punctuation; collapse spaces; drop a trailing ABN; canonicalise suffixes.
-
-    PTY LTD / PTY LIMITED / PROPRIETARY LIMITED -> PTY LTD, LIMITED -> LTD, INCORPORATED -> INC,
-    leading THE dropped. ATF and trust names are kept intact.
-    """
-    if not name:
-        return ""
-    text = name.upper().replace("&", " AND ")
-    text = re.sub(r"['’`]", "", text)
-    text = re.sub(r"[^A-Z0-9 ]+", " ", text)
-    text = " ".join(text.split())
-    text = re.sub(r"\s*\bABN\b.*$", "", text)
-    text = re.sub(r"\b(?:PTY LIMITED|PROPRIETARY LIMITED|PTY LTD)\b", "PTY LTD", text)
-    text = re.sub(r"\bLIMITED\b", "LTD", text)
-    text = re.sub(r"\bINCORPORATED\b", "INC", text)
-    text = re.sub(r"^THE\s+", "", text)
-    return text.strip()
 
 
 _ABN_NOTE = re.compile(r"ccs_identifier:\s*ABN\s*((?:\d\s?){11})(?!\d)", re.IGNORECASE)
@@ -516,12 +497,22 @@ def name_withheld_row(row: dict) -> bool:
     return "withheld" in notes or "individual" in notes
 
 
-def match_by_name(row: dict, spine: Spine, state: str) -> tuple[dict | None, str, str]:
-    """Return (service row or None, confidence, join_note). Never guesses between candidates."""
-    key = normalise_service_name(row.get("service_name"))
+def match_by_name(
+    row: dict,
+    spine: Spine,
+    state: str,
+    key: str | None = None,
+    by_name: dict | None = None,
+) -> tuple[dict | None, str, str]:
+    """Return (service row or None, confidence, join_note). Never guesses between candidates.
+
+    `key` and `by_name` replace the normalised service name and the spine's index for the keyed
+    stage (PR #11); the rules and tie-breaks are the same."""
+    if key is None:
+        key = normalise_service_name(row.get("service_name"))
     if not key:
         return None, CONFIDENCE_NONE, "no service name printed; no key; name match not possible"
-    candidates = spine.by_name.get(state, {}).get(key, [])
+    candidates = (spine.by_name if by_name is None else by_name).get(state, {}).get(key, [])
     if not candidates:
         return None, CONFIDENCE_NONE, f"no {state} service with this normalised name"
     suburb = normalise_suburb(row.get("suburb"))
@@ -539,20 +530,134 @@ def match_by_name(row: dict, spine: Spine, state: str) -> tuple[dict | None, str
     return None, CONFIDENCE_NONE, f"ambiguous: {len(candidates)} candidates share the name"
 
 
-def match_by_provider_name(row: dict, spine: Spine, state: str | None) -> tuple[str | None, str]:
-    """Return (provider PR or None, join_note). Accepts a match only when exactly one provider fits."""
-    key = normalise_provider_name(row.get("provider_name"))
+def match_by_provider_name(
+    row: dict,
+    spine: Spine,
+    state: str | None,
+    key: str | None = None,
+    names: dict | None = None,
+    states: dict | None = None,
+) -> tuple[str | None, str]:
+    """Return (provider PR or None, join_note). Accepts a match only when exactly one provider fits.
+
+    `key` and `names` replace the normalised provider name and the spine's index for the keyed
+    stage (PR #11); the rules are the same."""
+    if key is None:
+        key = normalise_provider_name(row.get("provider_name"))
     if not key:
         return None, "provider name empty after normalisation"
-    candidates = spine.provider_names.get(key, set())
+    candidates = (spine.provider_names if names is None else names).get(key, set())
     if state:
-        candidates = {pr for pr in candidates if state in spine.provider_states.get(pr, set())}
+        where_present = spine.provider_states if states is None else states
+        candidates = {pr for pr in candidates if state in where_present.get(pr, set())}
     where = f" in {state}" if state else ""
     if not candidates:
         return None, f"no provider{where} with this normalised name"
     if len(candidates) > 1:
         return None, f"ambiguous provider name: {len(candidates)} candidate providers{where}"
     return next(iter(candidates)), f"unique provider name match{where}"
+
+
+class KeyedNames:
+    """The spine's name indexes re-keyed under TICA_JOIN_KEY, in memory only (PR #11), and the
+    keyed names of rows whose names a parser withheld (record_id -> (provider key, service key)).
+    No name or key is ever written to an output."""
+
+    def __init__(
+        self,
+        spine: Spine,
+        key: bytes,
+        rows: dict[str, tuple[str | None, str | None]],
+        providers: list[dict] | None = None,
+    ):
+        self.key = key
+        self.rows = rows
+        self.by_name = {
+            state: {name_key(k, key): v for k, v in names.items()}
+            for state, names in spine.by_name.items()
+        }
+        # Every provider except those whose entity form reads as an individual: a provider
+        # withheld only by the shared fail-closed rule is matched here, on keyed names only.
+        person = {
+            pr
+            for pr, prof in spine.profiles.items()
+            if (prof.get("entity_form") or "").strip() == "likely_individual"
+        }
+        self.provider_names: dict[str, set] = defaultdict(set)
+        self.provider_states: dict[str, set] = defaultdict(set)
+        for pr, states in spine.provider_states.items():
+            self.provider_states[pr] |= states
+        if providers is not None:
+            for row in providers:
+                pr = normalise_pr(
+                    row.get("provider_approval_number") or row.get("Provider Approval Number")
+                )
+                if not pr or pr in person:
+                    continue
+                for col in ("Legal Name", "Trading Name"):
+                    keyed = name_key(normalise_provider_name(row.get(col)), key)
+                    if keyed:
+                        self.provider_names[keyed].add(pr)
+                state = (row.get("State") or "").strip().upper()
+                if state:
+                    self.provider_states[pr].add(state)
+        else:
+            for k, prs in spine.provider_names.items():
+                self.provider_names[name_key(k, key)] |= prs
+
+    def service_key(self, normalised: str) -> str | None:
+        return name_key(normalised, self.key)
+
+
+KEYED_NOTE = "matched on keyed names (names withheld)"
+# Name columns are never filled on a row joined through withheld names (PR #11).
+_KEYED_NAME_COLUMNS = ("acecqa_service_name", "acecqa_provider_legal_name")
+
+
+def match_by_keyed_names(out: dict, spine: Spine, keyed: KeyedNames, jurisdiction: str) -> bool:
+    """The name stages again for a row whose names a parser withheld, on keyed names: the
+    service-name stage where it applies, then the provider-name stage with the service pin. The
+    rules and tie-breaks are the old ones. On success the row keeps only the approval numbers and
+    the non-name spine columns. On failure the row is left as it was."""
+    provider_key, service_key = keyed.rows.get(out["record_id"], (None, None))
+    if provider_key is None and out["provider_name"]:
+        # A printed provider name: the same stage against providers withheld by the shared rule.
+        provider_key = name_key(normalise_provider_name(out["provider_name"]), keyed.key)
+    if jurisdiction in NAME_MATCH_JURISDICTIONS and service_key:
+        state = (out["state"] or jurisdiction).upper()
+        service, confidence, note = match_by_name(
+            out, spine, state, key=service_key, by_name=keyed.by_name
+        )
+        if service is not None:
+            out.update(join_key_kind="name_match", match_confidence=confidence)
+            attach_service(out, service, spine)
+            out["join_note"] = f"{note}; {KEYED_NOTE}"
+            out.update(dict.fromkeys(_KEYED_NAME_COLUMNS))
+            return True
+    if not provider_key:
+        return False
+    state = _row_state(out, jurisdiction)
+    matched_pr, note = match_by_provider_name(
+        out,
+        spine,
+        state,
+        key=provider_key,
+        names=keyed.provider_names,
+        states=keyed.provider_states,
+    )
+    if matched_pr is None:
+        return False
+    out.update(join_key_kind="provider_name_match", match_confidence=CONFIDENCE_PROVIDER_NAME)
+    attach_provider(out, matched_pr, spine.profiles[matched_pr])
+    service, pin_note = pin_service(
+        out, spine, matched_pr, state, key=service_key, keyer=keyed.service_key
+    )
+    if service is not None:
+        out["match_confidence"] = CONFIDENCE_PROVIDER_AND_SERVICE
+        attach_service(out, service, spine)
+    out["join_note"] = f"{note}{pin_note}; {KEYED_NOTE}"
+    out.update(dict.fromkeys(_KEYED_NAME_COLUMNS))
+    return True
 
 
 def load_abn_details(path: Path = ABN_DETAILS_CSV) -> dict[str, dict] | None:
@@ -599,15 +704,29 @@ def match_by_abn_entity(
     return next(iter(candidates)), f"unique ACECQA provider for the ABN's ABR {via}"
 
 
-def pin_service(row: dict, spine: Spine, pr: str, state: str | None) -> tuple[dict | None, str]:
-    """Pin a provider-matched row to one of the provider's services by unique normalised name."""
-    key = normalise_service_name(row.get("service_name"))
+def pin_service(
+    row: dict,
+    spine: Spine,
+    pr: str,
+    state: str | None,
+    key: str | None = None,
+    keyer=None,
+) -> tuple[dict | None, str]:
+    """Pin a provider-matched row to one of the provider's services by unique normalised name.
+
+    With `keyer` (PR #11), `key` is a keyed service name and each service name is keyed alike."""
+    if key is None:
+        key = normalise_service_name(row.get("service_name"))
     if not key:
         return None, ""
     services = spine.services_by_provider.get(pr, [])
     if state:
         services = [s for s in services if (s.get("State") or "").strip().upper() == state]
-    same = [s for s in services if normalise_service_name(s.get("ServiceName")) == key]
+    same = [
+        s
+        for s in services
+        if (keyer or (lambda name: name))(normalise_service_name(s.get("ServiceName"))) == key
+    ]
     if len(same) == 1:
         return same[0], "; service pinned by unique name among the provider's services"
     if len(same) > 1:
@@ -650,7 +769,10 @@ def _row_state(out: dict, jurisdiction: str) -> str | None:
 
 
 def join_actions(
-    actions: list[dict], spine: Spine, abn_details: dict[str, dict] | None = None
+    actions: list[dict],
+    spine: Spine,
+    abn_details: dict[str, dict] | None = None,
+    keyed: KeyedNames | None = None,
 ) -> list[dict]:
     """Stack-order join. Adds occurrence, join columns and spine columns to a copy of each row."""
     seen: Counter = Counter()
@@ -761,6 +883,21 @@ def join_actions(
                     out["match_confidence"] = CONFIDENCE_PROVIDER_AND_SERVICE
                     attach_service(out, service, spine)
                 out["join_note"] += pin_note
+
+        # Fifth stage (PR #11): the name stages on keyed names, for unkeyed rows whose names a
+        # parser withheld by the shared fail-closed rule alone, and for printed provider names
+        # against providers withheld by that rule. Restores the joins those rows had before.
+        if (
+            keyed is not None
+            and out["match_confidence"] == CONFIDENCE_NONE
+            and not se
+            and not pr
+            and (
+                out["record_id"] in keyed.rows
+                or (out["provider_name"] and not name_withheld_row(out))
+            )
+        ):
+            match_by_keyed_names(out, spine, keyed, jurisdiction)
         joined.append(out)
     return joined
 
@@ -1565,7 +1702,35 @@ def discover_action_files() -> list[Path]:
     return sorted(PROCESSED_DIR.glob(ACTION_GLOB))
 
 
-def main() -> None:
+def keyed_names_for(
+    spine: Spine, action_files: list[Path], providers: list[dict] | None = None
+) -> KeyedNames:
+    """The keyed-name index, or SystemExit when TICA_JOIN_KEY is missing or a sidecar was
+    written with another key. The key is never printed or logged."""
+    try:
+        key = load_join_key()
+        if key is None:
+            raise JoinKeyMissing(
+                "TICA_JOIN_KEY is not set (environment or .env). Set it, or pass "
+                "--no-keyed-join to join without the withheld names (fewer joins)"
+            )
+        rows: dict[str, tuple[str | None, str | None]] = {}
+        for path in action_files:
+            rows.update(read_name_keys(path.stem, key))
+    except JoinKeyMissing as exc:
+        raise SystemExit(f"keyed join: {exc}") from None
+    log.info("keyed names: %d withheld rows have keyed names (private)", len(rows))
+    return KeyedNames(spine, key, rows, providers)
+
+
+def main(argv: list[str] | None = None) -> None:
+    ap = argparse.ArgumentParser(description="Join the enforcement actions to the ACECQA spine.")
+    ap.add_argument(
+        "--no-keyed-join",
+        action="store_true",
+        help="skip the keyed-name stage (no TICA_JOIN_KEY needed; fewer joins)",
+    )
+    args = ap.parse_args(argv)
     action_files = discover_action_files()
     for needed in (SERVICES_CSV, PROFILE_CSV, PROVIDERS_CSV):
         if not needed.exists():
@@ -1595,7 +1760,8 @@ def main() -> None:
         rows = load_csv(path)
         log.info("%s: %d rows", path.name, len(rows))
         actions.extend(rows)
-    joined = join_actions(actions, spine, abn_details)
+    keyed = None if args.no_keyed_join else keyed_names_for(spine, action_files, providers)
+    joined = join_actions(actions, spine, abn_details, keyed)
     matched_before = sum(1 for r in joined if r["match_confidence"] != CONFIDENCE_NONE)
     stubs = add_unlisted_stage(joined, spine, end)
     # Only claim CTH coverage in notes if CTH rows actually joined to a service or provider.

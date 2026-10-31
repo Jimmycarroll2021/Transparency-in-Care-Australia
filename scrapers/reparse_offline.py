@@ -22,11 +22,17 @@ prints recovery instructions. Only a fully successful run removes the marker and
 
 The set exists only in memory. It is never written, logged or printed; only counts are logged.
 
-Usage: python scrapers/reparse_offline.py   (no network; the same as each parser's --skip-fetch)
+The join needs TICA_JOIN_KEY (environment or .env) for its keyed-name stage (PR #11): the run
+refuses to start without it unless --no-keyed-join is passed. The private name-key sidecars
+(data/private/name-keys, gitignored) are backed up and restored with data/processed.
+
+Usage: python scrapers/reparse_offline.py [--no-keyed-join]
+       (no network; the same as each parser's --skip-fetch)
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import secrets
@@ -121,8 +127,17 @@ def _held_writes(module) -> list:
     return held
 
 
+# PR #11: the join's keyed-name stage. Set from --no-keyed-join in main().
+KEYED_JOIN = True
+
+
 def run_join() -> None:
-    join_enforcement.main()
+    join_enforcement.main([] if KEYED_JOIN else ["--no-keyed-join"])
+
+
+def _name_keys_dir() -> Path:
+    """The private name-key sidecars beside data/processed (gitignored, PR #11)."""
+    return PROCESSED_DIR.parent / "private" / "name-keys"
 
 
 def _fsync_file(path: Path) -> None:
@@ -254,6 +269,14 @@ def _release_lock() -> None:
 def main(argv: list[str] | None = None) -> int:
     """Single writer (Codex round 7): the lock is taken before anything is read or written and
     released on every exit path. A held or stale lock is reported, never removed."""
+    global KEYED_JOIN
+    ap = argparse.ArgumentParser(description="Re-parse every enforcement register offline.")
+    ap.add_argument(
+        "--no-keyed-join",
+        action="store_true",
+        help="run the join without the keyed-name stage (no TICA_JOIN_KEY needed; fewer joins)",
+    )
+    KEYED_JOIN = not ap.parse_args(argv).no_keyed_join
     try:
         _acquire_lock()
     except LockHeld:
@@ -277,6 +300,22 @@ def main(argv: list[str] | None = None) -> int:
 def _run() -> int:
     if common.refuse_if_reparse_incomplete():
         return 3
+    if KEYED_JOIN:
+        # PR #11: without the key the join would lose the keyed joins; stop before any work.
+        try:
+            key = common.load_join_key()
+        except common.JoinKeyMissing as exc:
+            key, problem = None, str(exc)
+        else:
+            problem = f"{common.JOIN_KEY_VAR} is not set (environment or .env)"
+        if key is None:
+            message = (
+                f"Refusing to run: {problem}. Nothing was read or changed. Set it, or pass "
+                "--no-keyed-join to run with fewer joins."
+            )
+            log.error(message)
+            print(message)
+            return 5
     try:
         names = collect_person_names()
     except ParserFailed as exc:
@@ -297,6 +336,17 @@ def _run() -> int:
     except BaseException as exc:
         log.error("backup failed (%r); no marker written, data/processed untouched", exc)
         return 1
+    # PR #11: the private name-key sidecars are written with the outputs, so they are backed up
+    # and restored with them.
+    keys_dir = _name_keys_dir()
+    keys_backup = None
+    if keys_dir.is_dir():
+        try:
+            keys_backup = _build_backup(keys_dir)
+        except BaseException as exc:
+            shutil.rmtree(backup)
+            log.error("name-key backup failed (%r); no marker written, nothing changed", exc)
+            return 1
     common.atomic_write_text(
         common.REPARSE_MARKER,
         f"backup: {backup}\nmanifest: {backup / common.BACKUP_MANIFEST}\n",
@@ -307,6 +357,12 @@ def _run() -> int:
         run_join()
     except BaseException as exc:  # includes SystemExit from the join
         log.error("writing or join failed (%r)", exc)
+        if keys_backup is not None:
+            try:
+                _restore(keys_dir, keys_backup)
+                shutil.rmtree(keys_backup)
+            except BaseException as keys_exc:
+                log.error("name keys not restored (%r); backup kept at %s", keys_exc, keys_backup)
         try:
             _restore(PROCESSED_DIR, backup)
         except common.BackupInvalid as invalid:
@@ -339,6 +395,8 @@ def _run() -> int:
         return 1
     common.REPARSE_MARKER.unlink()
     shutil.rmtree(backup)
+    if keys_backup is not None:
+        shutil.rmtree(keys_backup)
     return 0
 
 

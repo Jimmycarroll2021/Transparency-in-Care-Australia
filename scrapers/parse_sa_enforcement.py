@@ -56,6 +56,7 @@ from scrapers.common import (
     printed_fingerprint,
     record_hash,
     refuse_if_reparse_incomplete,
+    remember_withheld_names,
     utc_stamp,
     withhold_free_text,
     withhold_prose_naming_people,
@@ -788,6 +789,7 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
 
     # Withhold provider names that may be individuals (rule 2).
     withheld_markers: list[str] = []  # constant phrases only, never source text
+    withheld_ref = None  # PR #11: an opaque token; the names stay in memory in scrapers.common
     if provider_name:
         family_trust = re.search(r"\bfamily trust\b|^\s*trustee for\b", provider_name, re.I)
         if (
@@ -799,6 +801,9 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
                 "provider name withheld: no company or organisation marker or a family trust, "
                 "may identify an individual"
             )
+            if not family_trust and is_organisation(provider_name):
+                # PR #11: withheld by the shared rule alone; keyed hashes in the private sidecar.
+                withheld_ref = remember_withheld_names(provider_name, service_name)
             if (
                 service_name
                 and provider_name.casefold().startswith(service_name.casefold())
@@ -855,6 +860,8 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
         "_hash_service": service_name_hash,
         "_withheld_markers": withheld_markers,
         "_subject_raw": provider_text,  # popped in parse_actions, never written
+        # PR #11: a token for the names withheld here (keyed into the private join sidecar).
+        "_withheld_ref": withheld_ref,
     }
 
 
