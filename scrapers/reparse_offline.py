@@ -39,9 +39,11 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scrapers import (
+    abn_lookup,  # noqa: E402
     common,  # noqa: E402
     join_enforcement,  # noqa: E402
 )
+from scrapers import build_provider_groups as groups  # noqa: E402
 from scrapers import parse_cth_ccs_enforcement as cth  # noqa: E402
 from scrapers import parse_nsw_enforcement as nsw  # noqa: E402
 from scrapers import parse_qld_enforcement as qld  # noqa: E402
@@ -57,7 +59,9 @@ PARSERS = [qld, vecra, sa, tas, cth, wa, nsw]
 # PR #12: builders run last, after the join and inside the same backup and marker, so that the
 # name rule on provider-profile.csv trading names uses the run-wide names and every name withheld
 # by an earlier output in this run (a name withheld once is withheld everywhere).
-BUILDERS = [profile]
+# Round 2: the ABR tables (business names) and the provider groups are rebuilt too, offline: the
+# re-filter of abn-details.csv and stage C of the groups from provider-abn.csv (no ABN Lookup call).
+BUILDERS = [(profile, []), (abn_lookup, ["refilter"]), (groups, ["--skip-lookup"])]
 # Persistent backups of data/processed, one directory per run (gitignored).
 BACKUP_ROOT = PROJECT_ROOT / "data" / ".reparse-backup"
 # Single-writer lock (Codex round 7, gitignored). Taken with an exclusive create.
@@ -70,10 +74,10 @@ class ParserFailed(RuntimeError):
     pass
 
 
-def _run_parser(module) -> None:
+def _run_parser(module, argv: list[str] | None = None) -> None:
     name = module.__name__.rsplit(".", 1)[-1]
     try:
-        code = module.main(list(ARGV))
+        code = module.main(list(ARGV) if argv is None else list(argv))
     except SystemExit as exc:  # argparse or an explicit exit
         code = exc.code
     except Exception as exc:
@@ -127,7 +131,7 @@ def _held_writes(module) -> list:
 
 
 def run_join() -> None:
-    join_enforcement.main()
+    join_enforcement.main([])
 
 
 def _fsync_file(path: Path) -> None:
@@ -313,9 +317,13 @@ def _run() -> int:
         # PR #12 round 1: the cross-output pass, then the builders (which see every withheld
         # name), then the pass again, so that every output agrees whatever the write order.
         common.refilter_processed_names()
-        for module in BUILDERS:
-            _run_parser(module)
-        common.refilter_processed_names()
+        # Round 2: builders, then the cross-output pass, until the pass changes nothing (the set
+        # of withheld names only grows, so this ends).
+        while True:
+            for module, argv in BUILDERS:
+                _run_parser(module, argv)
+            if not common.refilter_processed_names():
+                break
     except BaseException as exc:  # includes SystemExit from the join
         log.error("writing or join failed (%r)", exc)
         try:

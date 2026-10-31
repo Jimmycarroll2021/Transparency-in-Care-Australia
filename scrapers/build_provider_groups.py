@@ -50,9 +50,11 @@ try:
     from scrapers.common import (
         PROCESSED_DIR,
         atomic_write_text,
+        ensure_person_names,
         log,
         normalise_pr,
         utc_now,
+        withhold_person_named_names,
         write_processed,
     )
     from scrapers.join_enforcement import normalise_provider_name
@@ -65,9 +67,11 @@ except ImportError:  # run as a plain script
     from scrapers.common import (
         PROCESSED_DIR,
         atomic_write_text,
+        ensure_person_names,
         log,
         normalise_pr,
         utc_now,
+        withhold_person_named_names,
         write_processed,
     )
     from scrapers.join_enforcement import normalise_provider_name
@@ -644,6 +648,10 @@ def main(argv: list[str] | None = None) -> None:
         al.add_abr_provenance(PROVIDER_ABN_NAME, {**al.ABR_PROVENANCE, "run": stats})
         log.info("stage B: %s", json.dumps(stats))
 
+    # PR #12 round 2: groups use only the business names as published, after the shared name
+    # rule (write_processed applies the same rule to provider-abn.csv).
+    ensure_person_names()
+    abn_rows, _, _ = withhold_person_named_names(PROVIDER_ABN_NAME, abn_rows, PROVIDER_ABN_COLUMNS)
     provider_names, legal = acecqa_names()
     groups = build_groups(abn_rows, provider_names, legal)
     write_processed(

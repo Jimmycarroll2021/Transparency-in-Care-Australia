@@ -601,10 +601,13 @@ class PersonNames:
         # PR #12 round 1: hyphen and space variants alike. The words of the text are checked as
         # printed and with every hyphenated word split into its parts.
         parts = [p for t in tokens for p in t.split("-") if p]
+        # PR #12 round 2: the window covers the longest stored name (a hyphen split can make a
+        # five-word name longer than five words).
+        longest = max((len(f) for f in self._full), default=0)
         for words in (tokens, parts):
             keys = [t.lower() for t in words]
             for i in range(len(keys)):
-                for n in range(2, 6):
+                for n in range(2, longest + 1):
                     if i + n <= len(keys) and tuple(keys[i : i + n]) in self._full:
                         return True
             if any(

@@ -668,18 +668,24 @@ def withhold_prose_naming_people(rows: list[dict], person_names=None) -> dict[st
 
 TRADING_NAME_WITHHELD_NOTE = "trading name withheld: may name an individual"
 SERVICE_NAME_WITHHELD_NOTE = "service name withheld: may name an individual"
+BUSINESS_NAME_WITHHELD_NOTE = "business name withheld: may name an individual"
 # Output columns holding a trading name or a service name, and the fixed note for each.
 # spine-unlisted.csv 'name' is a service name only on rows of kind 'service' (a provider stub's
 # name already follows the provider-name rule); stub_name_variants holds the other printed names
-# of the same key, separated by NAME_VARIANT_SEPARATOR.
+# of the same key, separated by NAME_VARIANT_SEPARATOR. business_names (provider-abn.csv,
+# abn-details.csv) holds ABR business names, which are trading names, separated by '; '
+# (PR #12 round 2).
 NAME_COLUMN_NOTES = {
     "trading_name": TRADING_NAME_WITHHELD_NOTE,
     "service_name": SERVICE_NAME_WITHHELD_NOTE,
     "acecqa_service_name": SERVICE_NAME_WITHHELD_NOTE,
     "name": SERVICE_NAME_WITHHELD_NOTE,
     "stub_name_variants": SERVICE_NAME_WITHHELD_NOTE,
+    "business_names": BUSINESS_NAME_WITHHELD_NOTE,
 }
 NAME_VARIANT_SEPARATOR = " | "
+# Columns holding a list of names, and the separator of each. An entry that fires is dropped.
+NAME_LIST_SEPARATORS = {"stub_name_variants": NAME_VARIANT_SEPARATOR, "business_names": "; "}
 
 
 class _InMemory(dict):
@@ -722,6 +728,14 @@ def ensure_name_context():
 
 def _name_key(value: str) -> str:
     return " ".join(value.casefold().split())
+
+
+def note_withheld_name(value: str | None) -> None:
+    """Remember, in memory only, a trading or service name withheld outside the output rule
+    (an ABR business name dropped by abn_lookup.safe_business_names), so that every output
+    written later in this process withholds the same name."""
+    if isinstance(value, str) and value.strip():
+        _WITHHELD_NAME_STRINGS.add(_name_key(value))
 
 
 def name_may_name_person_in_row(value: str | None, row: dict | None = None, names=None) -> bool:
@@ -792,15 +806,16 @@ def withhold_person_named_names(
                 continue
             if col in ("name", "stub_name_variants") and not is_service_stub:
                 continue
-            if col == "stub_name_variants":
-                parts = [p for p in value.split(NAME_VARIANT_SEPARATOR) if p]
+            if col in NAME_LIST_SEPARATORS:
+                sep = NAME_LIST_SEPARATORS[col]
+                parts = [p for p in value.split(sep) if p]
                 kept = [p for p in parts if not name_may_name_person_in_row(p, row, names)]
                 if len(kept) == len(parts):
                     continue
                 for p in parts:
                     if p not in kept:
                         _WITHHELD_NAME_STRINGS.add(_name_key(p))
-                changed[col] = NAME_VARIANT_SEPARATOR.join(kept) or None
+                changed[col] = sep.join(kept) or None
             elif name_may_name_person_in_row(value, row, names):
                 _WITHHELD_NAME_STRINGS.add(_name_key(value))
                 changed[col] = None
@@ -831,6 +846,16 @@ def withhold_person_named_names(
             _append_note(new, column, NAME_COLUMN_NOTES[col])
         if "name" in withheld and "name_withheld" in new:
             new["name_withheld"] = "true"
+        for col, sep in NAME_LIST_SEPARATORS.items():
+            count_col = f"{col}_withheld"
+            if col in withheld and count_col in new:
+                dropped = len([p for p in withheld[col].split(sep) if p]) - len(
+                    [p for p in (new.get(col) or "").split(sep) if p]
+                )
+                try:
+                    new[count_col] = int(new.get(count_col) or 0) + dropped
+                except ValueError:
+                    new[count_col] = dropped
         previous = _WITHHELD_NAME_VALUES.get((output, index))
         if previous is not None and previous[0] == row.get("record_id"):
             withheld = {**withheld, **previous[1]}  # a later pass keeps the first values

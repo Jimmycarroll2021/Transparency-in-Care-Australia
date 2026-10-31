@@ -80,6 +80,7 @@ Run: python3 scrapers/join_enforcement.py
 
 from __future__ import annotations
 
+import argparse
 import calendar
 import csv
 import json
@@ -1580,7 +1581,24 @@ def discover_action_files() -> list[Path]:
     return sorted(PROCESSED_DIR.glob(ACTION_GLOB))
 
 
-def main() -> None:
+UNRESTORED_EXIT = 5
+UNRESTORED_MESSAGE = (
+    "Refusing to write: {n} enforcement rows have a service name withheld by the name rule and no "
+    "value in memory, so their name match is not possible and joins would be lost. Run "
+    "`python scrapers/reparse_offline.py`, which re-parses the registers and runs the join in the "
+    "same process. Nothing was written. To write anyway (fewer joins), pass --allow-unrestored."
+)
+
+
+def main(argv: list[str] | None = None) -> None:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument(
+        "--allow-unrestored",
+        action="store_true",
+        help="write even when withheld service names cannot be restored in memory (fewer joins; "
+        "the count is recorded in the join report)",
+    )
+    args = ap.parse_args(argv)
     action_files = discover_action_files()
     for needed in (SERVICES_CSV, PROFILE_CSV, PROVIDERS_CSV):
         if not needed.exists():
@@ -1618,11 +1636,23 @@ def main() -> None:
     unrestored = unrestored_withheld_names(actions)
     log.info(
         "service names withheld by the name rule: %d restored in memory for matching, %d not "
-        "available (a name match is not possible for those rows; run "
-        "scrapers/reparse_offline.py to match on them)",
+        "available",
         restored,
         unrestored,
     )
+    # PR #12 round 2: fail closed. A standalone join cannot restore names withheld by an earlier
+    # process; it stops before writing anything unless the user accepts the lost joins.
+    if unrestored and not args.allow_unrestored:
+        message = UNRESTORED_MESSAGE.format(n=unrestored)
+        log.error(message)
+        print(message)
+        raise SystemExit(UNRESTORED_EXIT)
+    if unrestored:
+        log.warning(
+            "--allow-unrestored: writing with %d withheld service names unavailable for matching; "
+            "the count is recorded in the join report",
+            unrestored,
+        )
     joined = join_actions(actions, spine, abn_details)
     matched_before = sum(1 for r in joined if r["match_confidence"] != CONFIDENCE_NONE)
     stubs = add_unlisted_stage(joined, spine, end)
@@ -1734,6 +1764,9 @@ def main() -> None:
         )
     ]
     report["joined_before_unlisted_stage"] = matched_before
+    # Round 2: rows whose withheld service name was not available for the name match (0 under
+    # scrapers/reparse_offline.py; above 0 only with --allow-unrestored).
+    report["unrestored_withheld_service_names"] = unrestored
     # PR #12 round 1: a name withheld in a later output is withheld in the earlier ones too.
     refilter_processed_names(
         [

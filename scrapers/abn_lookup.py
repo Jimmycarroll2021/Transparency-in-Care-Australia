@@ -272,10 +272,13 @@ def business_name_may_name_person(name: str | None) -> bool:
     """PR #12: an ABR business name is a trading name, so the shared name rule
     (scrapers.common.name_may_name_person_in_row) applies too, whatever the organisation evidence
     and even when the name equals a known ACECQA name. In-memory names only."""
-    from scrapers.common import ensure_person_names, name_may_name_person_in_row
+    from scrapers.common import ensure_person_names, name_may_name_person_in_row, note_withheld_name
 
     ensure_person_names()
-    return name_may_name_person_in_row(name)
+    if name_may_name_person_in_row(name):
+        note_withheld_name(name)  # round 2: withheld in every later output of this process
+        return True
+    return False
 
 
 def safe_business_names(
