@@ -218,12 +218,21 @@ _PER_ITEM = re.compile(
         "thrice",
         "double",
         "both",
+        # PR #9, Codex round 2
+        "fortnightly",
+        "tripled",
+        "triple",
+        "three-fold",
+        "threefold",
+        "two-fold",
+        "twofold",
     ).pattern
     + r"|(?<![a-z])x[ ]?[0-9]|×"
 )
 _COSTS = re.compile(
     _words("costs?", "plus").pattern
-    + r"|(?i:(?<![a-z])including(?:[ ]+[^ ]+){0,3}?[ ]+(?:costs?(?![a-z])|[$]))"
+    + r"|(?i:(?<![a-z])including(?:[ ]+[^ ]+){0,3}?[ ]+"
+    + r"(?:(?:costs?|fees?|charges?|levy|levies)(?![a-z])|[$]))"
 )
 _NOT_A_TOTAL = _words(
     "part-suspended",
@@ -235,7 +244,35 @@ _NOT_A_TOTAL = _words(
     "no fine",
     "could",
     # a modal "may" only before a verb, so the month never matches (PR #9, Codex round 1)
-    "may (?:be|face|receive|incur|pay|have|attract)",
+    "may (?:be|face|receive|incur|pay|have|attract|yet|still)",
+    # prospective (PR #9, Codex round 2)
+    "will",
+    "shall",
+    "liable",
+    "yet to be",
+    "pending",
+    "proposed",
+    "intends",
+    "intended",
+    # withdrawn or set aside (PR #9, Codex round 2)
+    "withdrawn",
+    "withdraw",
+    "quashed",
+    "revoked",
+    "rescinded",
+    "cancelled",
+    "canceled",
+    "waived",
+    "remitted",
+    "refunded",
+    "dismissed",
+    "discontinued",
+    # another party (PR #9, Codex round 2)
+    "another",
+    "other",
+    "second",
+    "separate",
+    "co-accused",
     "might",
     "would",
     "faces",
@@ -261,8 +298,9 @@ _NOT_A_TOTAL = _words(
     "to be paid",
     "payable",
 )
-# Another person fined in a provider's row. Applied only when the row's subject is an
-# organisation or a service: on an individual or role row the word names the subject itself.
+# Another person fined in a provider's row. On an individual or role row, a role word is
+# allowed only in the headline's first clause before the single 'fined', where it names the
+# row's own subject (PR #9, Codex round 2).
 _ROLE_WORDS = _words(
     "director",
     "educator",
@@ -275,6 +313,22 @@ _ROLE_WORDS = _words(
     "worker",
     "manager",
 )
+# 'fined', 'fining', or 'fine(s)' used as a verb: exactly one in the row text, or null.
+_FINE_VERB = re.compile(
+    r"(?i)(?<![a-z])(?:fined|fining|fines?[ ]+(?:the|a|an|them|him|her|it|this|that)(?![a-z]))"
+)
+# An organisation named in a later clause before 'fined' ('Provider warned; operator fined').
+_ORG_NOUN = _words(
+    "organisation",
+    "organization",
+    "company",
+    "provider",
+    "operator",
+    "entity",
+    "business",
+    "service",
+)
+_CLAUSE_BREAK = re.compile(r"[;:]|[.](?=[ ]+[A-Z])")
 # Amounts in a format the forms do not read ('AUD 4,000', 'A$4,000', '4,000 dollars', a
 # full-width dollar sign): counted, and never recorded.
 _OTHER_AMOUNT = re.compile(
@@ -296,17 +350,20 @@ def fine_amount_and_note(
     An allowlist that fails closed (project rule 3: null with a note, never a wrong figure).
     `text` is the headline; `row_text` is all of the row's details text (every paragraph and
     label), defaulting to the headline. `subject_is_person` is True on a row whose subject is
-    an individual or a role; the role-word guard is then skipped, every other guard is kept. Recorded only when the row text prints exactly one
+    an individual or a role; a role word is then allowed only in the headline's first clause
+    before the single 'fined' (_subject_is_the_rows_own); every other guard is kept. Recorded only when the row text prints exactly one
     dollar amount, as a whole figure (cents optional), the headline holds it in one of the
     single-total forms of _TOTAL_FORM, and no guard word appears anywhere in the row text.
     Otherwise the value is None with the most specific note: abbreviated amount, per-item or
     rate wording, costs or more than one amount, or a wording that is not a recognised single
     total. Never a guess, never scaled."""
     text = (text or "").replace("\xa0", " ")
-    full = " ".join(t for t in (text, (row_text or "").replace("\xa0", " ")) if t)
+    row_text = (row_text or "").replace("\xa0", " ")
+    # The row text holds the headline once; a headline outside it is added, never twice.
+    full = row_text if text in row_text else " ".join(t for t in (text, row_text) if t)
     if not full or not _FINE_WORD.search(full):
         return None, None
-    counted = (row_text or text).replace("\xa0", " ")
+    counted = full
     raw = [
         m
         for m in _MONEY_RAW.finditer(counted)
@@ -326,10 +383,32 @@ def fine_amount_and_note(
     if _COSTS.search(full) or len(raw) + len(other) != 1:
         return None, FINE_NOT_RECORDED_NOTE
     form = _TOTAL_FORM.search(text)
-    role = None if subject_is_person else _ROLE_WORDS.search(full)
-    if other or role or _NOT_A_TOTAL.search(full) or not form:
+    if other or _NOT_A_TOTAL.search(full) or not form:
+        return None, FINE_NOT_SINGLE_TOTAL_NOTE
+    if len(_FINE_VERB.findall(full)) > 1 or not _subject_is_the_rows_own(
+        text, full, subject_is_person
+    ):
         return None, FINE_NOT_SINGLE_TOTAL_NOTE
     return _dollars(form.group(1)), None
+
+
+def _subject_is_the_rows_own(text: str, full: str, subject_is_person: bool) -> bool:
+    """False when the one 'fined' may name someone other than the row's subject (PR #9, Codex
+    round 2): a role word anywhere, unless the row's subject is an individual or a role and
+    every role word sits in the headline's first clause before 'fined'; or an organisation
+    noun in a later clause before 'fined'."""
+    verb = _FINE_VERB.search(text)
+    lead = text[: verb.start()] if verb else text
+    first_clause = not _CLAUSE_BREAK.search(lead)
+    roles = list(_ROLE_WORDS.finditer(full))
+    if roles:
+        start = full.find(text)
+        lead_end = start + len(lead)
+        in_lead = all(start <= m.start() and m.end() <= lead_end for m in roles)
+        if not (subject_is_person and start >= 0 and first_clause and in_lead):
+            return False
+    breaks = list(_CLAUSE_BREAK.finditer(lead))
+    return not (breaks and _ORG_NOUN.search(lead, breaks[0].end()))
 
 
 def extract_fine_amount(text: str | None) -> int | float | None:
