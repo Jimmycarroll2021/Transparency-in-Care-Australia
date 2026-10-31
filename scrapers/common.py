@@ -413,24 +413,53 @@ def keep_withheld_names(row: dict, provider: str | None = None, service: str | N
         row["_withheld_ref"] = token
 
 
-def _write_name_keys(name: str, rows: list[dict]) -> None:
-    """Write data/private/name-keys/<name>.csv for rows carrying _withheld_ref. Without
-    TICA_JOIN_KEY nothing is written (an older sidecar stays: a record_id always stands for the
-    same printed row, so its entries stay right)."""
-    kept = [r for r in rows if r.get("_withheld_ref") in _WITHHELD_NAMES and r.get("record_id")]
-    if not kept:
-        return
-    key = load_join_key()
+# The outputs whose parsers keep keyed names (PR #11). Every parse of one rewrites its sidecar.
+KEYED_SOURCES = ("qld-enforcement-actions", "cth-ccs-enforcement-actions", "sa-enforcement-actions")
+_SKIP_NAME_KEYS = False
+
+
+def skip_name_keys(flag: bool = True) -> None:
+    """--no-keyed-join: write no name keys, and delete a keyed source's older sidecar."""
+    global _SKIP_NAME_KEYS
+    _SKIP_NAME_KEYS = flag
+
+
+def _name_keys_needed(name: str) -> bytes | None:
+    """The join key for a keyed source's sidecar, None when not needed, or SystemExit when the
+    key is missing (checked before any output is written). Never prints the key."""
+    if name not in KEYED_SOURCES or _SKIP_NAME_KEYS:
+        return None
+    try:
+        key = load_join_key()
+    except JoinKeyMissing as exc:
+        raise SystemExit(f"name keys for {name}: {exc}") from None
     if key is None:
-        log.warning("name keys for %s not written: %s is not set", name, JOIN_KEY_VAR)
+        raise SystemExit(
+            f"name keys for {name}: {JOIN_KEY_VAR} is not set (environment or .env). Set it, or "
+            "pass --no-keyed-join (the join then has fewer joins)"
+        )
+    return key
+
+
+def _write_name_keys(name: str, rows: list[dict], key: bytes | None) -> None:
+    """Rewrite data/private/name-keys/<name>.csv atomically for a keyed source on every parse:
+    the key-check row, then one row per eligible record (none is fine). With --no-keyed-join the
+    older sidecar is deleted, so it can never go stale."""
+    if name not in KEYED_SOURCES:
         return
     path = name_keys_dir() / f"{name}.csv"
+    if _SKIP_NAME_KEYS:
+        path.unlink(missing_ok=True)
+        log.warning("name keys for %s not written and any older sidecar deleted", name)
+        return
     seen: dict[str, tuple] = {}
-    for row in kept:
-        provider, service = _WITHHELD_NAMES[row["_withheld_ref"]]
-        seen.setdefault(
-            row["record_id"], (provider_name_key(provider, key), service_name_key(service, key))
-        )
+    for row in rows:
+        names = _WITHHELD_NAMES.get(row.get("_withheld_ref"))
+        if names and row.get("record_id"):
+            seen.setdefault(
+                row["record_id"],
+                (provider_name_key(names[0], key), service_name_key(names[1], key)),
+            )
     path.parent.mkdir(parents=True, exist_ok=True)
     with atomic_open(path, newline="") as fh:
         writer = csv.writer(fh)
@@ -442,22 +471,27 @@ def _write_name_keys(name: str, rows: list[dict]) -> None:
 
 
 def read_name_keys(name: str, key: bytes) -> dict[str, tuple[str | None, str | None]]:
-    """record_id -> (provider key, service key) from data/private/name-keys/<name>.csv; {} when
-    absent. Raises JoinKeyMissing when the sidecar was written with another key."""
+    """record_id -> (provider key, service key) from data/private/name-keys/<name>.csv. Raises
+    JoinKeyMissing when the sidecar is missing, has no key-check row, or was written with another
+    key: a keyed join never runs on a partial or foreign sidecar."""
     path = name_keys_dir() / f"{name}.csv"
+    rerun = "run python scrapers/reparse_offline.py again"
     if not path.exists():
-        return {}
+        raise JoinKeyMissing(f"name-keys/{path.name} is missing; {rerun}")
     out: dict[str, tuple[str | None, str | None]] = {}
+    checked = False
     with path.open(newline="", encoding="utf-8") as fh:
         for row in csv.DictReader(fh):
-            if row["record_id"] == KEY_CHECK_ID:
-                if row["provider_key"] != key_check(key):
+            if row.get("record_id") == KEY_CHECK_ID:
+                if not hmac.compare_digest(row.get("provider_key") or "", key_check(key)):
                     raise JoinKeyMissing(
-                        f"name-keys/{path.name} was written with another {JOIN_KEY_VAR}; run "
-                        "python scrapers/reparse_offline.py again"
+                        f"name-keys/{path.name} was written with another {JOIN_KEY_VAR}; {rerun}"
                     )
+                checked = True
                 continue
             out[row["record_id"]] = (row["provider_key"] or None, row["service_key"] or None)
+    if not checked:
+        raise JoinKeyMissing(f"name-keys/{path.name} has no key-check row; {rerun}")
     return out
 
 
@@ -1007,6 +1041,7 @@ def write_processed(
     notes: str | None = None,
 ) -> Path:
     """Write data/processed/<name>.csv and <name>.provenance.json listing the raw inputs used."""
+    name_key_secret = _name_keys_needed(name)  # PR #11: a missing key stops before any write
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     out = PROCESSED_DIR / f"{name}.csv"
     with atomic_open(out, newline="") as fh:
@@ -1031,5 +1066,5 @@ def write_processed(
         PROCESSED_DIR / f"{name}.provenance.json", json.dumps(provenance, indent=2) + "\n"
     )
     log.info("processed %s (%d rows)", out.relative_to(PROJECT_ROOT), len(rows))
-    _write_name_keys(name, rows)  # PR #11: keyed names of withheld rows, private sidecar
+    _write_name_keys(name, rows, name_key_secret)  # PR #11: private keyed-name sidecar
     return out

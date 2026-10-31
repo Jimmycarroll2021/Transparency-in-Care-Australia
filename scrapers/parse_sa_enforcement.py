@@ -57,6 +57,7 @@ from scrapers.common import (
     record_hash,
     refuse_if_reparse_incomplete,
     remember_withheld_names,
+    skip_name_keys,
     utc_stamp,
     withhold_free_text,
     withhold_prose_naming_people,
@@ -1094,7 +1095,14 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--force", action="store_true", help="write new snapshots even if unchanged")
     ap.add_argument("--skip-fetch", action="store_true", help="parse existing snapshots only")
+    ap.add_argument(
+        "--no-keyed-join",
+        action="store_true",
+        help="write no name keys (no TICA_JOIN_KEY needed; the join then has fewer joins)",
+    )
     args = ap.parse_args(argv)
+    if args.no_keyed_join:
+        skip_name_keys()
 
     pdfs: list[str] = []
     failed: list[str] = []

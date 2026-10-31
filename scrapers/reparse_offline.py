@@ -277,6 +277,7 @@ def main(argv: list[str] | None = None) -> int:
         help="run the join without the keyed-name stage (no TICA_JOIN_KEY needed; fewer joins)",
     )
     KEYED_JOIN = not ap.parse_args(argv).no_keyed_join
+    common.skip_name_keys(not KEYED_JOIN)  # parsers write, or delete, their sidecars to match
     try:
         _acquire_lock()
     except LockHeld:
@@ -340,7 +341,8 @@ def _run() -> int:
     # and restored with them.
     keys_dir = _name_keys_dir()
     keys_backup = None
-    if keys_dir.is_dir():
+    keys_dir_existed = keys_dir.is_dir()
+    if keys_dir_existed:
         try:
             keys_backup = _build_backup(keys_dir)
         except BaseException as exc:
@@ -349,7 +351,8 @@ def _run() -> int:
             return 1
     common.atomic_write_text(
         common.REPARSE_MARKER,
-        f"backup: {backup}\nmanifest: {backup / common.BACKUP_MANIFEST}\n",
+        f"backup: {backup}\nmanifest: {backup / common.BACKUP_MANIFEST}\n"
+        + (f"name keys backup: {keys_backup}\n" if keys_backup is not None else ""),
     )
     try:
         for fn, args, kwargs in held:
@@ -363,6 +366,8 @@ def _run() -> int:
                 shutil.rmtree(keys_backup)
             except BaseException as keys_exc:
                 log.error("name keys not restored (%r); backup kept at %s", keys_exc, keys_backup)
+        elif not keys_dir_existed and keys_dir.is_dir():
+            shutil.rmtree(keys_dir)  # created by this failed run
         try:
             _restore(PROCESSED_DIR, backup)
         except common.BackupInvalid as invalid:

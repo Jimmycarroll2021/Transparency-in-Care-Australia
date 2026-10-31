@@ -22,3 +22,6 @@ def _test_join_key(monkeypatch, tmp_path):
     # CI has no TICA_JOIN_KEY; every test sees the fixed test key and never a local .env.
     monkeypatch.setenv(common.JOIN_KEY_VAR, TEST_JOIN_KEY)
     monkeypatch.setattr(common, "ENV_FILE", tmp_path / "no.env")
+    common.skip_name_keys(False)
+    yield
+    common.skip_name_keys(False)

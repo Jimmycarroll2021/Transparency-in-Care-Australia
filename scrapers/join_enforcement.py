@@ -40,6 +40,13 @@ Join rules
   withheld as likely individuals are never matched. A row that also has a service_name is then
   pinned to one of that provider's services when the normalised ServiceName is unique
   (provider_and_service_name); the key is set on the joined output only, never on the source row.
+- Keyed-name stage (fifth, PR #11): QLD, Commonwealth CCS and SA rows whose names a parser
+  withheld by the shared fail-closed rule for lack of organisation evidence are matched again by
+  the service-name and provider-name stages on HMAC keys (TICA_JOIN_KEY) kept in the gitignored
+  data/private/name-keys sidecars; so are printed provider names against ACECQA providers withheld
+  by that rule. Providers with a person signal, and their services, are never matched. The joined
+  row carries no ACECQA name. The join refuses to run without the key or a checked sidecar unless
+  --no-keyed-join is passed.
 - abn: the 11 digits of a printed "ccs_identifier: ABN ..." note. ACECQA has no ABN, so it is
   matched only through the ABR entity and business names (ABN entity stage). Null where the
   subject is withheld.
@@ -92,6 +99,7 @@ from pathlib import Path
 
 try:
     from scrapers.common import (
+        KEYED_SOURCES,
         PROCESSED_DIR,
         PROJECT_ROOT,
         JoinKeyMissing,
@@ -107,12 +115,17 @@ try:
         utc_now,
         write_processed,
     )
-    from scrapers.profile_providers import classify_entity_form
+    from scrapers.profile_providers import (
+        classify_entity_form,
+        name_has_person_signal,
+        name_is_withheld,
+    )
 except ImportError:  # run as a plain script: python3 scrapers/join_enforcement.py
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from scrapers.common import (
+        KEYED_SOURCES,
         PROCESSED_DIR,
         PROJECT_ROOT,
         JoinKeyMissing,
@@ -128,7 +141,11 @@ except ImportError:  # run as a plain script: python3 scrapers/join_enforcement.
         utc_now,
         write_processed,
     )
-    from scrapers.profile_providers import classify_entity_form
+    from scrapers.profile_providers import (
+        classify_entity_form,
+        name_has_person_signal,
+        name_is_withheld,
+    )
 
 SERVICES_CSV = PROCESSED_DIR / "acecqa-services-latest.csv"
 PROVIDERS_CSV = PROCESSED_DIR / "acecqa-providers-latest.csv"
@@ -572,17 +589,39 @@ class KeyedNames:
     ):
         self.key = key
         self.rows = rows
-        self.by_name = {
-            state: {name_key(k, key): v for k, v in names.items()}
-            for state, names in spine.by_name.items()
-        }
-        # Every provider except those whose entity form reads as an individual: a provider
-        # withheld only by the shared fail-closed rule is matched here, on keyed names only.
-        person = {
+        # Fail closed (owner rule 2): no provider whose entity form reads as an individual, and
+        # no provider the shared rule withholds for a person signal (a title, an estate, an
+        # individual trustee, a trust named after a person), is matched, nor any of its
+        # services. Only providers withheld for lack of organisation evidence are matched here.
+        self.excluded = {
             pr
             for pr, prof in spine.profiles.items()
             if (prof.get("entity_form") or "").strip() == "likely_individual"
         }
+        if providers is None:
+            self.excluded |= {
+                pr
+                for pr, prof in spine.profiles.items()
+                if (prof.get("name_withheld") or "").strip().lower() == "true"
+            }
+        else:
+            for row in providers:
+                pr = normalise_pr(
+                    row.get("provider_approval_number") or row.get("Provider Approval Number")
+                )
+                if pr and any(
+                    name_has_person_signal(row.get(col)) for col in ("Legal Name", "Trading Name")
+                ):
+                    self.excluded.add(pr)
+        self.by_name: dict[str, dict] = {}
+        for state, names in spine.by_name.items():
+            keyed_names = {}
+            for k, services in names.items():
+                kept = [sv for sv in services if spine.service_pr(sv) not in self.excluded]
+                if kept:
+                    keyed_names[name_key(k, key)] = kept
+            self.by_name[state] = keyed_names
+        person = self.excluded
         self.provider_names: dict[str, set] = defaultdict(set)
         self.provider_states: dict[str, set] = defaultdict(set)
         for pr, states in spine.provider_states.items():
@@ -603,13 +642,16 @@ class KeyedNames:
                     self.provider_states[pr].add(state)
         else:
             for k, prs in spine.provider_names.items():
-                self.provider_names[name_key(k, key)] |= prs
+                kept = prs - person
+                if kept:
+                    self.provider_names[name_key(k, key)] |= kept
 
     def service_key(self, normalised: str) -> str | None:
         return name_key(normalised, self.key)
 
 
 KEYED_NOTE = "matched on keyed names (names withheld)"
+KEYED_SERVICE_NOTE = "service_name withheld: the shared name rule does not clear it"
 # Name columns are never filled on a row joined through withheld names (PR #11).
 _KEYED_NAME_COLUMNS = ("acecqa_service_name", "acecqa_provider_legal_name")
 
@@ -623,6 +665,9 @@ def match_by_keyed_names(out: dict, spine: Spine, keyed: KeyedNames, jurisdictio
     if provider_key is None and out["provider_name"]:
         # A printed provider name: the same stage against providers withheld by the shared rule.
         provider_key = name_key(normalise_provider_name(out["provider_name"]), keyed.key)
+    if service_key is None and out["service_name"]:
+        # A printed service name is keyed too, so every comparison is key to key.
+        service_key = keyed.service_key(normalise_service_name(out["service_name"]))
     if jurisdiction in NAME_MATCH_JURISDICTIONS and service_key:
         state = (out["state"] or jurisdiction).upper()
         service, confidence, note = match_by_name(
@@ -632,7 +677,7 @@ def match_by_keyed_names(out: dict, spine: Spine, keyed: KeyedNames, jurisdictio
             out.update(join_key_kind="name_match", match_confidence=confidence)
             attach_service(out, service, spine)
             out["join_note"] = f"{note}; {KEYED_NOTE}"
-            out.update(dict.fromkeys(_KEYED_NAME_COLUMNS))
+            _withhold_keyed_names(out)
             return True
     if not provider_key:
         return False
@@ -656,8 +701,17 @@ def match_by_keyed_names(out: dict, spine: Spine, keyed: KeyedNames, jurisdictio
         out["match_confidence"] = CONFIDENCE_PROVIDER_AND_SERVICE
         attach_service(out, service, spine)
     out["join_note"] = f"{note}{pin_note}; {KEYED_NOTE}"
-    out.update(dict.fromkeys(_KEYED_NAME_COLUMNS))
+    _withhold_keyed_names(out)
     return True
+
+
+def _withhold_keyed_names(out: dict) -> None:
+    """A row joined on keyed names carries no ACECQA name, and keeps its printed service name
+    only when the shared name rule clears it (owner rule 2, PR #11)."""
+    out.update(dict.fromkeys(_KEYED_NAME_COLUMNS))
+    if out["service_name"] and name_is_withheld(out["service_name"]):
+        out["service_name"] = None
+        out["notes"] = "; ".join(filter(None, [out["notes"], KEYED_SERVICE_NOTE]))
 
 
 def load_abn_details(path: Path = ABN_DETAILS_CSV) -> dict[str, dict] | None:
@@ -1687,6 +1741,7 @@ def build_report(
             "Rows joined by an unlisted key (match_confidence exact_key_unlisted) carry an identity taken from the enforcement register, not from ACECQA: the approval is absent from the current ACECQA export, usually because it has ceased. They hold no current rating. They are reported separately from the live denominators (services and providers in the ACECQA export).",
             "Every unmatched row has exactly one stated reason in unmatched_residual (no_key_and_name_withheld, no_key_no_name_match, ambiguous_name, other). The aim is that each row is joined by key, joined by unique name, or explained; a 100 per cent match rate is not the goal and would require guessing.",
             "Rows joined by provider name (provider_name_unique, provider_and_service_name) carry no printed key: they are accepted only when exactly one ACECQA provider has the normalised name, but a name match is weaker evidence than a key. actions_matched_by_name on each table shows how many of a row's counts rest on a name.",
+            "Rows joined on keyed names (join_note 'matched on keyed names') had a name withheld by the shared fail-closed rule for lack of organisation evidence. The keyed-name stage covers QLD, Commonwealth CCS and SA rows only. It never matches a provider whose entity form reads as an individual or whose name carries a person signal, nor its services. Such rows carry approval numbers but no ACECQA name, and their printed service name only when the shared name rule clears it.",
             "Commonwealth CCS sanctions attach to the CCS approved provider, so a provider-name match is provider-level unless the service is pinned. ABNs are carried in enforcement-actions-all.csv.",
             "Rows joined by ABN entity (match_confidence abn_unique_entity) printed an ABN that the ABN Lookup web services resolved to an organisation whose ABR entity or business name, normalised, matches exactly one ACECQA provider. ACECQA holds no ABN, so this is still a name match (ABR name to ACECQA name), anchored by the printed ABN. Individuals and sole traders are never matched.",
         ],
@@ -1715,8 +1770,10 @@ def keyed_names_for(
                 "--no-keyed-join to join without the withheld names (fewer joins)"
             )
         rows: dict[str, tuple[str | None, str | None]] = {}
+        # Every keyed source must have a checked sidecar; a missing one stops the join.
         for path in action_files:
-            rows.update(read_name_keys(path.stem, key))
+            if path.stem in KEYED_SOURCES:
+                rows.update(read_name_keys(path.stem, key))
     except JoinKeyMissing as exc:
         raise SystemExit(f"keyed join: {exc}") from None
     log.info("keyed names: %d withheld rows have keyed names (private)", len(rows))

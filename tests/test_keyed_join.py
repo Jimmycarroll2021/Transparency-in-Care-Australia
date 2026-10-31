@@ -17,9 +17,11 @@ from tests.test_reparse_offline import make_parser
 
 KEY = bytes.fromhex(TEST_JOIN_KEY)
 ROOT = Path(__file__).resolve().parent.parent
-PROVIDER = "Example Kids Holdings Pty Ltd ATF Example Family Trust"
+# Withheld by the shared rule for lack of organisation evidence only (no person signal).
+PROVIDER = "Example Kids Learning Collective"
 SERVICE = "Sunny Meadow Early Learning"
-NAMES = ("example kids", "example family", "sunny meadow")
+NAMES = ("example kids", "sunny meadow")
+QLD_KEYS = "qld-enforcement-actions"
 
 
 def _spine(*, second_provider_named_alike=False):
@@ -96,9 +98,7 @@ def _keyed(spine, providers, record_id="r1", service=SERVICE):
 def test_the_name_key_is_deterministic_and_depends_on_the_key():
     a = common.provider_name_key(PROVIDER, KEY)
     assert a == common.provider_name_key(PROVIDER, KEY)
-    assert a == common.provider_name_key(
-        "example kids holdings pty. limited atf example family trust", KEY
-    )
+    assert a == common.provider_name_key("example kids learning-collective.", KEY)
     assert a != common.provider_name_key(PROVIDER, bytes.fromhex("a5" * 32))
     assert len(a) == 64 and PROVIDER.lower() not in a
 
@@ -179,13 +179,125 @@ def test_no_name_or_key_reaches_a_published_output(tmp_path, monkeypatch):
     assert not _scan([sidecar], NAMES)
 
 
-def test_a_sidecar_written_with_another_key_is_refused(tmp_path, monkeypatch):
+def _sidecar(tmp_path, monkeypatch, rows, *, name=QLD_KEYS):
     monkeypatch.setattr(common, "PROCESSED_DIR", tmp_path / "processed")
-    row = {"record_id": "r1"}
-    common.keep_withheld_names(row, provider=PROVIDER)
-    common._write_name_keys("x", [row])
-    with pytest.raises(common.JoinKeyMissing):
-        common.read_name_keys("x", bytes.fromhex("a5" * 32))
+    monkeypatch.setattr(common, "PROJECT_ROOT", tmp_path)
+    common.write_processed(name, rows, ["record_id"], raw_inputs=[])
+    return tmp_path / "private" / "name-keys" / f"{name}.csv"
+
+
+def _withheld(record_id="r1"):
+    row = {"record_id": record_id}
+    common.keep_withheld_names(row, provider=PROVIDER, service=SERVICE)
+    return row
+
+
+def test_a_sidecar_written_with_another_key_is_refused(tmp_path, monkeypatch):
+    _sidecar(tmp_path, monkeypatch, [_withheld()])
+    with pytest.raises(common.JoinKeyMissing, match="another"):
+        common.read_name_keys(QLD_KEYS, bytes.fromhex("a5" * 32))
+
+
+def test_a_missing_sidecar_is_refused(tmp_path, monkeypatch):
+    monkeypatch.setattr(common, "PROCESSED_DIR", tmp_path / "processed")
+    with pytest.raises(common.JoinKeyMissing, match="missing"):
+        common.read_name_keys(QLD_KEYS, KEY)
+    spine, providers = _spine()
+    with pytest.raises(SystemExit, match="missing"):
+        je.keyed_names_for(spine, [tmp_path / "processed" / f"{QLD_KEYS}.csv"], providers)
+
+
+def test_a_sidecar_without_its_check_row_is_refused(tmp_path, monkeypatch):
+    path = _sidecar(tmp_path, monkeypatch, [_withheld()])
+    lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+    path.write_text(
+        "".join(line for line in lines if not line.startswith(common.KEY_CHECK_ID)),
+        encoding="utf-8",
+    )
+    with pytest.raises(common.JoinKeyMissing, match="no key-check row"):
+        common.read_name_keys(QLD_KEYS, KEY)
+
+
+def test_an_empty_eligible_set_writes_a_check_row_only_sidecar(tmp_path, monkeypatch):
+    path = _sidecar(tmp_path, monkeypatch, [{"record_id": "r9"}])
+    assert len(path.read_text(encoding="utf-8").splitlines()) == 2  # header and check row
+    assert common.read_name_keys(QLD_KEYS, KEY) == {}
+
+
+def test_a_stale_sidecar_is_rewritten_or_deleted(tmp_path, monkeypatch):
+    path = _sidecar(tmp_path, monkeypatch, [_withheld("r1")])
+    assert set(common.read_name_keys(QLD_KEYS, KEY)) == {"r1"}
+    _sidecar(tmp_path, monkeypatch, [{"record_id": "r2"}])
+    assert common.read_name_keys(QLD_KEYS, KEY) == {}  # rewritten, r1 gone
+    common.skip_name_keys()
+    _sidecar(tmp_path, monkeypatch, [_withheld("r3")])
+    assert not path.exists()  # --no-keyed-join deletes it
+
+
+def test_a_keyed_source_without_the_key_stops_before_any_write(tmp_path, monkeypatch):
+    monkeypatch.delenv(common.JOIN_KEY_VAR)
+    with pytest.raises(SystemExit, match="TICA_JOIN_KEY is not set"):
+        _sidecar(tmp_path, monkeypatch, [_withheld()])
+    assert not (tmp_path / "processed" / f"{QLD_KEYS}.csv").exists()
+    _sidecar(tmp_path, monkeypatch, [_withheld()], name="wa-enforcement-actions")  # not keyed
+
+
+def test_a_person_named_trust_and_its_services_are_never_matched():
+    spine, providers = _spine()
+    providers[0]["Legal Name"] = "Example Kids Pty Ltd ATF Jane Example Family Trust"
+    keyed = je.KeyedNames(
+        spine,
+        KEY,
+        {
+            "r1": (
+                common.provider_name_key(providers[0]["Legal Name"], KEY),
+                common.service_name_key(SERVICE, KEY),
+            )
+        },
+        providers,
+    )
+    assert "PR-00000001" in keyed.excluded
+    for row in (_withheld_row(), _withheld_row(jurisdiction="CTH")):
+        [out] = je.join_actions([row], spine, None, keyed)
+        assert out["match_confidence"] == je.CONFIDENCE_NONE
+
+
+def test_the_keyed_service_path_excludes_an_individuals_service():
+    spine, providers = _spine()
+    spine.profiles["PR-00000001"]["entity_form"] = "likely_individual"
+    keyed = _keyed(spine, providers)
+    assert all(
+        sv["ServiceApprovalNumber"] != "SE-00000101"
+        for names in keyed.by_name.values()
+        for services in names.values()
+        for sv in services
+    )
+    [out] = je.join_actions([_withheld_row()], spine, None, keyed)
+    assert out["match_confidence"] == je.CONFIDENCE_NONE
+
+
+def test_the_pin_falls_back_to_a_printed_service_name_keyed_alike():
+    spine, providers = _spine()
+    row = _withheld_row(jurisdiction="CTH")
+    row["service_name"] = SERVICE  # printed; the sidecar has no service key
+    keyed = je.KeyedNames(
+        spine, KEY, {"r1": (common.provider_name_key(PROVIDER, KEY), None)}, providers
+    )
+    [out] = je.join_actions([row], spine, None, keyed)
+    assert out["acecqa_service_approval_number"] == "SE-00000101"
+    assert out["match_confidence"] == je.CONFIDENCE_PROVIDER_AND_SERVICE
+
+
+def test_a_keyed_row_keeps_its_service_name_only_when_the_shared_rule_clears_it():
+    spine, providers = _spine()
+    row = _withheld_row(jurisdiction="CTH")
+    row["service_name"] = SERVICE
+    keyed = je.KeyedNames(
+        spine, KEY, {"r1": (common.provider_name_key(PROVIDER, KEY), None)}, providers
+    )
+    [out] = je.join_actions([row], spine, None, keyed)
+    assert out["service_name"] is None
+    assert je.KEYED_SERVICE_NOTE in out["notes"]
 
 
 def test_the_sidecar_directory_is_ignored_by_git():

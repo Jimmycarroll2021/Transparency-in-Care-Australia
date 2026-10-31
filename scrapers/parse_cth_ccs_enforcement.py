@@ -72,6 +72,7 @@ from scrapers.common import (
     note_withheld_subject,
     printed_fingerprint,
     refuse_if_reparse_incomplete,
+    skip_name_keys,
     withhold_free_text,
     withhold_prose_naming_people,
     write_processed,
@@ -682,7 +683,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument(
         "--past-file", type=Path, help="HTML of the past registers page saved from a browser"
     )
+    ap.add_argument(
+        "--no-keyed-join",
+        action="store_true",
+        help="write no name keys (no TICA_JOIN_KEY needed; the join then has fewer joins)",
+    )
     args = ap.parse_args(argv)
+    if args.no_keyed_join:
+        skip_name_keys()
 
     paths: dict[str, Path] = {}
     if args.skip_fetch:

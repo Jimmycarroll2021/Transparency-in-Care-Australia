@@ -371,6 +371,30 @@ def name_is_withheld(
     return not (abr_org or has_organisation_evidence(name))
 
 
+def name_has_person_signal(legal_name: str | None, form: str | None = None) -> bool:
+    """True when name_is_withheld would withhold the name because of a person signal (a likely
+    individual, a deceased estate or executor, a title, a family trust, an individual trustee or
+    a trust named after a person), not merely for lack of organisation evidence (PR #11: such a
+    provider is never matched, even on keyed names)."""
+    if not legal_name or not legal_name.strip():
+        return False
+    name = legal_name.strip()
+    form = form or classify_entity_form(name)
+    if form == "likely_individual" or _ESTATE.search(name) or _TITLE.search(name):
+        return True
+    if _FAMILY_TRUST.search(name):
+        return True
+    split = _TRUSTEE_SPLIT.search(name)
+    if split:
+        trustee = _strip_leading_the(name[: split.start()])
+        if trustee and classify_entity_form(trustee) == "likely_individual":
+            return True
+        return _trust_names_a_person(name[split.end() :])
+    if form == "trust_or_trustee" or _TRUST_WORD.search(name):
+        return _trust_names_a_person(name)
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
