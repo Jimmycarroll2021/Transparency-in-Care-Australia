@@ -574,6 +574,8 @@ class PersonNames:
             # Codex round 4: a month may be a given name ('April Example') when a surname follows.
             month_given = len(keys) >= 2 and keys[0] in _MONTH_WORDS and keys[1] not in _MONTH_WORDS
             checked = keys[1:] if month_given else keys
+            # PR #12 round 1: each part of a hyphenated word is checked too ('Pre-School').
+            checked = checked + [part for k in checked if "-" in k for part in k.split("-")]
             if any(k in _BUSINESS_WORDS or k in _PROSE_STOPWORDS for k in checked):
                 continue
             if len(keys) >= 2:

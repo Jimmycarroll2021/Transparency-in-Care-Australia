@@ -357,3 +357,10 @@ def test_two_outputs_in_either_order_give_identical_results(tmp_path, monkeypatc
     for csv_text, counts in ab.values():
         assert "Sample Kids Club" not in csv_text
         assert counts == {"service_name": 1}
+
+
+def test_hyphenated_business_words_are_not_taken_for_a_name():
+    names = _names("Little Pre-School", "Jane Example")
+    assert not names.found_in("Riverside Pre School")
+    assert not names.found_in("Riverside Pre-School")
+    assert names.found_in("Jane Example Pre-School")
