@@ -31,3 +31,4 @@ data/raw/abr-lookup/
 # reparse_offline.py recovery state (Codex round 5): never committed
 data/.reparse-backup/
 data/.reparse-in-progress
+data/.reparse.lock

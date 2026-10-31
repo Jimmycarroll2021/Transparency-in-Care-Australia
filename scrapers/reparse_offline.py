@@ -54,6 +54,8 @@ from scrapers.profile_providers import PersonNames, acecqa_person_names  # noqa:
 PARSERS = [qld, vecra, sa, tas, cth, wa, nsw]
 # Persistent backups of data/processed, one directory per run (gitignored).
 BACKUP_ROOT = PROJECT_ROOT / "data" / ".reparse-backup"
+# Single-writer lock (Codex round 7, gitignored). Taken with an exclusive create.
+LOCK_PATH = PROJECT_ROOT / "data" / ".reparse.lock"
 _WRITERS = ("write_processed", "write_counts")
 ARGV = ["--skip-fetch"]
 
@@ -191,7 +193,51 @@ def collect_person_names() -> PersonNames:
     return names
 
 
+class LockHeld(RuntimeError):
+    pass
+
+
+def _acquire_lock() -> None:
+    """Take the single-writer lock with an exclusive create; raise LockHeld if it exists."""
+    LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        fd = os.open(LOCK_PATH, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError as exc:
+        raise LockHeld(str(LOCK_PATH)) from exc
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(f"pid {os.getpid()} at {common.utc_now().isoformat()}\n")
+        fh.flush()
+        os.fsync(fh.fileno())
+
+
+def _release_lock() -> None:
+    LOCK_PATH.unlink(missing_ok=True)
+
+
 def main(argv: list[str] | None = None) -> int:
+    """Single writer (Codex round 7): the lock is taken before anything is read or written and
+    released on every exit path. A held or stale lock is reported, never removed."""
+    try:
+        _acquire_lock()
+    except LockHeld:
+        try:
+            holder = LOCK_PATH.read_text(encoding="utf-8").strip()
+        except OSError:
+            holder = "(unreadable)"
+        message = (
+            f"Refusing to run: another reparse holds the lock {LOCK_PATH} ({holder}). Nothing "
+            "was read or changed. Delete the lock file by hand only if no reparse is running."
+        )
+        log.error(message)
+        print(message)
+        return 4
+    try:
+        return _run()
+    finally:
+        _release_lock()
+
+
+def _run() -> int:
     if common.refuse_if_reparse_incomplete():
         return 3
     try:
@@ -230,7 +276,8 @@ def main(argv: list[str] | None = None) -> int:
             message = (
                 f"Nothing was restored: the backup {backup} failed verification against its "
                 f"manifest ({invalid}). Do not copy anything from it. Run "
-                f"`git checkout -- data/processed`, then delete {common.REPARSE_MARKER}."
+                "`git checkout -- data/processed`, then remove any untracked files under "
+                f"data/processed (git status shows them) and delete {common.REPARSE_MARKER}."
             )
             log.error(message)
             print(message)
@@ -238,7 +285,8 @@ def main(argv: list[str] | None = None) -> int:
         except BaseException as restore_exc:
             message = (
                 f"Restore FAILED ({restore_exc!r}). The backup is kept at {backup}. Copy its files "
-                "back into data/processed, or run `git checkout -- data/processed`, then delete "
+                "back into data/processed, or run `git checkout -- data/processed`, then remove "
+                "any untracked files under data/processed (git status shows them) and delete "
                 f"{common.REPARSE_MARKER}."
             )
             log.error(message)

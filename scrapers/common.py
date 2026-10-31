@@ -758,13 +758,14 @@ def reparse_recovery_message() -> str | None:
         return head + (
             f"The backup {backup} failed verification against its manifest "
             f"({'; '.join(problems[:3])}). Do not copy anything from it. Run "
-            "`git checkout -- data/processed`, then delete the marker and run again."
+            "`git checkout -- data/processed`, then remove any untracked files under "
+            "data/processed (git status shows them), delete the marker and run again."
         )
     return head + (
         f"The backup {backup} is verified against its manifest {backup / BACKUP_MANIFEST}. "
         "Recover first: either copy the files listed in the manifest from that backup into "
-        "data/processed, or run `git checkout -- data/processed`. Then delete the marker and "
-        "run again."
+        "data/processed, or run `git checkout -- data/processed`. Then remove any untracked "
+        "files under data/processed (git status shows them), delete the marker and run again."
     )
 
 

@@ -42,6 +42,7 @@ def processed(tmp_path, monkeypatch):
     # Codex round 5: the marker and the persistent backup live outside data/processed.
     monkeypatch.setattr(common, "REPARSE_MARKER", tmp_path / ".reparse-in-progress")
     monkeypatch.setattr(ro, "BACKUP_ROOT", tmp_path / ".reparse-backup")
+    monkeypatch.setattr(ro, "LOCK_PATH", tmp_path / ".reparse.lock")  # Codex round 7
 
     def join_ok():
         (d / "enforcement-actions-all.csv").write_text("new join\n", encoding="utf-8")
