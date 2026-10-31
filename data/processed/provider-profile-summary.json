@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-31T07:28:42.697128+00:00",
+  "generated_at": "2026-10-31T08:18:30.908018+00:00",
   "inputs": {
     "providers_file": "data/processed/acecqa-providers-latest.csv",
     "services_file": "data/processed/acecqa-services-latest.csv",
@@ -117,7 +117,7 @@
     {
       "provider_approval_number": "PR-40002234",
       "legal_name": "TEAM HOLIDAY PTY LTD",
-      "trading_name": "Team Holiday",
+      "trading_name": null,
       "entity_form": "company",
       "service_count": 281,
       "states_operated_in": "ACT|NSW|QLD|VIC"

@@ -1,6 +1,6 @@
 {
   "output": "data/processed/vecra-enforcement-actions.csv",
-  "written_at": "2026-10-30T23:51:53.359165+00:00",
+  "written_at": "2026-10-31T08:18:19.304719+00:00",
   "rows": 132,
   "schema": "data/schemas/enforcement-action.schema.json",
   "raw_inputs": [
@@ -12,5 +12,11 @@
     "data/raw/vecra-enforcement/2026-10-29T0721Z-summary-table.html",
     "data/raw/vecra-enforcement/2026-10-29T0720Z-index.html"
   ],
-  "notes": "VECRA published enforcement actions under the National Law, parsed from monthly HTML pages. Latest snapshot of each page. CC BY 4.0, (c) State Government of Victoria. Historical years 2020 to 2025 are PDF/Word files disallowed by robots.txt and are not included. legal_references is a JSON array."
+  "notes": "VECRA published enforcement actions under the National Law, parsed from monthly HTML pages. Latest snapshot of each page. CC BY 4.0, (c) State Government of Victoria. Historical years 2020 to 2025 are PDF/Word files disallowed by robots.txt and are not included. legal_references is a JSON array.",
+  "names_withheld": {
+    "rule": "trading and service names withheld when they may name an individual (scrapers.common.withhold_person_named_names)",
+    "counts": {
+      "service_name": 19
+    }
+  }
 }
