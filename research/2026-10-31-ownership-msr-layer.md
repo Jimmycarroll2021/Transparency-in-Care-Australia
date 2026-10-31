@@ -6,7 +6,7 @@ edges. Every edge is an ABN match: the included entity's ABN on the statement pa
 valid, equals the provider's ABN. The 6 providers roll up to 6 groups, each identified by the
 reporting entity's ABN, and operate 150 of the 18,186 service approvals in the current ACECQA
 export (0.8%). The 11 edges that earlier versions made from name matches are now review rows.
-Joint-statement rows (46) and group-head rows (2) are recorded separately and are not ownership.
+Joint-statement rows (36) and group-head rows (2) are recorded separately and are not ownership.
 Confidence: High for the counts as produced by the script; Medium for what an edge means (see
 Definitions).
 
@@ -37,15 +37,16 @@ this order:
 | Exactly one row in `provider-profile.csv` (missing) | 0 |
 | Exactly one row in `provider-profile.csv` (duplicated) | 0 |
 | At most one row in `provider-abn.csv` | 0 |
-| `entity_form` positively an organisation: company, incorporated association, trust or trustee, cooperative, government, church or religious | 1,100 (likely individual or unknown) |
-| Name not withheld | 0 |
+| `entity_form` positively an organisation: company, incorporated association, trust or trustee, cooperative, government, church or religious | 1,130 (likely individual or unknown) |
+| Name not withheld | 1,113 |
 | Legal name not blank | 0 |
+| The shared name classifier (`profile_providers.name_is_withheld`) shows the name | 0 |
 | `provider-abn.csv` does not mark it as an individual or unknown | 0 |
 | No ABR source (`provider-abn.csv`, `abn-details.csv`) gives entity type IND | 0 |
 | ABR sources agree on its ABN's entity type | 0 |
 
-10,073 providers considered, 8,973 screened in (1,121 of the 1,210 priority providers). The ABN
-index is built from screened providers only: 901 accepted, checksum-valid ABNs. A duplicate
+10,073 providers considered, 7,830 screened in (1,030 of the 1,210 priority providers). The ABN
+index is built from screened providers only: 893 accepted, checksum-valid ABNs. A duplicate
 `provider_approval_number` row in `provider-profile.csv` or `provider-abn.csv` stops the run with
 exit 2. The check runs after the all-statements CSV has been fetched, checked and stored as a raw
 snapshot (unless `--no-fetch`), and before any statement page is fetched or any output is written.
@@ -91,18 +92,18 @@ latest). All statements behind the edges, older ones included, cover four report
 |---|---|---|
 | Candidate statements (pages parsed) | 136 | 18,869 statement rows |
 | Included entities parsed | 530 (350 with an ABN) | 136 pages |
-| Provider-statement relations (ABN matches) | 85 | n/a: no fixed population; one per screened provider found by ABN in one of the 136 statements |
-| `controlled_entity_of` relations | 11 | 85 |
+| Provider-statement relations (ABN matches) | 75 | n/a: no fixed population; one per screened provider found by ABN in one of the 136 statements |
+| `controlled_entity_of` relations | 11 | 75 |
 | `controlled_entity_of` edges (one per provider and group) | 7 | 11 `controlled_entity_of` relations, collapsed |
 | Providers with an edge | 6 | 1,210 priority providers (901 with an ABN) |
 | Groups they roll up to | 6 | 7 edges |
 | Services those providers operate | 150 | 18,186 current ACECQA services |
 | `group_parent_self` rows / providers | 2 / 2 | 3 `group_parent_self` relations / 1,210 priority providers; not ownership |
 | Services of group-head providers | 298 | 18,186; not ownership |
-| `co_reported_joint` rows / providers / statements | 46 / 16 / 22 | 85 relations / 1,210 priority providers / 136 statements; not ownership |
-| Providers whose only relations are joint | 14 | 16 |
-| `self_report_no_included_entities` relations | 25 | 85 relations; not ownership |
-| Review queue rows | 125 | n/a: no fixed population; one row per name match without a matching ABN |
+| `co_reported_joint` rows / providers / statements | 36 / 13 / 22 | 75 relations / 1,210 priority providers / 136 statements; not ownership |
+| Providers whose only relations are joint | 11 | 13 |
+| `self_report_no_included_entities` relations | 25 | 75 relations; not ownership |
+| Review queue rows | 115 | n/a: no fixed population; one row per name match without a matching ABN |
 | Former name-matched edges now in review | 11 | 11 |
 
 All 6 providers with an edge are priority providers. That follows from the method: every edge
@@ -232,16 +233,16 @@ in brackets, so the reconciliation compares it like an ABN. Any other invalid AB
 the run. This exception was added to complete the round 4 rebuild and needs the owner's
 confirmation.
 
-## Review queue (125 rows)
+## Review queue (115 rows)
 
-| Reason | Rows (of 125) |
+| Reason | Rows (of 115) |
 |---|---|
-| name_match_provider_abn_not_resolved (MSR gives an ABN; the provider has no accepted ABN) | 63 |
+| name_match_provider_abn_not_resolved (MSR gives an ABN; the provider has no accepted ABN) | 53 |
 | name_match_without_msr_abn (name equals one provider; MSR gives no ABN) | 53 |
 | fuzzy_corporate_suffix_differs | 9 |
 
 Rows carry the statement, the MSR-side ABN where given, the reason and candidate provider approval
-numbers only. Resolving the 63 providers' ABNs with `scrapers/abn_lookup.py` could turn some into
+numbers only. Resolving the providers' ABNs behind these 53 rows with `scrapers/abn_lookup.py` could turn some into
 ABN matches. Confidence: Medium.
 
 ## Limits
@@ -263,8 +264,8 @@ ABN matches. Confidence: Medium.
 
 - `data/processed/provider-group-edges-msr.csv` (7 rows, `controlled_entity_of` only)
 - `data/processed/provider-group-heads-msr.csv` (2 rows)
-- `data/processed/provider-coreported-msr.csv` (46 rows, caveat on every row)
-- `data/processed/provider-group-review-msr.csv` (125 rows)
+- `data/processed/provider-coreported-msr.csv` (36 rows, caveat on every row)
+- `data/processed/provider-group-review-msr.csv` (115 rows)
 - Each with a `.provenance.json`, plus `data/processed/provider-group-edges-msr-summary.json`
 
 Rebuild offline: `python3 scrapers/build_msr_group_edges.py --no-fetch`. `--refresh` takes a new
@@ -275,7 +276,7 @@ snapshot of every candidate page beside the old ones.
 1. Licence: will the Attorney-General's Department permit display of derived group links?
 2. Confirm the 00-prefixed ABN exception (statement 2022-3013), or decide the run should stop.
 3. Statement 2026-1450: confirm ownership of its included providers from another source.
-4. Should the 63 providers matched by name but without an accepted ABN be looked up and re-run?
+4. Should the providers behind the 53 rows matched by name but without an accepted ABN be looked up and re-run?
 5. Screening admits `trust_or_trustee` providers, whose ACECQA legal names are already published
    in `provider-profile.csv`. Confirm that, or exclude trusts.
 6. History: earlier commits expose names taken from the register; rewriting history is the
