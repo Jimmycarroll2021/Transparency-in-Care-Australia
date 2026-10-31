@@ -373,9 +373,10 @@ def name_is_withheld(
 
 def name_has_person_signal(legal_name: str | None, form: str | None = None) -> bool:
     """True when name_is_withheld would withhold the name because of a person signal (a likely
-    individual, a deceased estate or executor, a title, a family trust, an individual trustee or
-    a trust named after a person), not merely for lack of organisation evidence (PR #11: such a
-    provider is never matched, even on keyed names)."""
+    individual, a deceased estate or executor, a title, a family trust, an individual trustee, a
+    trust named after a person, or any name that may contain a personal name), not merely for
+    lack of organisation evidence (PR #11: such a provider is never matched, even on keyed
+    names)."""
     if not legal_name or not legal_name.strip():
         return False
     name = legal_name.strip()
@@ -390,9 +391,9 @@ def name_has_person_signal(legal_name: str | None, form: str | None = None) -> b
         if trustee and classify_entity_form(trustee) == "likely_individual":
             return True
         return _trust_names_a_person(name[split.end() :])
-    if form == "trust_or_trustee" or _TRUST_WORD.search(name):
-        return _trust_names_a_person(name)
-    return False
+    # Any other name (a trust or not) that may contain a personal name: two or more name-like
+    # words once filler, business, church, government and place words are dropped.
+    return _trust_names_a_person(name)
 
 
 # ---------------------------------------------------------------------------

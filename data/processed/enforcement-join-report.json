@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-31T04:42:48.036790+00:00",
+  "generated_at": "2026-10-31T05:01:43.238422+00:00",
   "window": {
     "months": 24,
     "start": "2024-10-29",
@@ -100,20 +100,20 @@
   },
   "overall": {
     "rows_in": 3543,
-    "joined": 3242,
-    "joined_live_spine": 2688,
+    "joined": 3230,
+    "joined_live_spine": 2676,
     "joined_by_unlisted_key": 554,
     "unlisted_service_keys": 106,
     "unlisted_provider_keys": 402,
-    "unmatched": 301,
+    "unmatched": 313,
     "unmatched_residual": {
-      "no_key_and_name_withheld": 138,
+      "no_key_and_name_withheld": 149,
       "no_key_no_name_match": 162,
-      "ambiguous_name": 0,
+      "ambiguous_name": 1,
       "other": 1
     },
-    "match_rate": 0.915,
-    "match_rate_live_spine_only": 0.7587,
+    "match_rate": 0.9117,
+    "match_rate_live_spine_only": 0.7553,
     "match_rate_note": "match_rate counts a row as joined when it joins to the live ACECQA spine or to an unlisted stub by printed key; match_rate_live_spine_only counts the live spine alone. The aim is that every row is joined by key, joined by unique name, or explicitly explained in unmatched_residual, not a 100 per cent match rate."
   },
   "unlisted_spine": {
@@ -138,17 +138,17 @@
       "joined_by_name": 0,
       "joined_by_name_and_suburb": 0,
       "joined_by_name_only": 0,
-      "joined_by_provider_name": 62,
+      "joined_by_provider_name": 59,
       "joined_by_provider_name_unpinned": 26,
-      "joined_by_provider_and_service_name": 36,
+      "joined_by_provider_and_service_name": 33,
       "joined_by_abn_entity": 7,
       "joined_by_abn_entity_pinned": 1,
       "joined_by_unlisted_key": 0,
       "joined_by_unlisted_key_service": 0,
       "joined_by_unlisted_key_provider": 0,
-      "unmatched": 167,
+      "unmatched": 170,
       "unmatched_residual": {
-        "no_key_and_name_withheld": 72,
+        "no_key_and_name_withheld": 75,
         "no_key_no_name_match": 95,
         "ambiguous_name": 0,
         "other": 0
@@ -157,7 +157,7 @@
       "unmatched_ambiguous_provider_name": 0,
       "duplicate_rows_not_counted": 0,
       "unmatched_reasons": {
-        "no service or provider key printed": 72,
+        "no service or provider key printed": 75,
         "no service or provider key printed; provider name: no provider in QLD with this normalised name": 6,
         "no service or provider key printed; provider name: no provider in VIC with this normalised name": 18,
         "no service or provider key printed; provider name: no provider in NSW with this normalised name": 13,
@@ -211,8 +211,8 @@
           "action_type": "ccs_sanction"
         }
       ],
-      "match_rate": 0.2924,
-      "match_rate_live_spine_only": 0.2924
+      "match_rate": 0.2797,
+      "match_rate_live_spine_only": 0.2797
     },
     "NSW": {
       "rows_in": 1738,
@@ -261,31 +261,32 @@
       "joined_exact_key": 0,
       "joined_exact_key_service": 0,
       "joined_exact_key_provider": 0,
-      "joined_by_name": 14,
+      "joined_by_name": 13,
       "joined_by_name_and_suburb": 0,
-      "joined_by_name_only": 14,
-      "joined_by_provider_name": 19,
-      "joined_by_provider_name_unpinned": 19,
+      "joined_by_name_only": 13,
+      "joined_by_provider_name": 13,
+      "joined_by_provider_name_unpinned": 13,
       "joined_by_provider_and_service_name": 0,
       "joined_by_abn_entity": 0,
       "joined_by_abn_entity_pinned": 0,
       "joined_by_unlisted_key": 0,
       "joined_by_unlisted_key_service": 0,
       "joined_by_unlisted_key_provider": 0,
-      "unmatched": 36,
+      "unmatched": 43,
       "unmatched_residual": {
-        "no_key_and_name_withheld": 21,
+        "no_key_and_name_withheld": 27,
         "no_key_no_name_match": 15,
-        "ambiguous_name": 0,
+        "ambiguous_name": 1,
         "other": 0
       },
-      "unmatched_ambiguous_name": 0,
+      "unmatched_ambiguous_name": 1,
       "unmatched_ambiguous_provider_name": 0,
       "duplicate_rows_not_counted": 0,
       "unmatched_reasons": {
         "no service name printed; no key; name match not possible; provider name: no provider in QLD with this normalised name": 1,
-        "no key; subject withheld as an individual; name match not attempted": 21,
+        "no key; subject withheld as an individual; name match not attempted": 27,
         "no QLD service with this normalised name": 1,
+        "ambiguous: N candidates share the name; provider name: no provider in QLD with this normalised name": 1,
         "no QLD service with this normalised name; provider name: no provider in QLD with this normalised name": 13
       },
       "unmatched_examples": [
@@ -306,6 +307,10 @@
           "action_type": "approval_cancelled"
         },
         {
+          "record_id": "f1d9f9448b019466",
+          "action_type": "prosecution"
+        },
+        {
           "record_id": "8037b905f404d011",
           "action_type": "prosecution"
         },
@@ -324,14 +329,10 @@
         {
           "record_id": "d1532e2ddd9393c4",
           "action_type": "approval_cancelled"
-        },
-        {
-          "record_id": "d927a7e9af3fca08",
-          "action_type": "approval_cancelled"
         }
       ],
-      "match_rate": 0.4783,
-      "match_rate_live_spine_only": 0.4783
+      "match_rate": 0.3768,
+      "match_rate_live_spine_only": 0.3768
     },
     "SA": {
       "rows_in": 436,
@@ -341,17 +342,17 @@
       "joined_by_name": 0,
       "joined_by_name_and_suburb": 0,
       "joined_by_name_only": 0,
-      "joined_by_provider_name": 42,
-      "joined_by_provider_name_unpinned": 16,
-      "joined_by_provider_and_service_name": 26,
+      "joined_by_provider_name": 40,
+      "joined_by_provider_name_unpinned": 15,
+      "joined_by_provider_and_service_name": 25,
       "joined_by_abn_entity": 0,
       "joined_by_abn_entity_pinned": 0,
       "joined_by_unlisted_key": 9,
       "joined_by_unlisted_key_service": 2,
       "joined_by_unlisted_key_provider": 7,
-      "unmatched": 66,
+      "unmatched": 68,
       "unmatched_residual": {
-        "no_key_and_name_withheld": 18,
+        "no_key_and_name_withheld": 20,
         "no_key_no_name_match": 48,
         "ambiguous_name": 0,
         "other": 0
@@ -361,7 +362,7 @@
       "duplicate_rows_not_counted": 0,
       "unmatched_reasons": {
         "no service or provider key printed; provider name: no provider in SA with this normalised name": 47,
-        "no service or provider key printed": 19
+        "no service or provider key printed": 21
       },
       "unmatched_examples": [
         {
@@ -405,8 +406,8 @@
           "action_type": "condition_imposed"
         }
       ],
-      "match_rate": 0.8486,
-      "match_rate_live_spine_only": 0.828
+      "match_rate": 0.844,
+      "match_rate_live_spine_only": 0.8234
     },
     "TAS": {
       "rows_in": 1,
@@ -547,13 +548,13 @@
     }
   },
   "services_with_action_last_24_months": {
-    "count": 1294,
+    "count": 1291,
     "denominator_services": 18186,
     "note": "counts actions of any type that were joined to the service; only states whose registers are collected can contribute"
   },
   "providers_with_action_last_24_months": {
-    "count": 835,
-    "of_which_name_not_withheld": 700,
+    "count": 830,
+    "of_which_name_not_withheld": 698,
     "denominator_providers": 10073
   },
   "top_20_providers_by_actions_last_24_months": [
@@ -1263,6 +1264,7 @@
     "Rows joined by an unlisted key (match_confidence exact_key_unlisted) carry an identity taken from the enforcement register, not from ACECQA: the approval is absent from the current ACECQA export, usually because it has ceased. They hold no current rating. They are reported separately from the live denominators (services and providers in the ACECQA export).",
     "Every unmatched row has exactly one stated reason in unmatched_residual (no_key_and_name_withheld, no_key_no_name_match, ambiguous_name, other). The aim is that each row is joined by key, joined by unique name, or explained; a 100 per cent match rate is not the goal and would require guessing.",
     "Rows joined by provider name (provider_name_unique, provider_and_service_name) carry no printed key: they are accepted only when exactly one ACECQA provider has the normalised name, but a name match is weaker evidence than a key. actions_matched_by_name on each table shows how many of a row's counts rest on a name.",
+    "Rows joined on keyed names (join_note 'matched on keyed names') had a name withheld by the shared fail-closed rule for lack of organisation evidence. The keyed-name stage covers QLD, Commonwealth CCS and SA rows only. It never matches a provider whose entity form reads as an individual or whose name carries a person signal, nor its services. Such rows carry approval numbers but no ACECQA name, and their printed service name only when the shared name rule clears it.",
     "Commonwealth CCS sanctions attach to the CCS approved provider, so a provider-name match is provider-level unless the service is pinned. ABNs are carried in enforcement-actions-all.csv.",
     "Rows joined by ABN entity (match_confidence abn_unique_entity) printed an ABN that the ABN Lookup web services resolved to an organisation whose ABR entity or business name, normalised, matches exactly one ACECQA provider. ACECQA holds no ABN, so this is still a name match (ABR name to ACECQA name), anchored by the printed ABN. Individuals and sole traders are never matched."
   ],
@@ -1272,5 +1274,5 @@
     "data/processed/enforcement-by-service.csv",
     "data/processed/enforcement-by-provider.csv"
   ],
-  "joined_before_unlisted_stage": 2688
+  "joined_before_unlisted_stage": 2676
 }

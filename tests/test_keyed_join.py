@@ -18,9 +18,9 @@ from tests.test_reparse_offline import make_parser
 KEY = bytes.fromhex(TEST_JOIN_KEY)
 ROOT = Path(__file__).resolve().parent.parent
 # Withheld by the shared rule for lack of organisation evidence only (no person signal).
-PROVIDER = "Example Kids Learning Collective"
+PROVIDER = "Kidsplay Childcare"
 SERVICE = "Sunny Meadow Early Learning"
-NAMES = ("example kids", "sunny meadow")
+NAMES = ("kidsplay", "sunny meadow")
 QLD_KEYS = "qld-enforcement-actions"
 
 
@@ -98,7 +98,7 @@ def _keyed(spine, providers, record_id="r1", service=SERVICE):
 def test_the_name_key_is_deterministic_and_depends_on_the_key():
     a = common.provider_name_key(PROVIDER, KEY)
     assert a == common.provider_name_key(PROVIDER, KEY)
-    assert a == common.provider_name_key("example kids learning-collective.", KEY)
+    assert a == common.provider_name_key("kidsplay  child-care?".replace("-", ""), KEY)
     assert a != common.provider_name_key(PROVIDER, bytes.fromhex("a5" * 32))
     assert len(a) == 64 and PROVIDER.lower() not in a
 
@@ -240,6 +240,12 @@ def test_a_keyed_source_without_the_key_stops_before_any_write(tmp_path, monkeyp
         _sidecar(tmp_path, monkeypatch, [_withheld()])
     assert not (tmp_path / "processed" / f"{QLD_KEYS}.csv").exists()
     _sidecar(tmp_path, monkeypatch, [_withheld()], name="wa-enforcement-actions")  # not keyed
+
+
+def test_a_name_that_may_contain_a_personal_name_is_excluded():
+    spine, providers = _spine()
+    providers[0]["Legal Name"] = "Jane Example Learning Collective"
+    assert "PR-00000001" in je.KeyedNames(spine, KEY, {}, providers).excluded
 
 
 def test_a_person_named_trust_and_its_services_are_never_matched():
