@@ -648,11 +648,15 @@ class AcecqaNameContext:
       name (or that name's surname) would publish the withheld name.
     - ordinary: lower-case words of every published (not withheld) provider legal name. A
       surname from the run-wide set that is also such a word ('Cottage', 'Valley') is not used
-      alone against a name from another provider; full names always count."""
+      alone against a name from another provider; full names always count.
+    - flagged: casefolded ACECQA service names that repeat their own withheld provider's name.
+      The same name printed by a regulator, without the provider, is withheld too, so that every
+      output withholds it whatever order the outputs are written in."""
 
     def __init__(self) -> None:
         self.withheld: dict[str, str] = {}
         self.ordinary: frozenset[str] = frozenset()
+        self.flagged: frozenset[str] = frozenset()
 
     def __reduce__(self):
         raise TypeError("AcecqaNameContext is in memory only and cannot be serialised")
@@ -665,10 +669,13 @@ class AcecqaNameContext:
         return names
 
 
-def acecqa_name_context(path: Path | None = None, abr_types: dict | None = None):
-    """Build the AcecqaNameContext from the processed copy of the ACECQA provider register."""
+def acecqa_name_context(
+    path: Path | None = None, abr_types: dict | None = None, services_path: Path | None = None
+):
+    """Build the AcecqaNameContext from the processed copies of the ACECQA registers."""
     ctx = AcecqaNameContext()
     path = path or PROVIDERS_CSV
+    services_path = services_path or SERVICES_CSV
     if not path.exists():
         return ctx
     abr = _abr_entity_types() if abr_types is None else abr_types
@@ -684,6 +691,14 @@ def acecqa_name_context(path: Path | None = None, abr_types: dict | None = None)
         else:
             ordinary |= {t.lower() for t in _NAME_TOKEN.findall(legal)}
     ctx.ordinary = frozenset(ordinary)
+    flagged: set[str] = set()
+    if services_path.exists():
+        for svc in _read(services_path):
+            name = (svc.get("ServiceName") or "").strip()
+            pr = svc.get("provider_approval_number") or ""
+            if name and pr in ctx.withheld and ctx.own_names(pr).found_in(name):
+                flagged.add(" ".join(name.casefold().split()))
+    ctx.flagged = frozenset(flagged)
     return ctx
 
 
@@ -972,7 +987,7 @@ def build_profile() -> dict:
     return summary
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     for path in (PROVIDERS_CSV, SERVICES_CSV):
         if not path.exists():
             raise SystemExit(

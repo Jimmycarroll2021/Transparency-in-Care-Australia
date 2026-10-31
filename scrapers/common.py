@@ -730,11 +730,14 @@ def name_may_name_person_in_row(value: str | None, row: dict | None = None, name
     or subject (in memory only). A name already withheld in this process is withheld again."""
     if not isinstance(value, str) or not value.strip():
         return False
-    if _name_key(value) in _WITHHELD_NAME_STRINGS:
+    key = _name_key(value)
+    if key in _WITHHELD_NAME_STRINGS:
         return True
     from scrapers.profile_providers import PersonNames, name_may_name_person
 
     ctx = ensure_name_context()
+    if key in ctx.flagged:
+        return True
     names = _run_wide_names() if names is None else names
     row = row or {}
     own = ctx.own_names(
@@ -778,8 +781,8 @@ def withhold_person_named_names(
         return rows, fieldnames, counts
     names = _run_wide_names() if names is None else names
     fieldnames = list(fieldnames)
-    out: list[dict] = []
-    for index, row in enumerate(rows):
+
+    def decide(row: dict) -> tuple[dict[str, object], dict[str, str]]:
         changed: dict[str, object] = {}
         withheld: dict[str, str] = {}
         is_service_stub = row.get("kind") == "service"
@@ -804,13 +807,20 @@ def withhold_person_named_names(
             else:
                 continue
             withheld[col] = value
-            counts[col] = counts.get(col, 0) + 1
+        return changed, withheld
+
+    # Two passes, so that a name withheld on a later row is withheld on an earlier row too.
+    decisions = [decide(row) for row in rows]
+    decisions = [d if d[0] else decide(row) for row, d in zip(rows, decisions, strict=True)]
+    out: list[dict] = []
+    for index, (row, (changed, withheld)) in enumerate(zip(rows, decisions, strict=True)):
         if not changed:
             out.append(row)
             continue
         new = dict(row)
         new.update(changed)
         for col in withheld:
+            counts[col] = counts.get(col, 0) + 1
             column = _name_note_column(col, fieldnames)
             if column not in fieldnames:
                 fieldnames.append(column)

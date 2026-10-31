@@ -49,10 +49,16 @@ from scrapers import parse_sa_enforcement as sa  # noqa: E402
 from scrapers import parse_tas_enforcement as tas  # noqa: E402
 from scrapers import parse_vecra_enforcement as vecra  # noqa: E402
 from scrapers import parse_wa_enforcement as wa  # noqa: E402
+from scrapers import profile_providers as profile  # noqa: E402
 from scrapers.common import PROCESSED_DIR, PROJECT_ROOT, log  # noqa: E402
 from scrapers.profile_providers import PersonNames, acecqa_person_names  # noqa: E402
 
 PARSERS = [qld, vecra, sa, tas, cth, wa, nsw]
+# PR #12: builders run in the real pass with the run-wide names, before the parsers, so that the
+# name rule on provider-profile.csv trading names uses the same names as every other output.
+# Their summary files (atomic_write_text) are held back too.
+BUILDERS = [profile]
+_BUILDER_WRITERS = ("write_processed", "atomic_write_text")
 # Persistent backups of data/processed, one directory per run (gitignored).
 BACKUP_ROOT = PROJECT_ROOT / "data" / ".reparse-backup"
 # Single-writer lock (Codex round 7, gitignored). Taken with an exclusive create.
@@ -100,11 +106,11 @@ def _capture(module) -> list[dict]:
     return captured
 
 
-def _held_writes(module) -> list:
+def _held_writes(module, writers: tuple[str, ...] = _WRITERS) -> list:
     """Run one parser with its writes held back in memory. Returns the held calls."""
     held: list = []
     saved = {}
-    for attr in _WRITERS:
+    for attr in writers:
         if hasattr(module, attr):
             original = getattr(module, attr)
             saved[attr] = original
@@ -285,6 +291,8 @@ def _run() -> int:
     common.set_person_names(names)
     held: list = []
     try:
+        for module in BUILDERS:
+            held.extend(_held_writes(module, _BUILDER_WRITERS))
         for module in PARSERS:
             held.extend(_held_writes(module))
     except ParserFailed as exc:
