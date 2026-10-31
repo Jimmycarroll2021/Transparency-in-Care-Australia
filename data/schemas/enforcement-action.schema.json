@@ -1,23 +1,23 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Enforcement action record",
-  "description": "One published enforcement action against an education and care service or approved provider, as parsed from an official register. One row per action per service. Person-level fields are never stored.",
+  "description": "One published enforcement action against an education and care service or approved provider, as parsed from an official register. One row per action per service. Person-level fields are never stored. The structured fact columns (service_type, start_date, end_date, date_charged, date_of_sentence, plea, penalty_amount_aud) are carried unchanged into enforcement-actions-all.csv, keyed by record_id.",
   "type": "object",
   "required": [
     "record_id",
     "jurisdiction",
     "source_register",
-    "source_document",
     "captured_at",
     "action_type",
     "action_type_raw"
   ],
   "properties": {
-    "record_id": { "type": "string", "description": "Stable hash of jurisdiction, service or provider key, action_type_raw, date_issued_raw and reason." },
+    "record_id": { "type": "string", "description": "Stable hash of jurisdiction, the source document parsed and a hash of the row's full printed source text (every printed field, whitespace and case normalised), then an occurrence counter shared only by rows whose printed text is fully identical. No source-order ordinal and no published or withheld value is used; the printed text itself is never stored." },
     "jurisdiction": { "enum": ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT", "CTH"] },
     "source_register": { "type": "string", "pattern": "^https://", "description": "Index page of the register." },
-    "source_document": { "type": "string", "pattern": "^https://", "description": "The page or file the row was parsed from." },
-    "source_snapshot": { "type": "string", "description": "Path under data/raw/ of the snapshot parsed." },
+    "source_document": { "type": ["string", "null"], "pattern": "^https://", "description": "The page or file the row was parsed from. Null when its path or file name may name an individual (notes say 'source URL withheld: may name an individual'); the row stays traceable through record_id and source_snapshot." },
+    "linked_documents": { "type": ["string", "null"], "description": "QLD only: other URLs linked from the row, separated by spaces. A URL whose path or file name may name an individual is left out whole; null when none is left." },
+    "source_snapshot": { "type": ["string", "null"], "description": "Path under data/raw/ of the snapshot parsed. Null when the path or file name may name an individual (notes say 'source snapshot path withheld: may name an individual'); the row stays traceable through record_id and source_document." },
     "captured_at": { "type": "string", "description": "ISO 8601 UTC time the snapshot was fetched." },
     "service_approval_number": { "type": ["string", "null"], "pattern": "^SE-\\d{8}$" },
     "service_approval_number_raw": { "type": ["string", "null"] },
@@ -55,6 +55,13 @@
     "date_issued": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
     "date_issued_raw": { "type": ["string", "null"] },
     "period_label": { "type": ["string", "null"], "description": "Register period the row came from, e.g. '2025 Q2' or 'August 2026'." },
-    "notes": { "type": ["string", "null"], "description": "Parser warnings: duplicate rows, unparsable dates, missing keys." }
+    "notes": { "type": ["string", "null"], "description": "Parser warnings: duplicate rows, unparsable dates, missing keys." },
+    "service_type": { "type": ["string", "null"], "description": "CTH only: service type as printed in its labelled field, kept only when it is one of the register's service types; otherwise null." },
+    "start_date": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "NSW only: the start of a printed suspension period ('from D until D') as ISO 8601. Null when not printed or not parsable; never inferred." },
+    "end_date": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "The printed end of the action as ISO 8601: CTH End date, NSW suspension period end, SA date range end. Null when not printed or not parsable; never inferred." },
+    "date_charged": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "CTH only: the printed Date charged as ISO 8601. Null when not printed or not parsable; never inferred." },
+    "date_of_sentence": { "type": ["string", "null"], "pattern": "^\\d{4}-\\d{2}-\\d{2}$", "description": "CTH only: the printed Date of sentence as ISO 8601. Null when not printed or not parsable; never inferred." },
+    "plea": { "type": ["string", "null"], "description": "CTH only: the printed Plea, kept only when it is 'Guilty' or 'Not guilty'; otherwise null." },
+    "penalty_amount_aud": { "type": ["number", "null"], "minimum": 0, "description": "QLD only: the fine in dollars when the printed headline says 'fined' and prints exactly one distinct dollar amount; otherwise null." }
   }
 }

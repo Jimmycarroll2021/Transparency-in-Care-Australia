@@ -997,3 +997,14 @@ def test_report_records_posix_paths_on_every_platform(spine, tmp_path, monkeypat
     )
     assert report["inputs"] == ["data/processed/nsw-enforcement-actions.csv"]
     assert report["raw_inputs"] == ["data/raw/nsw-enforcement/2026-10-29T0718Z-x.pdf"]
+
+
+def test_prose_rule_note_does_not_mark_the_provider_name_as_withheld():
+    # Codex round 2, finding 1: the prose rule nulls prose that may name a person, but the row's
+    # organisation provider name is still published, so name matching must still be attempted.
+    from scrapers.common import FREE_TEXT_WITHHELD_NOTE, PROSE_WITHHELD_NOTE
+
+    assert je.PROSE_WITHHELD_NOTE == PROSE_WITHHELD_NOTE
+    assert not je.name_withheld_row({"notes": f"location not printed; {PROSE_WITHHELD_NOTE}"})
+    assert je.name_withheld_row({"notes": f"x | {PROSE_WITHHELD_NOTE} | provider name withheld"})
+    assert je.name_withheld_row({"notes": FREE_TEXT_WITHHELD_NOTE})

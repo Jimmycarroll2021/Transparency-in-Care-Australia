@@ -10,6 +10,7 @@ from pathlib import Path
 
 import httpx
 from scrapers import parse_cth_ccs_enforcement as cth
+from scrapers.common import record_hash
 from scrapers.parse_cth_ccs_enforcement import (
     CURRENT_URL,
     PAST_URL,
@@ -58,7 +59,7 @@ def entry(service, provider, location, service_type, sanction, grounds, date, en
 
 COMPANY = entry(
     "Riverbend Early Learning Centre",
-    "Riverbend Kids Pty Ltd Atf The Example Family Trust – ABN: 11222333444",
+    "Riverbend Kids Pty Ltd Atf The Riverbend Unit Trust – ABN: 11222333444",
     "Gayndah, queensland",
     "Centre Based Day Care",
     "Sanction under section 197H - Cancellation of Provider Approval",
@@ -67,11 +68,11 @@ COMPANY = entry(
 )
 INDIVIDUAL = entry(
     "Zanzibar Family Day Care",
-    "Ms Quillon Farnsby and Ms Odalys Farnsby – ABN: 55666777888",
+    "Ms Quinn Sampleby and Ms Olive Sampleby – ABN: 55666777888",
     "Meadow Heights, victoria",
     "Family Day Care",
     "Sanction under section 197L – Cancellation of Provider Approval",
-    "Farnsby breached s 194C and section 195A. Cancelled under 197L.",
+    "Sampleby breached s 194C and section 195A. Cancelled under 197L.",
     "19 December 2024",
 )
 REPEAT = entry(
@@ -122,7 +123,7 @@ def test_entries_split_and_toc_and_site_menu_ignored():
 def test_company_row_abn_and_mapping():
     r = rows()[0]
     assert r["jurisdiction"] == "CTH"
-    assert r["provider_name"] == "Riverbend Kids Pty Ltd Atf The Example Family Trust"
+    assert r["provider_name"] == "Riverbend Kids Pty Ltd Atf The Riverbend Unit Trust"
     assert r["notes"].startswith("ccs_identifier: ABN 11222333444")
     assert "service_type: Centre Based Day Care" in r["notes"]
     assert r["suburb"] == "Gayndah" and r["state"] == "QLD"
@@ -142,19 +143,20 @@ def test_individual_provider_is_withheld_everywhere():
     assert r["provider_name"] is None
     assert "provider name withheld; subject is an individual" in r["notes"]
     assert "ccs_identifier" not in r["notes"] and "55666777888" not in json.dumps(r)
-    assert "farnsby" not in json.dumps(r).lower()
-    assert "quillon" not in json.dumps(r).lower()
+    assert "sampleby" not in json.dumps(r).lower()
+    assert "quinn" not in json.dumps(r).lower()
     assert r["state"] == "VIC" and r["suburb"] == "Meadow Heights"
-    assert r["legal_references"] == ["section 197L", "section 194C", "section 195A"]
+    # Codex round 1, finding 1: free text of a withheld row is withheld whole, not redacted.
+    assert r["legal_references"] == []
     assert r["service_name"] == "Zanzibar Family Day Care"
-    assert r["reason"].startswith("[name withheld] breached")
+    assert r["reason"] is None
 
 
 def test_service_name_withheld_when_it_is_the_individuals_name():
     html = page(
         entry(
-            "Farnsby Family Day Care",
-            "Ms Quillon Farnsby",
+            "Sampleby Family Day Care",
+            "Ms Quinn Sampleby",
             "Perth, WA",
             "Family Day Care",
             "Sanction under section 197L - Cancellation of Provider Approval",
@@ -165,13 +167,15 @@ def test_service_name_withheld_when_it_is_the_individuals_name():
     r = rows(html)[0]
     assert r["service_name"] is None
     assert "service name withheld" in r["notes"]
-    assert "farnsby" not in json.dumps(r).lower()
+    assert "sampleby" not in json.dumps(r).lower()
 
 
 def test_repeated_service_kept_and_second_marked_duplicate():
     r = rows()
     assert r[2]["service_name"] == r[3]["service_name"] == "Harbour Street OSHC"
-    assert r[2]["record_id"] == r[3]["record_id"]
+    # Codex round 1, finding 3: ids come from position and keys, so a repeat gets its own id;
+    # the repeat is still found by its printed content and marked.
+    assert r[2]["record_id"] != r[3]["record_id"]
     assert "duplicate row in source" not in r[2]["notes"]
     assert r[3]["notes"].endswith("; duplicate row in source")
     assert r[2]["state"] == "WA" and r[2]["suburb"] is None
@@ -180,16 +184,18 @@ def test_repeated_service_kept_and_second_marked_duplicate():
     assert r[2]["legal_references"] == ["section 195F"]
 
 
-def test_record_id_uses_withheld_placeholder_for_individuals():
+def test_record_id_no_longer_uses_a_withheld_placeholder():
+    # Codex round 1, finding 3: the old id hashed "withheld" in place of the name, so different
+    # individuals with the same action collided. The id now uses non-name facts only.
     r = rows()[1]
-    expected = cth.record_hash(
+    old = record_hash(
         "CTH",
         "Zanzibar Family Day Care",
         "withheld",
         "Sanction under section 197L – Cancellation of Provider Approval",
         "19 December 2024",
     )
-    assert r["record_id"] == expected
+    assert r["record_id"] != old
 
 
 def test_label_variants_strong_and_plain_text():
@@ -217,7 +223,7 @@ def test_split_abn_variants():
 
 
 def test_is_individual():
-    assert is_individual("Ms Yier Makuet and Ms Natalina Makuet")
+    assert is_individual("Ms Yara Example and Ms Nina Example")
     assert is_individual("Partnership Of Ann Example and Bob Example")
     assert is_individual("Pat Example")
     assert is_individual("L.V Example & N Sample")
@@ -292,10 +298,17 @@ def test_conviction_row_keeps_case_facts_and_null_date():
     r = rows(html)[0]
     assert r["action_type"] == "prosecution"
     assert r["date_issued"] is None and r["date_issued_raw"] is None
-    assert "date of effect not printed" in r["notes"]
-    assert "charge: Criminal Code - 135.1(3)" in r["notes"]
-    assert "date_of_sentence: 3 March 2025" in r["notes"]
     assert r["provider_name"] is None
+    # Codex round 1, finding 1: the subject is withheld, so case text (charge, plea, sentence
+    # date) is withheld whole with the rest of the free text.
+    assert r["notes"].endswith("free text withheld: subject may be an individual")
+    assert "charge" not in r["notes"] and "Criminal Code" not in r["notes"]
+    # Codex round 2, finding 4: the printed dates survive as structured, source-faithful columns.
+    assert r["date_of_sentence"] == "2025-03-03"
+    assert r["date_charged"] == "2023-09-04"
+    assert r["end_date"] is None
+    assert r["plea"] == "Guilty"
+    assert r["service_type"] == "Family Day Care"
 
 
 def test_past_role_label():
@@ -330,3 +343,148 @@ def test_main_returns_2_when_site_unreachable(monkeypatch):
 
     monkeypatch.setattr(cth, "fetch", boom)
     assert cth.main([]) == 2
+
+
+def test_is_individual_applies_the_shared_fail_closed_rule():
+    assert is_individual("Example Holdings Pty Ltd ATF Jane Example Unit Trust")
+    assert is_individual("Jane Example ATF Example Unit Trust")
+    assert not is_individual("Example Holdings Pty Ltd ATF Sunrise Unit Trust")
+    # Codex round 2, finding 2: a family trust names a family, so it is withheld.
+    assert is_individual("Example Holdings Pty Ltd ATF Smith Family Trust")
+
+
+# --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------
+
+from scrapers.common import FREE_TEXT_WITHHELD_NOTE  # noqa: E402
+
+
+def test_withheld_cth_row_keeps_no_free_text():
+    r = rows()[1]
+    assert r["provider_name"] is None
+    assert r["reason"] is None and r["action_type_raw"] == "(withheld)"
+    assert r["legal_references"] == []
+    assert FREE_TEXT_WITHHELD_NOTE in r["notes"]
+    assert "sampleby" not in json.dumps(r).lower() and "quinn" not in json.dumps(r).lower()
+    assert r["state"] == "VIC" and r["suburb"] == "Meadow Heights"
+
+
+def test_withheld_cth_row_keeps_printed_keys():
+    html = page(
+        entry(
+            "Example Family Day Care SE-40001234",
+            "Ms Jane Example PR-40005678 - ABN: 55666777888",
+            "Perth, WA",
+            "Family Day Care",
+            "Sanction under section 197L - Cancellation of Provider Approval",
+            "Jane Example breached s 194C.",
+            "1 May 2025",
+        )
+    )
+    r = rows(html)[0]
+    assert r["provider_name"] is None
+    assert r["service_approval_number"] == "SE-40001234"
+    assert r["provider_approval_number"] == "PR-40005678"
+
+
+def test_cth_record_ids_survive_reordering_and_are_unique():
+    a = rows(page(COMPANY, INDIVIDUAL, REPEAT, REPEAT))
+    b = rows(page(INDIVIDUAL, REPEAT, COMPANY, REPEAT))
+    key = lambda r: (r["service_name"], r["date_issued_raw"])  # noqa: E731
+    assert sorted(map(key, a)) == sorted(map(key, b))
+    assert {r["record_id"] for r in a} == {r["record_id"] for r in b}
+    assert {key(r): r["record_id"] for r in a if key(r)[0] != "Harbour Street OSHC"} == {
+        key(r): r["record_id"] for r in b if key(r)[0] != "Harbour Street OSHC"
+    }
+    assert len({r["record_id"] for r in a}) == len(a)
+
+
+def test_two_withheld_individuals_with_the_same_action_are_not_duplicates():
+    one = entry(
+        "Alpha Family Day Care",
+        "Ms Jane Example",
+        "Perth, WA",
+        "Family Day Care",
+        "Sanction under section 197L - Cancellation of Provider Approval",
+        "Grounds.",
+        "1 May 2025",
+    )
+    two = one.replace("Ms Jane Example", "Ms Mary Sample")
+    r = rows(page(one, two))
+    assert len({x["record_id"] for x in r}) == 2
+    assert all("duplicate row in source" not in (x["notes"] or "") for x in r)
+
+
+# Codex round 2, finding 4: structured facts printed in labelled fields are kept as columns,
+# never inferred, and survive the free-text withholding.
+
+
+def test_structured_dates_on_organisation_row():
+    r = rows(page(REPEAT))[0]
+    assert r["end_date"] == "2027-01-01"
+    assert r["date_charged"] is None and r["date_of_sentence"] is None
+    assert r["plea"] is None
+    assert r["service_type"] == "Outside School Hours Care"
+
+
+def test_structured_dates_null_when_not_printed():
+    r = rows(page(COMPANY))[0]
+    for key in ("end_date", "date_charged", "date_of_sentence", "plea"):
+        assert r[key] is None, key
+    assert r["service_type"] == "Centre Based Day Care"
+
+
+def test_structured_date_unparsable_is_null_not_inferred():
+    r = rows(
+        page(
+            entry(
+                "A OSHC",
+                "A Services Inc",
+                "Perth, WA",
+                "Outside School Hours Care",
+                "Conditions on approval under section 195F",
+                "x",
+                "1 July 2026",
+                end="early 2027",
+            )
+        )
+    )[0]
+    assert r["end_date"] is None
+    assert "end date printed but not parsable" in r["notes"]
+
+
+def test_service_type_and_plea_outside_vocabulary_are_null():
+    html = """<html><body><main><h2>On this page:</h2><h2>Example FDC</h2>
+    <div class="views-row"><dl><dt>Provider:</dt><dd>Jane Example</dd>
+    <dt>Location:</dt><dd>Victoria, VIC</dd><dt>Service type:</dt><dd>Run by Jane Example</dd>
+    <dt>Type of sanction:</dt><dd>Conviction (Criminal Code)</dd>
+    <dt>Plea:</dt><dd>Entered by Jane Example</dd></dl></div></main></body></html>"""
+    r = rows(html)[0]
+    assert r["service_type"] is None and r["plea"] is None
+    assert "Jane" not in json.dumps(r)
+
+
+def test_structured_columns_in_fieldnames_and_schema():
+    props = SCHEMA["properties"]
+    for key in ("service_type", "end_date", "date_charged", "date_of_sentence", "plea"):
+        assert key in cth.FIELDNAMES
+        assert key in props
+    for key in ("end_date", "date_charged", "date_of_sentence"):
+        assert props[key]["pattern"] == props["date_issued"]["pattern"]
+
+
+def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
+    # Codex round 2, finding 1: the shared prose rule runs on every row, not only withheld ones.
+    named = entry(
+        "Riverbend Early Learning Centre",
+        "Riverbend Kids Pty Ltd",
+        "Gayndah, queensland",
+        "Centre Based Day Care",
+        "Sanction under section 197H - Cancellation of Provider Approval",
+        "Educator Jane Example failed to meet Section 195H requirements.",
+        "22 April 2025",
+    )
+    r = rows(page(named))[0]
+    assert r["provider_name"] == "Riverbend Kids Pty Ltd"
+    assert r["reason"] is None
+    assert "free text withheld: may name an individual" in r["notes"]
+    assert "Jane" not in json.dumps(r)

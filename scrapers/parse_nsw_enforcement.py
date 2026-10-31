@@ -29,16 +29,24 @@ from scrapers import common
 from scrapers.common import (
     PROJECT_ROOT,
     RAW_DIR,
+    assign_record_ids,
+    ensure_person_names,
     fetch,
     known_hashes,
     list_snapshots,
     log,
     normalise_pr,
     normalise_se,
-    record_hash,
+    note_withheld_subject,
+    printed_fingerprint,
+    redact_urls_in_obj,
+    refuse_if_reparse_incomplete,
+    withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
     write_snapshot,
 )
+from scrapers.profile_providers import name_is_withheld
 
 SOURCE = "nsw-enforcement"
 JURISDICTION = "NSW"
@@ -74,6 +82,9 @@ FIELDNAMES = [
     "date_issued_raw",
     "period_label",
     "notes",
+    # Structured facts from a printed suspension period, kept before free text is withheld.
+    "start_date",
+    "end_date",
 ]
 
 
@@ -177,6 +188,24 @@ def clean_text(value: str | None) -> str:
         return ""
     text = re.sub(r"(?<=[A-Za-z])-\n(?=[A-Za-z])", "-", value)
     return re.sub(r"\s+", " ", text).strip()
+
+
+_SUSPENSION_PERIOD = re.compile(
+    r"(?i)period of suspension is from[ ]+([0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4})"
+    r"[ ]+(?:until|to)[ ]+([0-9]{1,2}/[0-9]{1,2}/[0-9]{2,4})"
+)
+
+
+def extract_suspension_period(*texts: str | None) -> tuple[str | None, str | None]:
+    """(start, end) ISO dates from 'The period of suspension is from D until D' as printed.
+    (None, None) when no such sentence is printed or a date does not parse; never inferred."""
+    for text in texts:
+        m = _SUSPENSION_PERIOD.search(" ".join((text or "").split()))
+        if m:
+            start, end = parse_date(m.group(1)), parse_date(m.group(2))
+            if start and end:
+                return start, end
+    return None, None
 
 
 def parse_date(raw: str | None) -> str | None:
@@ -299,11 +328,13 @@ _TRADING_AS = re.compile(r"\b(t/a|trading as|trading)\b", re.IGNORECASE)
 
 def provider_name_if_entity(name: str | None) -> tuple[str | None, str | None]:
     """Return (name, note). The register lists sole-trader providers by personal name, and a
-    personal name must never be stored, so a name is kept only when it reads as an organisation."""
+    personal name must never be stored, so a name is kept only when it reads as an organisation.
+    The shared fail-closed rule (profile_providers.name_is_withheld) also applies, so an entity
+    word such as 'trust' cannot carry an individual trustee, an estate or an executor through."""
     text = clean_text(name)
     if not text:
         return None, None
-    if _ENTITY_WORDS.search(text) and not _TRADING_AS.search(text):
+    if _ENTITY_WORDS.search(text) and not _TRADING_AS.search(text) and not name_is_withheld(text):
         return text, None
     return (
         None,
@@ -565,10 +596,9 @@ def build_row(
         notes.append("approval number missing in source")
 
     provider_name = service_name = address = suburb = state = postcode = None
+    withheld_note = None
     if is_provider_row:
-        provider_name, name_note = provider_name_if_entity(f.get("name"))
-        if name_note:
-            notes.append(name_note)
+        provider_name, withheld_note = provider_name_if_entity(f.get("name"))
     else:
         service_name = f.get("name") or None
         address = f.get("address") or None
@@ -593,9 +623,9 @@ def build_row(
     if raw.continued:
         notes.append("row wrapped across a page break and was rejoined")
 
-    key = se or pr or (f.get("name") if not is_provider_row else None) or id_raw
-    return {
-        "record_id": record_hash(JURISDICTION, key, action_type_raw, date_raw, reason),
+    suspension = extract_suspension_period(nature, details)
+    row = {
+        "record_id": None,  # set by parse_file from non-name facts (assign_record_ids)
         "jurisdiction": JURISDICTION,
         "source_register": INDEX_URL,
         "source_document": meta.get("final_url") or meta.get("url") or INDEX_URL,
@@ -620,7 +650,20 @@ def build_row(
         "period_label": period_label,
         "notes": "; ".join(notes) if notes else None,
         "_details": details,
+        "start_date": suspension[0],
+        "end_date": suspension[1],
+        # In-memory only, never written: the printed row, names included, so a repeated row is
+        # spotted without the record_id ever depending on a name.
+        "_fingerprint": printed_fingerprint(*(f"{k}: {v}" for k, v in sorted(f.items()))),
     }
+    if withheld_note:
+        # Rule 2: the reason and details can repeat the name in forms no redaction catches, so
+        # every free-text field is withheld whole. Keys, dates and the action type stay.
+        # The key note quotes only the printed approval number, which is kept anyway.
+        withhold_free_text(row, tuple(n for n in (key_note, withheld_note) if n))
+        note_withheld_subject(f.get("name"))  # in-memory name set, never written
+        row["_details"] = None
+    return row
 
 
 DUPLICATE_NOTE = "duplicate row in source"
@@ -635,17 +678,7 @@ def mark_duplicates(rows: list[dict]) -> int:
     seen: set[tuple] = set()
     count = 0
     for row in rows:
-        key = (
-            row["source_snapshot"],
-            row["service_approval_number_raw"],
-            row["provider_approval_number_raw"],
-            row["service_name"],
-            row["address"],
-            row["action_type_raw"],
-            row["date_issued_raw"],
-            row["reason"],
-            row.get("_details"),
-        )
+        key = (row["source_snapshot"], row["_fingerprint"])
         if key in seen:
             row["notes"] = (
                 f"{row['notes']}; {DUPLICATE_NOTE}" if row.get("notes") else DUPLICATE_NOTE
@@ -748,6 +781,9 @@ def _parse_snapshot(path: Path, root: Path, summary: dict) -> list[dict] | None:
     rel = snapshot_rel_path(path, root=root)
     file_rows = [build_row(r, meta=meta, snapshot_rel=rel, period_label=label) for r in raws]
     summary["duplicates"] += mark_duplicates(file_rows)
+    assign_record_ids(file_rows)
+    # After the ids: the id never depends on what the prose or URL rule withholds.
+    withhold_prose_naming_people(file_rows)  # shared prose rule, every row
     summary["by_file"][path.name] = {"rows": len(file_rows), **stats}
     log.info("parsed %s: %d rows %s", path.name, len(file_rows), stats)
     return file_rows
@@ -820,7 +856,9 @@ def parse_all(
         if r["notes"] and "provider name withheld" in r["notes"]:
             summary["withheld_provider_names"] += 1
     summary["rows"] = len(rows)
-    return rows, parsed, summary
+    # Codex round 5: document URLs and snapshot names in the summary (and so in the provenance
+    # notes and the printed output) go through the URL rule.
+    return rows, parsed, redact_urls_in_obj(summary)
 
 
 def provenance_notes(summary: dict) -> str:
@@ -840,6 +878,9 @@ def provenance_notes(summary: dict) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if refuse_if_reparse_incomplete():  # an interrupted reparse_offline run (Codex round 5)
+        return 3
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--force", action="store_true", help="re-snapshot PDFs already held")
     ap.add_argument("--skip-fetch", action="store_true", help="parse existing snapshots only")
@@ -855,7 +896,7 @@ def main(argv: list[str] | None = None) -> int:
     rows, parsed, summary = parse_all()
     if not parsed:
         log.error("no PDF snapshots to parse")
-        print(json.dumps({"fetch": fetch_summary, "parse": summary}, indent=2))
+        print(json.dumps(redact_urls_in_obj({"fetch": fetch_summary, "parse": summary}), indent=2))
         return 1
     if not summary["complete"]:
         # A partial run must not replace the last good outputs: the join would silently lose the
@@ -870,7 +911,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             or "none",
         )
-        print(json.dumps({"fetch": fetch_summary, "parse": summary}, indent=2))
+        print(json.dumps(redact_urls_in_obj({"fetch": fetch_summary, "parse": summary}), indent=2))
         return 2
     for row in rows:
         row.pop("_details", None)
@@ -883,7 +924,7 @@ def main(argv: list[str] | None = None) -> int:
         schema=SCHEMA_PATH,
         notes=notes,
     )
-    print(json.dumps({"fetch": fetch_summary, "parse": summary}, indent=2))
+    print(json.dumps(redact_urls_in_obj({"fetch": fetch_summary, "parse": summary}), indent=2))
     return 0
 
 

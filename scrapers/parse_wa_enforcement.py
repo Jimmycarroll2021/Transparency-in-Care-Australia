@@ -44,15 +44,21 @@ from scrapers.common import (
     PROJECT_ROOT,
     RAW_DIR,
     USER_AGENT,
+    assign_record_ids,
+    ensure_person_names,
     list_snapshots,
     log,
     normalise_pr,
     normalise_se,
-    record_hash,
+    note_withheld_subject,
+    printed_fingerprint,
+    refuse_if_reparse_incomplete,
     utc_now,
+    withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
 )
-from scrapers.profile_providers import classify_entity_form
+from scrapers.profile_providers import classify_entity_form, name_is_withheld
 
 INDIVIDUAL_NOTE = "subject is an individual; name withheld"
 _PERSON_ROLE = re.compile(
@@ -224,6 +230,8 @@ def extract_provider_info(
         if (
             cs_norm is not None
             or any(classify_entity_form(t) == "likely_individual" for t in candidates)
+            # Shared fail-closed rule: a name is kept only when it is positively an organisation.
+            or any(name_is_withheld(t) for t in candidates)
             or any(_PERSON_ROLE.search(t) or _EDUCATOR.search(t) for t in candidates)
         ):
             prov_name = None
@@ -377,13 +385,9 @@ def parse_wa_html_table(html_content: str, source_snapshot: str, captured_at: st
                 postcode = m_pc.group(1)
 
         row = {
-            "record_id": record_hash(
-                JURISDICTION,
-                srv["legacy_name"] or "",  # name as printed, so ids do not change with cleaning
-                se_norm or pr_norm or "",
-                action_type,
-                date_iso or year_raw,
-            ),
+            "record_id": None,  # set below from non-name facts (assign_record_ids)
+            # In-memory only, never written: the printed row, to spot a repeated row.
+            "_fingerprint": printed_fingerprint(*raw_texts),
             "jurisdiction": JURISDICTION,
             "source_register": INDEX_URL,
             "source_document": INDEX_URL,
@@ -408,8 +412,16 @@ def parse_wa_html_table(html_content: str, source_snapshot: str, captured_at: st
             "period_label": f"WA ECRU {year_raw}" if year_raw else "WA ECRU",
             "notes": "; ".join(notes) if notes else None,
         }
+        if INDIVIDUAL_NOTE in prov_notes:
+            # Rule 2: the subject may be an individual, so every free-text field (including the
+            # street address, which can be a family day care educator's home) is withheld whole.
+            withhold_free_text(row, (INDIVIDUAL_NOTE,))
+            note_withheld_subject(prov_raw)  # in-memory name set, never written
         rows.append(row)
 
+    assign_record_ids(rows)
+    # After the ids: the id never depends on what the prose or URL rule withholds.
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     return rows
 
 
@@ -498,6 +510,9 @@ async def fetch_all_wa_playwright() -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if refuse_if_reparse_incomplete():  # an interrupted reparse_offline run (Codex round 5)
+        return 3
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--skip-fetch", action="store_true", help="parse newest local snapshot")
     ap.add_argument("--force", action="store_true", help="write snapshot even if duplicate")

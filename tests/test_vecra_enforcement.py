@@ -6,6 +6,7 @@ import json
 
 from bs4 import BeautifulSoup
 from scrapers import parse_vecra_enforcement as vecra
+from scrapers.common import record_hash
 
 FIXTURE = """
 <html><body><main>
@@ -65,6 +66,14 @@ def rows() -> list[dict]:
     return vecra.parse_actions(FIXTURE, period_label="August 2026", **KWARGS)
 
 
+def org_rows() -> list[dict]:
+    """The same fixture with the second provider an organisation, so its free text is kept.
+    Withheld rows keep no free text (Codex round 1, finding 1), so tests of text parsing use
+    this variant."""
+    html = FIXTURE.replace("Jane Citizen", "Example Care Pty Ltd")
+    return vecra.parse_actions(html, period_label="August 2026", **KWARGS)
+
+
 def test_cell_splitting_service_and_address():
     row = rows()[0]
     assert row["service_name"] == "Bulsho Family Day Care Pty Ltd"
@@ -74,7 +83,7 @@ def test_cell_splitting_service_and_address():
 
 
 def test_cell_splitting_with_paragraphs_and_school_address():
-    row = rows()[1]
+    row = org_rows()[1]
     assert row["service_name"] == "Clyde Creek PS TheirCare"
     assert row["address"] == "Clyde Creek Primary School, 40 Eliston Ave, Clyde, Vic, 3978"
     assert row["suburb"] == "Clyde"
@@ -119,7 +128,7 @@ def test_legal_references_deduplicated_and_cleaned():
 
 
 def test_action_type_mapping():
-    first, second = rows()
+    first, second = org_rows()
     assert first["action_type"] == "compliance_notice"
     assert second["action_type"] == "direction_to_exclude"
     assert second["action_type_raw"] == "Direction to suspend staff or volunteer (not FDC educator)"
@@ -137,10 +146,14 @@ def test_action_type_mapping():
 
 
 def test_personal_names_removed_and_counted():
-    second = rows()[1]
-    assert "Mary Example" not in second["reason"]
-    assert "[name removed]" in second["reason"]
-    assert "1 personal name" in second["notes"]
+    # Codex round 2, finding 1: the shared fail-closed prose rule replaces the honorific-only
+    # stripper. A reason that may name a person is withheld whole, not partly redacted.
+    second = org_rows()[1]
+    assert second["provider_name"] == "Example Care Pty Ltd"
+    assert second["reason"] is None
+    assert "Mary" not in str(second)
+    assert "free text withheld: may name an individual" in second["notes"]
+    assert not hasattr(vecra, "strip_personal_names")
 
 
 def test_individual_provider_name_withheld():
@@ -155,15 +168,17 @@ def test_record_id_is_stable_and_distinct():
     b = rows()
     assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
     assert a[0]["record_id"] != a[1]["record_id"]
-    expected = vecra.record_hash(
-        "VIC", "SE-00012251", "Compliance notice issued", "3 August 2026", a[0]["reason"]
-    )
-    assert a[0]["record_id"] == expected
+    # Codex round 1, finding 3: non-name facts only (document, date, keys, action type, ordinal).
+    # Codex round 2, finding 3: source document plus a hash of the full printed row, plus an
+    # occurrence counter that only identical rows share.
+    base = record_hash("VIC", DOC, a[0]["_fingerprint"])
+    assert a[0]["record_id"] == record_hash(base, "1")
 
 
 def test_rows_have_schema_fields_only():
     for row in rows():
-        assert set(row) == set(vecra.FIELDNAMES)
+        # _fingerprint is an in-memory duplicate check; write_processed never writes it.
+        assert {k for k in row if k != "_fingerprint"} == set(vecra.FIELDNAMES)
         assert row["jurisdiction"] == "VIC"
         assert row["period_label"] == "August 2026"
 
@@ -242,3 +257,37 @@ def test_counts_provenance_records_posix_paths_on_every_platform(tmp_path, monke
     assert provenance["raw_inputs"] == [
         "data/raw/vecra-enforcement/2026-10-29T0800Z-august-2026.html"
     ]
+
+
+def test_person_named_trust_provider_is_withheld_by_shared_rule():
+    html = FIXTURE.replace(
+        "<strong>Approved provider name:</strong> Bulsho Family Day Care Pty Ltd",
+        "<strong>Approved provider name:</strong> Example Holdings Pty Ltd ATF Jane Example Unit Trust",
+    )
+    row = vecra.parse_actions(html, period_label="August 2026", **KWARGS)[0]
+    assert row["provider_name"] is None
+    assert "provider name withheld" in row["notes"]
+    assert "Jane" not in json.dumps(row)
+
+
+# --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------
+
+from scrapers.common import FREE_TEXT_WITHHELD_NOTE  # noqa: E402
+
+
+def test_withheld_vic_row_keeps_no_free_text_and_keeps_keys():
+    row = rows()[1]
+    assert row["provider_name"] is None
+    assert row["reason"] is None and row["action_type_raw"] == "(withheld)"
+    assert row["legal_references"] == "[]"
+    assert FREE_TEXT_WITHHELD_NOTE in row["notes"]
+    assert row["service_approval_number"] == "SE-40022723"
+    assert row["provider_approval_number"] == "PR-40011145"
+    assert "Example" not in json.dumps(row) and "Citizen" not in json.dumps(row)
+
+
+def test_vic_record_ids_ignore_the_withholding_decision():
+    # The same printed rows give the same ids whether or not a name is withheld.
+    a = rows()
+    assert [r["record_id"] for r in a] == [r["record_id"] for r in rows()]
+    assert len({r["record_id"] for r in a}) == len(a)

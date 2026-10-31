@@ -38,12 +38,18 @@ if __package__ in (None, ""):
 from scrapers import common
 from scrapers.common import (
     PROJECT_ROOT,
+    assign_record_ids,
+    ensure_person_names,
     fetch,
     list_snapshots,
     log,
     normalise_pr,
     normalise_se,
-    record_hash,
+    note_withheld_subject,
+    printed_fingerprint,
+    refuse_if_reparse_incomplete,
+    withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
     write_snapshot,
 )
@@ -179,16 +185,17 @@ def parse_page(
 
         notes: list[str] = []
         prov_name: str | None = None
+        withheld_markers: list[str] = []  # constant phrases only, never source text
         if prov_raw:
             kind = classify_subject(prov_raw, has_service_line=True)
             if kind in {"entity", "service_only"}:
                 prov_name = prov_raw
             else:
-                notes.append(INDIVIDUAL_NOTE)
+                withheld_markers.append(INDIVIDUAL_NOTE)
                 tokens = name_tokens(prov_raw) if kind == "individual" else set()
                 if tokens and srv_name and contains_token(srv_name, tokens):
                     srv_name = None
-                    notes.append(
+                    withheld_markers.append(
                         "service text withheld: it repeated a word from the individual's name"
                     )
         else:
@@ -228,7 +235,7 @@ def parse_page(
         )
 
         row = {
-            "record_id": record_hash(JURISDICTION, srv_name, se_norm, action_type, date_iso),
+            "record_id": None,  # set below from non-name facts (assign_record_ids)
             "jurisdiction": JURISDICTION,
             "source_register": INDEX_URL,
             "source_document": page_url,
@@ -252,13 +259,24 @@ def parse_page(
             "date_issued_raw": date_raw,
             "period_label": "Published Enforcement Actions under the National Law",
             "notes": "; ".join(notes) if notes else None,
+            # In-memory only, never written: printed content, to spot a repeated row.
+            "_fingerprint": printed_fingerprint(txt, blob),
         }
+        if withheld_markers:
+            withhold_free_text(row, tuple(withheld_markers))
+            note_withheld_subject(prov_raw)  # in-memory name set, never written
         rows.append(row)
 
+    assign_record_ids(rows, source_id=page_url)
+    # After the ids: the id never depends on what the prose or URL rule withholds.
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     return rows
 
 
 def main(argv: list[str] | None = None) -> int:
+    if refuse_if_reparse_incomplete():  # an interrupted reparse_offline run (Codex round 5)
+        return 3
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--skip-fetch", action="store_true", help="parse newest local snapshot")
     ap.add_argument("--force", action="store_true", help="write snapshot even if duplicate")

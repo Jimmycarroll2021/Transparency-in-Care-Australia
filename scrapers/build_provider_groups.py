@@ -47,15 +47,31 @@ from pathlib import Path
 
 try:
     from scrapers import abn_lookup as al
-    from scrapers.common import PROCESSED_DIR, log, normalise_pr, utc_now, write_processed
+    from scrapers.common import (
+        PROCESSED_DIR,
+        atomic_write_text,
+        log,
+        normalise_pr,
+        utc_now,
+        write_processed,
+    )
     from scrapers.join_enforcement import normalise_provider_name
+    from scrapers.profile_providers import name_is_withheld
 except ImportError:  # run as a plain script
     import sys
 
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
     from scrapers import abn_lookup as al
-    from scrapers.common import PROCESSED_DIR, log, normalise_pr, utc_now, write_processed
+    from scrapers.common import (
+        PROCESSED_DIR,
+        atomic_write_text,
+        log,
+        normalise_pr,
+        utc_now,
+        write_processed,
+    )
     from scrapers.join_enforcement import normalise_provider_name
+    from scrapers.profile_providers import name_is_withheld
 
 PROFILE_CSV = PROCESSED_DIR / "provider-profile.csv"
 PROVIDERS_CSV = PROCESSED_DIR / "acecqa-providers-latest.csv"
@@ -95,8 +111,20 @@ PROVIDER_ABN_COLUMNS = [
     "details_looked_up_at",
     "details_response_sha256",
     "note",
+    "name_withheld",
 ]
-GROUP_COLUMNS = ["group_id", "provider_approval_number", "legal_name", "abn", "acn", "link_reason"]
+GROUP_COLUMNS = [
+    "group_id",
+    "provider_approval_number",
+    "legal_name",
+    "abn",
+    "acn",
+    "link_reason",
+    "name_withheld",
+]
+NAME_WITHHELD_NOTE = (
+    "names withheld: provider name is not positively an organisation (CLAUDE.md rule 2)"
+)
 
 NOT_DERIVABLE = (
     "Parent and subsidiary relationships are NOT derivable from free ABR data: they need paid ASIC "
@@ -121,6 +149,52 @@ def excluded_profile(profile: dict) -> bool:
     return (profile.get("entity_form") or "").strip() in EXCLUDED_FORMS or (
         profile.get("name_withheld") or ""
     ).strip().lower() == "true"
+
+
+def apply_name_filter(
+    abn_rows: list[dict], profiles: dict[str, dict], known: set[str] | None = None
+) -> int:
+    """Apply the shared fail-closed name rule to provider-abn rows, in place, with no API call.
+
+    A row whose provider is withheld in provider-profile.csv, or whose legal name is not
+    positively an organisation, keeps its PR, ABN and ACN but loses every name column
+    (legal_name, abr_entity_name, business_names) and gets name_withheld true. Otherwise each
+    ABR business name and the ABR entity name must pass the same rule. Returns the number of
+    rows whose names were nulled by this call.
+    """
+    changed = 0
+    for row in abn_rows:
+        for key, value in list(row.items()):
+            if value == "":
+                row[key] = None
+        pr = row.get("provider_approval_number")
+        profile = profiles.get(pr) or {}
+        legal = row.get("legal_name")
+        withhold = (excluded_profile(profile) if profile else False) or bool(
+            legal and name_is_withheld(legal)
+        )
+        withhold = withhold or row.get("match_kind") in (KIND_EXCLUDED, KIND_EXCLUDED_ABR)
+        # A row withheld by an earlier run stays withheld: the filter is idempotent.
+        withhold = withhold or str(row.get("name_withheld") or "").lower() == "true"
+        if withhold:
+            had_name = any(row.get(c) for c in ("legal_name", "abr_entity_name", "business_names"))
+            row.update(legal_name=None, abr_entity_name=None, business_names=None)
+            row["name_withheld"] = "true"
+            if had_name:
+                changed += 1
+                note = row.get("note") or ""
+                if NAME_WITHHELD_NOTE not in note:
+                    row["note"] = f"{note}; {NAME_WITHHELD_NOTE}" if note else NAME_WITHHELD_NOTE
+            continue
+        row["name_withheld"] = "false"
+        if not al.name_is_safe(row.get("abr_entity_name"), known):
+            row["abr_entity_name"] = None
+        names = [
+            n for n in (row.get("business_names") or "").split(al.BUSINESS_NAME_SEPARATOR) if n
+        ]
+        kept, _ = al.safe_business_names(names, known)
+        row["business_names"] = al.BUSINESS_NAME_SEPARATOR.join(kept) or None
+    return changed
 
 
 # ---------------------------------------------------------------------------
@@ -376,6 +450,7 @@ def build_groups(
                     "abn": r["abn"],
                     "acn": r.get("acn"),
                     "link_reason": reason,
+                    "name_withheld": "false" if r.get("legal_name") else "true",
                 }
             )
 
@@ -400,6 +475,7 @@ def build_groups(
                 "abn": r["abn"],
                 "acn": r.get("acn"),
                 "link_reason": "business_name_overlap_holder",
+                "name_withheld": "false" if r.get("legal_name") else "true",
             }
         )
         for other in sorted(named):
@@ -408,10 +484,11 @@ def build_groups(
                 {
                     "group_id": group_id,
                     "provider_approval_number": other,
-                    "legal_name": legal_names.get(other),
+                    "legal_name": legal_names.get(other) or None,
                     "abn": o.get("abn"),
                     "acn": o.get("acn"),
                     "link_reason": "business_name_overlap_named",
+                    "name_withheld": "false" if legal_names.get(other) else "true",
                 }
             )
     return out
@@ -494,6 +571,14 @@ def summarise(
 # ---------------------------------------------------------------------------
 
 
+def profiles_by_pr() -> dict[str, dict]:
+    return {
+        normalise_pr(p.get("provider_approval_number")): p
+        for p in load_csv(PROFILE_CSV)
+        if normalise_pr(p.get("provider_approval_number"))
+    }
+
+
 def acecqa_names() -> tuple[dict[str, set], dict[str, str]]:
     provider_names: dict[str, set] = defaultdict(set)
     legal: dict[str, str] = {}
@@ -501,7 +586,9 @@ def acecqa_names() -> tuple[dict[str, set], dict[str, str]]:
         pr = normalise_pr(prof.get("provider_approval_number"))
         if not pr or excluded_profile(prof):
             continue
-        legal[pr] = (prof.get("legal_name") or "").strip()
+        name = (prof.get("legal_name") or "").strip()
+        if name and not name_is_withheld(name):
+            legal[pr] = name
         for col in ("legal_name", "trading_name"):
             key = normalise_provider_name(prof.get(col))
             if key:
@@ -524,6 +611,10 @@ def main(argv: list[str] | None = None) -> None:
         abn_rows = load_csv(provider_abn_csv)
         prov = PROCESSED_DIR / f"{PROVIDER_ABN_NAME}.provenance.json"
         stats = json.loads(prov.read_text(encoding="utf-8")).get("run")
+        # Deterministic post-processing of the committed table: no ABN Lookup call is made.
+        changed = apply_name_filter(abn_rows, profiles_by_pr(), al.known_org_names())
+        al.rewrite_processed(PROVIDER_ABN_NAME, abn_rows, PROVIDER_ABN_COLUMNS, al.REFILTER_NOTE)
+        log.info("provider-abn: name filter re-applied offline, %d rows newly withheld", changed)
     else:
         guid = None if args.offline else al.load_guid()
         try:
@@ -531,6 +622,7 @@ def main(argv: list[str] | None = None) -> None:
         except al.AbnLookupError as exc:
             raise SystemExit(f"ABN lookup error: {exc}") from None
         abn_rows, stats = run_stage_b(client)
+        apply_name_filter(abn_rows, profiles_by_pr(), al.known_org_names())
         write_processed(
             PROVIDER_ABN_NAME,
             abn_rows,
@@ -574,7 +666,7 @@ def main(argv: list[str] | None = None) -> None:
         f"data/processed/{GROUPS_NAME}.csv",
         "data/processed/enforcement-by-provider.csv",
     ]
-    SUMMARY_JSON.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    atomic_write_text(SUMMARY_JSON, json.dumps(summary, indent=2) + "\n")
     log.info(
         "stage C: %d entity groups (%d providers), %d business-name overlap flags",
         summary["entity_groups"],

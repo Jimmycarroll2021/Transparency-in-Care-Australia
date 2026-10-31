@@ -751,3 +751,146 @@ def test_a_sidecar_that_is_not_a_json_object_is_reported_as_unidentified(tmp_pat
     assert [p.name for p in parsed] == [ok]
     assert summary["unidentified_snapshots"] == [as_list, as_string]
     assert summary["complete"] is False
+
+
+def test_individual_trustee_and_estate_names_are_withheld():
+    # Synthetic names. A trust or company word must not let a person's name through.
+    for printed in (
+        "Jane Example ATF Jane Example Unit Trust",
+        "Jane Example & John Example as trustees for the Example Family Trust",
+        "Jane Example - executor of the estate of John Example",
+        "Example Holdings Pty Ltd ATF the Jane Example Family Trust",
+    ):
+        name, note = provider_name_if_entity(printed)
+        assert name is None, printed
+        assert note and "withheld" in note
+    row = make_row(
+        make_raw(
+            id="PR-40006858", name="Jane Example ATF Jane Example Unit Trust", date="4/07/2025"
+        ),
+        label="2025-26 Q1",
+    )
+    assert row["provider_name"] is None
+    assert "Jane" not in str(row)
+
+
+def test_organisation_trustee_name_is_kept():
+    name, note = provider_name_if_entity("Example Holdings Pty Ltd ATF Sunrise Unit Trust")
+    assert name == "Example Holdings Pty Ltd ATF Sunrise Unit Trust" and note is None
+
+
+# --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------
+
+from scrapers.common import FREE_TEXT_WITHHELD_NOTE, assign_record_ids  # noqa: E402
+
+
+def _withheld_nsw(name="Jane Q Citizen"):
+    return make_row(
+        make_raw(
+            id="PR-40006858",
+            name=name,
+            date="4/07/2025",
+            nature="Compliance notice",
+            details=f"Notice issued to {name}",
+            reason=f"{name} failed to supervise children. Regulation 168",
+        ),
+        label="2025-26 Q1",
+    )
+
+
+def test_withheld_row_keeps_no_free_text():
+    row = _withheld_nsw()
+    assert row["provider_name"] is None
+    assert row["reason"] is None and row["action_type_raw"] == "(withheld)"
+    assert row["legal_references"] == "" and row.get("_details") is None
+    assert FREE_TEXT_WITHHELD_NOTE in row["notes"]
+    assert "citizen" not in str({k: v for k, v in row.items() if k != "_fingerprint"}).lower()
+    assert row["action_type"] == "compliance_notice" and row["date_issued"] == "2025-07-04"
+
+
+def test_withheld_row_keeps_its_approval_number():
+    row = _withheld_nsw()
+    assert row["provider_approval_number"] == "PR-40006858"
+    assert row["provider_approval_number_raw"] == "PR-40006858"
+
+
+def test_record_id_ignores_the_withholding_decision():
+    # Codex round 2, finding 3: the id hashes the printed row, not what is published.
+    a = [_withheld_nsw("Jane Q Citizen")]
+    b = [_withheld_nsw("Jane Q Citizen")]
+    b[0]["provider_name"] = "Shown Anyway Pty Ltd"
+    assign_record_ids(a)
+    assign_record_ids(b)
+    assert a[0]["record_id"] == b[0]["record_id"]
+    c = [_withheld_nsw("Mary Sample")]
+    assign_record_ids(c)
+    assert c[0]["record_id"] != a[0]["record_id"]  # a different printed row
+
+
+# --- Codex round 2, finding 4: a printed suspension period is kept as structured columns ----
+
+SUSPENSION = (
+    "Service approval suspended under section 72 of the National Law. "
+    "The period of suspension is from 17/12/2025 until 16/03/2026"
+)
+
+
+def test_suspension_period_is_kept_as_structured_columns():
+    row = make_row(
+        make_raw(
+            id="SE-40000001", name="Example Kids Pty Ltd", date="17/12/2025", nature=SUSPENSION
+        ),
+        label="2025-26 Q2",
+    )
+    assert row["start_date"] == "2025-12-17" and row["end_date"] == "2026-03-16"
+
+
+def test_suspension_period_with_to_and_survives_withholding():
+    row = make_row(
+        make_raw(
+            id="PR-40006858",
+            name="Jane Q Citizen",
+            date="24/10/2025",
+            nature=SUSPENSION.replace(
+                "from 17/12/2025 until 16/03/2026", "from 24/10/2025 to 28/01/2026"
+            ),
+        ),
+        label="2025-26 Q2",
+    )
+    assert row["action_type_raw"] == "(withheld)"
+    assert row["start_date"] == "2025-10-24" and row["end_date"] == "2026-01-28"
+
+
+def test_no_printed_period_means_null_dates():
+    row = _withheld_nsw()
+    assert row["start_date"] is None and row["end_date"] is None
+
+
+def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
+    # Codex round 2, finding 1: the shared prose rule runs on every row, not only withheld ones.
+    from scrapers.common import withhold_prose_naming_people
+
+    row = make_row(
+        make_raw(
+            id="PR-40000001",
+            name="Example Kids Pty Ltd",
+            date="4/07/2025",
+            nature="Compliance notice",
+            details="Notice issued after educator Jane Example left a child alone",
+            reason="Educator Jane Example failed to supervise children. Regulation 168",
+        ),
+        label="2025-26 Q1",
+    )
+    withhold_prose_naming_people([row])
+    assert row["provider_name"] == "Example Kids Pty Ltd"
+    assert row["reason"] is None and row["_details"] is None
+    assert "free text withheld: may name an individual" in row["notes"]
+    assert "jane" not in str({k: v for k, v in row.items() if k != "_fingerprint"}).lower()
+
+
+def test_snapshot_parsing_applies_the_prose_rule():
+    import inspect
+
+    from scrapers import parse_nsw_enforcement as nsw_mod
+
+    assert "withhold_prose_naming_people(file_rows)" in inspect.getsource(nsw_mod._parse_snapshot)

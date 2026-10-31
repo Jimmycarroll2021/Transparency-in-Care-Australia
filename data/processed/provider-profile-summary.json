@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T11:51:37.790986+00:00",
+  "generated_at": "2026-10-30T22:46:16.459262+00:00",
   "inputs": {
     "providers_file": "data/processed/acecqa-providers-latest.csv",
     "services_file": "data/processed/acecqa-services-latest.csv",
@@ -26,42 +26,43 @@
     "incorporated_association": 2107,
     "cooperative": 61,
     "government": 571,
-    "trust_or_trustee": 1236,
+    "trust_or_trustee": 1206,
     "church_or_religious": 129,
-    "likely_individual": 751,
-    "unknown": 349
+    "likely_individual": 756,
+    "unknown": 374
   },
   "entity_form_share_of_providers": {
     "company": 0.4834,
     "incorporated_association": 0.2092,
     "cooperative": 0.0061,
     "government": 0.0567,
-    "trust_or_trustee": 0.1227,
+    "trust_or_trustee": 0.1197,
     "church_or_religious": 0.0128,
-    "likely_individual": 0.0746,
-    "unknown": 0.0346
+    "likely_individual": 0.0751,
+    "unknown": 0.0371
   },
   "entity_form_service_counts": {
     "company": 9838,
     "incorporated_association": 3028,
     "cooperative": 66,
     "government": 1604,
-    "trust_or_trustee": 1486,
+    "trust_or_trustee": 1451,
     "church_or_religious": 1079,
-    "likely_individual": 501,
-    "unknown": 584
+    "likely_individual": 510,
+    "unknown": 610
   },
   "entity_form_share_of_services": {
     "company": 0.541,
     "incorporated_association": 0.1665,
     "cooperative": 0.0036,
     "government": 0.0882,
-    "trust_or_trustee": 0.0817,
+    "trust_or_trustee": 0.0798,
     "church_or_religious": 0.0593,
-    "likely_individual": 0.0275,
-    "unknown": 0.0321
+    "likely_individual": 0.028,
+    "unknown": 0.0335
   },
-  "likely_individual_providers_names_withheld": 751,
+  "likely_individual_providers_names_withheld": 756,
+  "providers_names_withheld_total": 2212,
   "providers_with_no_services_in_services_table": 2871,
   "providers_by_service_count_band": {
     "0": 2871,
@@ -170,28 +171,12 @@
       "states_operated_in": "VIC"
     },
     {
-      "provider_approval_number": "PR-00000702",
-      "legal_name": "Corporation of the Trustees of the Roman Catholic Archdiocese of Brisbane - Centacare Administration Services",
-      "trading_name": null,
-      "entity_form": "church_or_religious",
-      "service_count": 136,
-      "states_operated_in": "QLD"
-    },
-    {
       "provider_approval_number": "PR-00005345",
       "legal_name": "Department of Education",
       "trading_name": "Department of Education",
       "entity_form": "government",
       "service_count": 124,
       "states_operated_in": "NSW"
-    },
-    {
-      "provider_approval_number": "PR-00004547",
-      "legal_name": "KU Children's Services",
-      "trading_name": "KU Children's Services",
-      "entity_form": "unknown",
-      "service_count": 116,
-      "states_operated_in": "ACT|NSW|VIC"
     },
     {
       "provider_approval_number": "PR-00001030",
@@ -248,14 +233,6 @@
       "entity_form": "company",
       "service_count": 75,
       "states_operated_in": "NSW|QLD|SA|VIC|WA"
-    },
-    {
-      "provider_approval_number": "PR-00006465",
-      "legal_name": "ACT Education Directorate",
-      "trading_name": "ACT Education and Training Directorate",
-      "entity_form": "unknown",
-      "service_count": 75,
-      "states_operated_in": "ACT"
     },
     {
       "provider_approval_number": "PR-40022356",
@@ -320,9 +297,33 @@
       "entity_form": "government",
       "service_count": 57,
       "states_operated_in": "QLD"
+    },
+    {
+      "provider_approval_number": "PR-00001946",
+      "legal_name": "Victorian YMCA Community Programming Pty Ltd",
+      "trading_name": null,
+      "entity_form": "company",
+      "service_count": 56,
+      "states_operated_in": "VIC"
+    },
+    {
+      "provider_approval_number": "PR-40004334",
+      "legal_name": "Big Childcare Pty Ltd ATF Big Childcare Unit Trust",
+      "trading_name": "Big Childcare Pty Ltd",
+      "entity_form": "trust_or_trustee",
+      "service_count": 55,
+      "states_operated_in": "NSW|VIC|WA"
+    },
+    {
+      "provider_approval_number": "PR-00006463",
+      "legal_name": "YMCA of South Australia Inc",
+      "trading_name": null,
+      "entity_form": "incorporated_association",
+      "service_count": 53,
+      "states_operated_in": "SA"
     }
   ],
-  "top_30_note": "likely_individual providers are excluded from this list by design. Service count is approved services on the register on the snapshot date, out of the services_total above. A large count does not by itself indicate any compliance concern.",
+  "top_30_note": "Providers whose names are withheld are excluded from this list by design. Service count is approved services on the register on the snapshot date, out of the services_total above. A large count does not by itself indicate any compliance concern.",
   "row_level_logs": {
     "provider_with_no_services_in_services_table": 2871
   },

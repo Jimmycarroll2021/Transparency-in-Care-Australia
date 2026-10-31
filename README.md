@@ -27,7 +27,10 @@ Every collector follows the same rules (`scrapers/common.py`):
 - It honours robots.txt and any crawl delay, and waits at least 1.5 seconds between requests to the
   same site.
 - It fetches only what it needs, and skips files it already holds (checked by content hash).
-- It drops the names of individuals at ingest. Only approved services and provider entities are kept.
+- It aims to keep individuals' names out of processed outputs. Parsers withhold a name when it is
+  classed as, or cannot be confirmed not to be, a person's name. This is a keyword heuristic, not a
+  guarantee: it can miss a name or withhold an organisation. Raw snapshots in `data/raw/` are kept
+  unchanged and can contain names as the source printed them.
 
 | Source | What is fetched | How often |
 |---|---|---|

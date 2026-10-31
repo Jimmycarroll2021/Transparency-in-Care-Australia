@@ -1,6 +1,6 @@
 {
   "output": "data/processed/provider-profile.csv",
-  "written_at": "2026-10-30T11:51:37.756707+00:00",
+  "written_at": "2026-10-30T22:46:16.432428+00:00",
   "rows": 10073,
   "schema": null,
   "raw_inputs": [
@@ -11,5 +11,5 @@
     "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz",
     "data/raw/acecqa-services/2026-10-29T2316Z.csv.gz.meta.json"
   ],
-  "notes": "One row per provider (provider_approval_number). entity_form is a conservative classification of Legal Name by suffix and keyword; it is a heuristic, not a legal determination. likely_individual rows have legal_name and trading_name null and name_withheld true (CLAUDE.md rule 2). Addresses are not carried over. service_count joins on provider_approval_number in the services table; providers with no services in that table have service_count 0, which is not evidence that they operate none. ACECQA content is not openly licensed: internal use only."
+  "notes": "One row per provider (provider_approval_number). entity_form is a conservative classification of Legal Name by suffix and keyword; it is a heuristic, not a legal determination. Names are withheld fail closed (CLAUDE.md rule 2): legal_name and trading_name are null and name_withheld is true unless there is positive evidence of an organisation: a legal form in the name (Pty Ltd, Ltd, Limited, Inc, Incorporated, Co-operative, Corporation), a government form, or a non-individual ABR entity type from an accepted ABN match. An institutional word alone is not evidence. Person signals (individual trustees, estates, trusts named after a person) withhold the name whatever the evidence. Addresses are not carried over. service_count joins on provider_approval_number in the services table; providers with no services in that table have service_count 0, which is not evidence that they operate none. ACECQA content is not openly licensed: internal use only."
 }

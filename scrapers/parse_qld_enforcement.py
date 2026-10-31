@@ -14,9 +14,13 @@ must be made by name and location.
 Privacy: the first column can name natural persons (fined educators, sole-trader providers).
 Individual names are never stored. For such rows provider_name is null, the linked document
 URLs (whose file names usually embed the person's name) are withheld, and a service name is
-kept only when it shares no word with the withheld name. Because the page gives no explicit
-flag, a printed name with no legal-entity or business word in it is treated as an individual.
-That errs towards withholding; it can wrongly withhold an entity with an unusual name.
+kept only when it shares no word with the withheld name. Every other text column of a withheld
+row (action text, reason, legal references, notes) has each word of the name redacted. Because
+the page gives no explicit flag, a printed name with no legal-entity or business word in it is
+treated as an individual, and so is any name profile_providers.classify_entity_form classes as
+likely_individual (an individual trustee, a deceased estate or executor, an accented personal
+name) even when it carries a word such as 'trust'. That errs towards withholding; it can wrongly
+withhold an entity with an unusual name.
 
 Linked documents are NOT downloaded in this version.
 
@@ -41,15 +45,22 @@ if __package__ in (None, ""):  # allow `python3 scrapers/parse_qld_enforcement.p
 from scrapers.common import (
     PROJECT_ROOT,
     RAW_DIR,
+    assign_record_ids,
+    ensure_person_names,
     fetch,
     list_snapshots,
     log,
     normalise_pr,
     normalise_se,
-    record_hash,
+    note_withheld_subject,
+    printed_fingerprint,
+    refuse_if_reparse_incomplete,
+    withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
     write_snapshot,
 )
+from scrapers.profile_providers import classify_entity_form, name_is_withheld
 
 SOURCE = "qld-enforcement"
 JURISDICTION = "QLD"
@@ -87,6 +98,8 @@ FIELDNAMES = [
     "notes",
     # Extra column, not in the schema: every other URL linked from the Details cell.
     "linked_documents",
+    # Structured fact taken from the printed headline before any free text is withheld.
+    "penalty_amount_aud",
 ]
 
 NO_APPROVAL_NOTE = "register prints no approval number; join by name and address"
@@ -135,6 +148,53 @@ def pieces(cell) -> list[str]:
     return [c for c in (clean(s) for s in cell.stripped_strings) if c]
 
 
+_FINED = re.compile(r"(?i)(?<![a-z])fined(?![a-z])")
+_DOLLARS = re.compile(r"[$][ ]?([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:[.]([0-9]{2}))?(?![0-9])")
+
+
+_FINE_WORD = re.compile(r"(?i)(?<![a-z])(?:fined|fine|fines|penalty|penalties)(?![a-z])")
+_AMOUNT = r"[$][ ]?(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:[.][0-9]{2})?(?![0-9])"
+# An amount tied explicitly to the fine: 'fined $N', 'fine(d) of $N', 'penalty of $N',
+# '$N fine', '$N penalty'. Costs, or an amount whose role the text does not state, are not.
+_TIED_FINE = re.compile(
+    rf"(?i)(?:(?<![a-z])fined(?:[ ]+(?:a[ ]+total[ ]+of|the[ ]+sum[ ]+of))?[ ]+({_AMOUNT})"
+    rf"|(?<![a-z])(?:fine|penalty)[ ]+(?:of|totalling|totaling)[ ]+({_AMOUNT})"
+    rf"|({_AMOUNT})[ ]+(?:fine|penalty)(?![a-z]))"
+)
+FINE_NOT_RECORDED_NOTE = (
+    "penalty amount not recorded: the printed amount is not tied explicitly and solely to the fine"
+)
+
+
+def _dollars(token: str) -> int | float:
+    m = _DOLLARS.search(token)
+    whole = int(m.group(1).replace(",", ""))
+    return whole + int(m.group(2)) / 100 if m.group(2) else whole
+
+
+def fine_amount_and_note(text: str | None) -> tuple[int | float | None, str | None]:
+    """(fine in dollars, note) from a printed headline (Codex round 5, finding 3).
+
+    Recorded only when the text prints exactly one dollar amount and ties it explicitly to the
+    fine or penalty ('fined $12,000', 'a fine of $5,000', '$7,500 penalty'). When the text speaks
+    of a fine or penalty and prints an amount that is costs, untied or one of several, the value
+    is None and FINE_NOT_RECORDED_NOTE says so. Never a guess."""
+    if not text or not _FINE_WORD.search(text):
+        return None, None
+    amounts = {_dollars(m.group(0)) for m in _DOLLARS.finditer(text)}
+    if not amounts:
+        return None, None
+    tied = {_dollars(next(g for g in m.groups() if g)) for m in _TIED_FINE.finditer(text)}
+    if len(amounts) == 1 and tied == amounts:
+        return amounts.pop(), None
+    return None, FINE_NOT_RECORDED_NOTE
+
+
+def extract_fine_amount(text: str | None) -> int | float | None:
+    """The fine in dollars, or None (see fine_amount_and_note)."""
+    return fine_amount_and_note(text)[0]
+
+
 def parse_date(raw: str) -> tuple[str | None, str | None]:
     """d/m/y (Queensland style) -> (ISO date, warning). Two-digit years are read as 20yy."""
     m = re.fullmatch(r"(\d{1,2})/(\d{1,2})/(\d{2}|\d{4})", raw.strip())
@@ -168,28 +228,30 @@ def classify_subject(first: str, *, has_service_line: bool) -> str:
     """
     if _ROLE_PREFIX.match(first):
         return "role"
-    if _LEGAL.search(first):
-        return "entity"
+    # Person signals beat legal and business words: '<person> ATF <trust>', a deceased estate
+    # or its executors, and accented personal names are individuals.
+    if classify_entity_form(first) == "likely_individual":
+        return "individual"
+    if _LEGAL.search(first) or (_BUSINESS.search(first) and has_service_line):
+        # A provider name is kept only when the shared fail-closed rule accepts it.
+        return "individual" if name_is_withheld(first) else "entity"
     if _BUSINESS.search(first):
-        return "entity" if has_service_line else "service_only"
+        return "service_only"
     return "individual"
 
 
+# A word of any letters, accented ones included ('Zoë' must not split into 'Zo' and 'e').
+_WORD = re.compile(r"[^\W\d_](?:[^\W\d_]|['’\-])+")
+
+
 def name_tokens(name: str) -> set[str]:
-    words = re.findall(r"[A-Za-z][A-Za-z'\-]+", name.lower())
-    return {w.strip("'-") for w in words if len(w) >= 3 and w not in _STOPWORDS}
+    words = _WORD.findall(name.lower())
+    return {w.strip("'’-") for w in words if len(w) >= 3 and w not in _STOPWORDS}
 
 
 def contains_token(text: str, tokens: set[str]) -> bool:
-    found = {w.strip("'-") for w in re.findall(r"[A-Za-z][A-Za-z'\-]+", text.lower())}
+    found = {w.strip("'’-") for w in _WORD.findall(text.lower())}
     return bool(found & tokens)
-
-
-def redact_tokens(text: str, tokens: set[str]) -> str:
-    def repl(m: re.Match) -> str:
-        return "[name withheld]" if m.group(0).lower().strip("'-") in tokens else m.group(0)
-
-    return re.sub(r"[A-Za-z][A-Za-z'\-]+", repl, text)
 
 
 # ---------------------------------------------------------------------------
@@ -298,6 +360,7 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
     provider_name: str | None = None
     service_name: str | None = None
     tokens: set[str] = set()
+    withheld_markers: list[str] = []  # constant phrases only, never source text
 
     if kind == "entity":
         provider_name = first
@@ -313,23 +376,27 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
     else:  # role or individual: never store the name
         if kind == "individual":
             tokens = name_tokens(first)
-            notes.append(
-                f"{INDIVIDUAL_NOTE} (no legal-entity or business word in the printed name)"
+            detail = (
+                "printed name is not positively an organisation"
+                if _LEGAL.search(first) or _BUSINESS.search(first)
+                else "no legal-entity or business word in the printed name"
             )
+            withheld_markers.append(f"{INDIVIDUAL_NOTE} ({detail})")
         else:
-            notes.append(f"{INDIVIDUAL_NOTE} (register prints a generic role, no name)")
+            withheld_markers.append(f"{INDIVIDUAL_NOTE} (register prints a generic role, no name)")
         if service_parts:
             candidate = "; ".join(service_parts)
             if tokens and contains_token(candidate, tokens):
-                notes.append("service name withheld: it repeats a word from the individual's name")
+                withheld_markers.append(
+                    "service name withheld: it repeats a word from the individual's name"
+                )
             else:
                 service_name = candidate
-        if tokens and reason and contains_token(reason, tokens):
-            reason = redact_tokens(reason, tokens)
-            notes.append("reason redacted: it repeated a word from the individual's name")
         # File names of linked documents usually embed the person's name.
         if hrefs:
-            notes.append("linked document URLs withheld because file names can embed the name")
+            withheld_markers.append(
+                "linked document URLs withheld because file names can embed the name"
+            )
         primary = page_url
         hrefs = []
 
@@ -346,11 +413,15 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         notes.append(f"breaches column printed: {'; '.join(legal_references)}")
         legal_references = []
 
+    # Codex round 5: only an amount tied explicitly to the fine is recorded.
+    penalty, penalty_note = fine_amount_and_note(action_type_raw)
+    if penalty_note:
+        notes.append(penalty_note)
+        withheld_markers.append(penalty_note)  # a constant phrase, safe on withheld rows
+
     se_raw = pr_raw = None
-    return {
-        "record_id": record_hash(
-            JURISDICTION, provider_name, service_name, action_type_raw, date_raw
-        ),
+    row = {
+        "record_id": None,  # set by parse_register from non-name facts (assign_record_ids)
         "jurisdiction": JURISDICTION,
         "source_register": INDEX_URL,
         "source_document": primary,
@@ -373,7 +444,22 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         "period_label": period,
         "notes": "; ".join(notes),
         "linked_documents": " ".join(u for u in hrefs if u != primary) or None,
+        "penalty_amount_aud": penalty,
+        # In-memory only (not written): the printed content, names included, to spot a row the
+        # register prints twice. Never published and never used as the record_id.
+        # Codex round 5: link targets are printed content too, so two rows with the same text
+        # but different documents are told apart and keep stable ids.
+        "_fingerprint": printed_fingerprint(
+            *(clean(c.get_text(" ")) for c in cells),
+            *(a["href"] for c in cells for a in c.find_all("a", href=True)),
+        ),
     }
+    if kind in ("individual", "role"):
+        # Rule 2: free text can repeat the name in forms no redaction catches, so it is withheld
+        # whole. Structured fields stay.
+        withhold_free_text(row, (NO_APPROVAL_NOTE, *withheld_markers))
+        note_withheld_subject(first)  # in-memory name set, never written
+    return row
 
 
 def parse_register(
@@ -386,7 +472,7 @@ def parse_register(
     """Parse every register table in the page into schema rows."""
     soup = BeautifulSoup(html, "lxml")
     rows: list[dict] = []
-    seen: dict[str, int] = {}
+    seen: dict[str, int] = {}  # printed-content fingerprint -> count
     for table in soup.find_all("table"):
         if not _is_register_table(table):
             continue
@@ -397,10 +483,13 @@ def parse_register(
                 continue
             row["captured_at"] = captured_at
             row["source_snapshot"] = source_snapshot
-            seen[row["record_id"]] = seen.get(row["record_id"], 0) + 1
-            if seen[row["record_id"]] > 1:
-                row["notes"] += "; duplicate record_id: another row has the same key fields"
+            seen[row["_fingerprint"]] = seen.get(row["_fingerprint"], 0) + 1
+            if seen[row["_fingerprint"]] > 1:
+                row["notes"] += "; duplicate row: another row prints the same text"
             rows.append(row)
+    assign_record_ids(rows, source_id=page_url)
+    # After the ids: the id never depends on what the prose or URL rule withholds.
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     return rows
 
 
@@ -415,6 +504,9 @@ def _snapshot_meta(path: Path) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if refuse_if_reparse_incomplete():  # an interrupted reparse_offline run (Codex round 5)
+        return 3
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--skip-fetch", action="store_true", help="parse the newest local snapshot")
     ap.add_argument("--force", action="store_true", help="archive even if the page is unchanged")
