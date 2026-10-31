@@ -262,3 +262,98 @@ def test_name_rule_notes_do_not_mark_the_subject_withheld():
     for note in (common.SERVICE_NAME_WITHHELD_NOTE, common.TRADING_NAME_WITHHELD_NOTE):
         assert not je.name_withheld_row({"notes": note})
     assert je.name_withheld_row({"notes": "provider name withheld"})
+
+
+# ---------------------------------------------------------------------------
+# Codex round 1
+# ---------------------------------------------------------------------------
+
+
+def test_fixed_point_rechecks_every_column_of_a_row_already_changed(ctx):
+    # Row 0's service_name fires at once; its acecqa_service_name is withheld only because row 1
+    # (later) withholds the same name through its own withheld provider.
+    ctx.withheld["PR-00000009"] = "Jane Sample"
+    rows = [
+        {
+            "record_id": "r0",
+            "provider_approval_number": "PR-00000001",
+            "service_name": "Mrs Example's Kindy",
+            "acecqa_service_name": "Sample Kids Club",
+            "notes": None,
+        },
+        {
+            "record_id": "r1",
+            "provider_approval_number": "PR-00000009",
+            "service_name": "Sample Kids Club",
+            "acecqa_service_name": None,
+            "notes": None,
+        },
+    ]
+    out, _, counts = common.withhold_person_named_names("all", rows, list(rows[0]))
+    assert out[0]["service_name"] is None
+    assert out[0]["acecqa_service_name"] is None
+    assert out[1]["service_name"] is None
+    assert counts == {"service_name": 2, "acecqa_service_name": 1}
+
+
+@pytest.mark.parametrize(
+    "subject, text",
+    [
+        ("Ann-Marie Example", "Ann Marie Example Family Day Care"),
+        ("Ann Marie Example", "Ann-Marie Example Family Day Care"),
+        ("Jane Example-Sample", "Jane Example Sample Kindy"),
+        ("Jane Example Sample", "Jane Example-Sample Kindy"),
+        ("Jane Example-Sample", "Example Sample Kids Club"),
+    ],
+)
+def test_hyphen_and_space_variants_match_alike(subject, text):
+    assert _names(subject).found_in(text)
+
+
+def _write_two(tmp_path, monkeypatch, order):
+    root = tmp_path / order
+    monkeypatch.setattr(common, "PROJECT_ROOT", root)
+    monkeypatch.setattr(common, "PROCESSED_DIR", root / "data" / "processed")
+    common.reset_withheld_names()
+    context = AcecqaNameContext()
+    context.withheld["PR-00000009"] = "Jane Sample"
+    common.set_name_context(context)
+    common.set_person_names(PersonNames())
+    outputs = {
+        # No context on this row: kept unless the name is withheld somewhere else.
+        "first": (
+            [{"record_id": "a", "service_name": "Sample Kids Club", "notes": None}],
+            ["record_id", "service_name", "notes"],
+        ),
+        # The same name with its own withheld provider: withheld.
+        "second": (
+            [
+                {
+                    "service_approval_number": "SE-00000001",
+                    "provider_approval_number": "PR-00000009",
+                    "service_name": "Sample Kids Club",
+                }
+            ],
+            ["service_approval_number", "provider_approval_number", "service_name"],
+        ),
+    }
+    names = ["first", "second"] if order == "ab" else ["second", "first"]
+    for name in names:
+        rows, fields = outputs[name]
+        common.write_processed(name, rows, fields, raw_inputs=[])
+    common.refilter_processed_names()
+    d = root / "data" / "processed"
+    result = {}
+    for name in ("first", "second"):
+        prov = json.loads((d / f"{name}.provenance.json").read_text("utf-8"))
+        result[name] = ((d / f"{name}.csv").read_text("utf-8"), prov["names_withheld"]["counts"])
+    return result
+
+
+def test_two_outputs_in_either_order_give_identical_results(tmp_path, monkeypatch):
+    ab = _write_two(tmp_path, monkeypatch, "ab")
+    ba = _write_two(tmp_path, monkeypatch, "ba")
+    assert ab == ba
+    for csv_text, counts in ab.values():
+        assert "Sample Kids Club" not in csv_text
+        assert counts == {"service_name": 1}
