@@ -842,11 +842,6 @@ def build_profile() -> dict:
     if mgmt_cols:
         fieldnames.append("management_type")
 
-    # PR #12: the name rule on trading names, here so that the summary below uses the same
-    # values as the CSV (write_processed applies it again, which changes nothing).
-    ensure_person_names()
-    rows, fieldnames, _ = withhold_person_named_names("provider-profile", rows, fieldnames)
-
     raw_inputs = _raw_inputs_of(PROVIDERS_CSV) + _raw_inputs_of(SERVICES_CSV)
     write_processed(
         "provider-profile",
@@ -868,6 +863,11 @@ def build_profile() -> dict:
             "they operate none. ACECQA content is not openly licensed: internal use only."
         ),
     )
+
+    # PR #12: write_processed applied the name rule to trading_name (and counted it in the
+    # provenance); the summary uses the same values (a name withheld once stays withheld).
+    ensure_person_names()
+    rows, fieldnames, _ = withhold_person_named_names("provider-profile", rows, fieldnames)
 
     # ---- summary (never includes withheld names) ----
     form_counts = Counter(r["entity_form"] for r in rows)

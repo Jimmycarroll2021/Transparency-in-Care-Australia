@@ -1218,6 +1218,7 @@ def aggregate(
                 "provider_approval_number": pr,
                 "legal_name": None if withheld else blank_to_none(profile.get("legal_name")),
                 "trading_name": None if withheld else blank_to_none(profile.get("trading_name")),
+                "trading_name_note": blank_to_none(profile.get("trading_name_note")),
                 "name_withheld": "true" if withheld else "false",
                 "entity_form": blank_to_none(profile.get("entity_form")),
                 "provider_state": blank_to_none(profile.get("provider_state")),
