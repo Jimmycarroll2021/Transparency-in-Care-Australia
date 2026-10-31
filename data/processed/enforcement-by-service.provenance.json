@@ -1,6 +1,6 @@
 {
   "output": "data/processed/enforcement-by-service.csv",
-  "written_at": "2026-10-31T08:18:26.843635+00:00",
+  "written_at": "2026-10-31T08:50:42.260752+00:00",
   "rows": 18297,
   "schema": null,
   "raw_inputs": [
@@ -80,7 +80,7 @@
   "names_withheld": {
     "rule": "trading and service names withheld when they may name an individual (scrapers.common.withhold_person_named_names)",
     "counts": {
-      "service_name": 2212
+      "service_name": 2214
     }
   }
 }
