@@ -436,26 +436,34 @@ def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
 
 
 def test_costs_or_an_unclear_amount_is_not_recorded_as_the_fine():
-    from scrapers.parse_qld_enforcement import FINE_NOT_RECORDED_NOTE, fine_amount_and_note
+    from scrapers.parse_qld_enforcement import (
+        FINE_NOT_RECORDED_NOTE,
+        FINE_NOT_SINGLE_TOTAL_NOTE,
+        fine_amount_and_note,
+    )
 
     for text in (
         "Approved provider fined and ordered to pay costs of $3,500",
         "Approved provider fined, plus $3,500 in costs",
-        "Approved provider fined after a child left the service; $3,500 was ordered",
     ):
         assert fine_amount_and_note(text) == (None, FINE_NOT_RECORDED_NOTE), text
+    # PR #9: an amount outside the recognised single-total forms gets the allowlist note.
+    assert fine_amount_and_note(
+        "Approved provider fined after a child left the service; $3,500 was ordered"
+    ) == (None, FINE_NOT_SINGLE_TOTAL_NOTE)
 
 
 def test_an_amount_tied_explicitly_to_the_fine_is_recorded():
-    from scrapers.parse_qld_enforcement import fine_amount_and_note
+    from scrapers.parse_qld_enforcement import FINE_NOT_SINGLE_TOTAL_NOTE, fine_amount_and_note
 
     assert fine_amount_and_note("Approved provider fined $12,000 for missing child") == (
         12000,
         None,
     )
     assert fine_amount_and_note("Approved provider was fined $23,000") == (23000, None)
-    assert fine_amount_and_note("A fine of $5,000.50 was imposed") == (5000.5, None)
-    assert fine_amount_and_note("Court imposes $7,500 penalty") == (7500, None)
+    # PR #9: these wordings are not recognised single-total forms, so they are null.
+    for text in ("A fine of $5,000.50 was imposed", "Court imposes $7,500 penalty"):
+        assert fine_amount_and_note(text) == (None, FINE_NOT_SINGLE_TOTAL_NOTE), text
     assert fine_amount_and_note("Compliance notice") == (None, None)
     assert fine_amount_and_note("Fined $8,000 and $2,000 in costs") == (
         None,

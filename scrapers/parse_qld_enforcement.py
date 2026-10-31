@@ -154,13 +154,6 @@ _DOLLARS = re.compile(r"[$][ ]?([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:[.]([0-9]{2})
 
 _FINE_WORD = re.compile(r"(?i)(?<![a-z])(?:fined|fine|fines|penalty|penalties)(?![a-z])")
 _AMOUNT = r"[$][ ]?(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)(?:[.][0-9]{2})?(?![0-9])"
-# An amount tied explicitly to the fine: 'fined $N', 'fine(d) of $N', 'penalty of $N',
-# '$N fine', '$N penalty'. Costs, or an amount whose role the text does not state, are not.
-_TIED_FINE = re.compile(
-    rf"(?i)(?:(?<![a-z])fined(?:[ ]+(?:a[ ]+total[ ]+of|the[ ]+sum[ ]+of))?[ ]+({_AMOUNT})"
-    rf"|(?<![a-z])(?:fine|penalty)[ ]+(?:of|totalling|totaling)[ ]+({_AMOUNT})"
-    rf"|({_AMOUNT})[ ]+(?:fine|penalty)(?![a-z]))"
-)
 FINE_NOT_RECORDED_NOTE = (
     "penalty amount not recorded: the printed amount is not tied explicitly and solely to the fine"
 )
@@ -174,39 +167,32 @@ FINE_ABBREVIATED_NOTE = (
 FINE_PER_OFFENCE_NOTE = (
     "penalty amount not recorded: the printed amount may be per offence, not the total fine"
 )
+# PR #9: anything that is not one of the recognised single-total forms below.
+FINE_NOT_SINGLE_TOTAL_NOTE = "fine not recorded: wording is not a recognised single total"
 _MONEY_RAW = re.compile(
     r"(?i)[$][ ]?([0-9][0-9,]*)(?:[.]([0-9]+))?"
     r"(?:[ ]?(k|m|bn|b|million|millions|thousand|thousands|billion|mil)(?![a-z]))?"
 )
 _WHOLE_GROUPING = re.compile(r"^(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)$")
-# PR #7 round 1: per-offence wording counts only when it is tied to an amount; 'each' elsewhere
-# in the sentence does not touch a single tied total. PR #8: the tie is wider, so that up to
-# three words (digits, number words or others) may stand between 'per', 'for each (of)' or
-# 'for every' and the unit ('$4,000 for each of the three offences', '$4,000 for each of 12
-# breaches', '$4,000 per each offence'), and '$N apiece' is tied wording.
-_AMT_RAW = r"[$][ ]?[0-9][0-9,]*(?:[.][0-9]+)?"
-_UNITS = r"(?:offences?|offenses?|charges?|counts?|breach(?:es)?|contraventions?|child(?:ren)?|incidents?|days?)"
-_PER_OFFENCE = re.compile(
-    r"(?i)"
-    + _AMT_RAW
-    + r"[ ,]*(?:each|apiece)(?![a-z])"
-    + r"|"
-    + _AMT_RAW
-    + r"[ ]+(?:per|for[ ]+each|for[ ]+every)(?:[ ]+[a-z0-9]+){0,3}?[ ]+"
-    + _UNITS
-    + r"(?![a-z])"
-    + r"|"
-    + _AMT_RAW
-    + r"[ ]+(?:a|an)[ ]+(?:[a-z]+[ ]+)?"
-    + _UNITS
-    + r"(?![a-z])"
-    + r"|(?<![a-z])(?:each|every|per)[ ]+"
-    + _UNITS
-    + r"(?![a-z])[^$;.]{0,40}?"
-    + _AMT_RAW
-    + r"|(?<![a-z])for[ ]+every(?![a-z])[^$;.]{0,40}?"
-    + _AMT_RAW
+# PR #9: an allowlist (project rule 3: null with a note, never a wrong figure). A figure is
+# recorded only from one of these single-total forms, ending the sentence or clause or followed
+# by a stated reason: 'fined $N', 'was fined $N.', 'fined $N for|after|over|following|in
+# relation to|regarding|relating to ...', 'fined a total of $N', 'total fine of $N'.
+_TOTAL_FORM = re.compile(
+    rf"(?i)(?<![a-z])(?:fined(?:[ ]+a[ ]+total[ ]+of)?|total[ ]+fine[ ]+of)[ ]+({_AMOUNT})(?![,.][0-9])"
+    r"(?=[ ]*(?:[.;:,]|$)|[ ]+(?:for|after|over|following|in[ ]+relation[ ]+to|regarding"
+    r"|relating[ ]+to)(?![a-z]))"
 )
+# Qualifiers that make a printed amount other than one total fine, anywhere in the text.
+_PER_ITEM = re.compile(
+    r"(?i)(?<![a-z])(?:each|every|per|apiece|a[ ]+time|times|respectively)(?![a-z])"
+    r"|(?<![a-z])x[ ]?[0-9]|×"
+)
+_COSTS = re.compile(
+    r"(?i)(?<![a-z])(?:costs?|plus)(?![a-z])"
+    r"|(?<![a-z])including(?:[ ]+[^ ]+){0,3}?[ ]+(?:costs?(?![a-z])|[$])"
+)
+_SUSPENDED = re.compile(r"(?i)(?<![a-z])(?:part-suspended|suspended|partially)(?![a-z])")
 
 
 def _dollars(token: str) -> int | float:
@@ -215,22 +201,16 @@ def _dollars(token: str) -> int | float:
     return whole + int(m.group(2)) / 100 if m.group(2) else whole
 
 
-def _group_span(m: re.Match) -> tuple[int, int]:
-    group = next(i for i, g in enumerate(m.groups(), start=1) if g)
-    return m.start(group), m.end(group)
-
-
 def fine_amount_and_note(text: str | None) -> tuple[int | float | None, str | None]:
-    """(fine in dollars, note) from a printed headline (Codex round 5, finding 3; PR #7; PR #8).
+    """(fine in dollars, note) from a printed headline (Codex round 5, finding 3; PR #7 to #9).
 
-    Fails closed (project rule 3: null with a note, never an approximate figure). Recorded only
-    when the text prints exactly one dollar amount occurrence, as a whole figure (cents
-    optional), tied explicitly to the fine or penalty ('fined $12,000', 'fined a total of
-    $12,000', 'a fine of $5,000', '$7,500 penalty'). Otherwise the value is None with a note:
-    an abbreviated amount or magnitude word ('$1.5 million', '$15k'), per-offence wording tied
-    to the amount ('$N each', '$N apiece', '$N per offence', '$N for each of three offences'),
-    costs, an untied amount, or more than one amount occurrence (raw occurrences are counted,
-    so two equal fines, or one phrase printed twice, give null). Never a guess, never scaled."""
+    An allowlist that fails closed (project rule 3: null with a note, never a wrong figure).
+    Recorded only when the text prints exactly one dollar amount, as a whole figure (cents
+    optional), in one of the single-total forms of _TOTAL_FORM, and holds no qualifier anywhere
+    (each, every, per, apiece, a time, times, x3, respectively; costs, plus, including costs or
+    an amount; suspended, part-suspended, partially). Otherwise the value is None with the most
+    specific note: abbreviated amount, per-offence wording, costs or more than one amount, or
+    a wording that is not a recognised single total. Never a guess, never scaled."""
     if not text or not _FINE_WORD.search(text):
         return None, None
     raw = list(_MONEY_RAW.finditer(text))
@@ -242,15 +222,14 @@ def fine_amount_and_note(text: str | None) -> tuple[int | float | None, str | No
             return None, FINE_ABBREVIATED_NOTE
         if not _WHOLE_GROUPING.match(digits):
             return None, FINE_ABBREVIATED_NOTE
-    occurrences = [(m.start(), m.end()) for m in _DOLLARS.finditer(text)]
-    if not occurrences:
-        return None, None
-    if _PER_OFFENCE.search(text):
+    if _PER_ITEM.search(text):
         return None, FINE_PER_OFFENCE_NOTE
-    tied = [_group_span(m) for m in _TIED_FINE.finditer(text)]
-    if len(occurrences) == 1 and tied == occurrences:
-        return _dollars(text[occurrences[0][0] : occurrences[0][1]]), None
-    return None, FINE_NOT_RECORDED_NOTE
+    if _COSTS.search(text) or len(raw) != 1:
+        return None, FINE_NOT_RECORDED_NOTE
+    form = _TOTAL_FORM.search(text)
+    if _SUSPENDED.search(text) or not form:
+        return None, FINE_NOT_SINGLE_TOTAL_NOTE
+    return _dollars(form.group(1)), None
 
 
 def extract_fine_amount(text: str | None) -> int | float | None:
@@ -477,7 +456,9 @@ def parse_row(tr, *, period: str | None, page_url: str) -> dict | None:
         legal_references = []
 
     # Codex round 5: only an amount tied explicitly to the fine is recorded.
-    penalty, penalty_note = fine_amount_and_note(action_type_raw)
+    # PR #9: each printed paragraph is its own clause for the fine forms; labels still count
+    # for the qualifiers.
+    penalty, penalty_note = fine_amount_and_note("; ".join([headline, *extra_labels]))
     if penalty_note:
         notes.append(penalty_note)
         withheld_markers.append(penalty_note)  # a constant phrase, safe on withheld rows
