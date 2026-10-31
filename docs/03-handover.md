@@ -96,7 +96,10 @@ compressed raw snapshots, so `--no-fetch` must rebuild the tables before the joi
 enforcement tables and kept in memory only for the name match. Run the join through
 `scrapers/reparse_offline.py`, which parses and joins in one process. `join_enforcement.py` run on
 its own cannot restore them: it stops before writing anything and says so. `--allow-unrestored`
-writes anyway, with fewer joins, and records the count in the join report.
+writes anyway, with fewer joins, and records the count in the join report. The ABN entity stage
+also needs the full ABR business-name lists from the local cache (`data/raw/abr-lookup/`) for
+ABNs whose business names were withheld; without the cache those matches fail closed, both
+scripts refuse to write, and `--allow-unrestored` is needed (PR #12 round 3: 2 joins lost).
 
 **Collection** (full list in the `CLAUDE.md` commands section):
 
