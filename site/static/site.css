@@ -1,0 +1,62 @@
+/* One small stylesheet. Dark text on white, minimum 4.5:1 contrast throughout. */
+*, *::before, *::after { box-sizing: border-box; }
+html { font-size: 100%; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  line-height: 1.5;
+  color: #1a1a1a;
+  background: #fff;
+  overflow-wrap: anywhere;
+}
+a { color: #0b4f8a; }
+a:focus, input:focus, summary:focus { outline: 3px solid #b35900; outline-offset: 2px; }
+code { font-family: ui-monospace, Consolas, monospace; font-size: 0.95em; }
+.banner {
+  background: #ffd400;
+  color: #000;
+  padding: 0.5rem 1rem;
+  border-bottom: 3px solid #000;
+  text-align: center;
+}
+.site-header, main, .site-footer { max-width: 60rem; margin: 0 auto; padding: 0 1rem; }
+.site-header { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; align-items: baseline; }
+.site-name { font-weight: 700; margin: 0.75rem 0; }
+.site-name a { color: #1a1a1a; text-decoration: none; }
+nav a { margin-right: 1rem; }
+h1 { font-size: 1.6rem; line-height: 1.25; }
+h2 { font-size: 1.25rem; margin-top: 2rem; }
+h3 { font-size: 1.1rem; margin-top: 1.5rem; }
+.absence { border-left: 4px solid #1a1a1a; padding: 0.5rem 0.75rem; background: #f3f3f3; }
+.note { color: #444; font-size: 0.95rem; }
+.withheld { font-style: italic; color: #444; }
+.quote { white-space: pre-wrap; border-left: 3px solid #999; padding-left: 0.75rem; }
+dl { margin: 0.5rem 0; }
+dt { font-weight: 700; }
+dd { margin: 0 0 0.5rem 0; }
+.facts { display: grid; grid-template-columns: minmax(8rem, max-content) 1fr; gap: 0.25rem 1rem; }
+.facts dd { margin: 0; }
+.action { border: 1px solid #bbb; border-radius: 4px; padding: 0.5rem 0.75rem; margin: 0.75rem 0; }
+table.counts { border-collapse: collapse; margin: 1rem 0; width: 100%; font-size: 0.95rem; }
+table.counts caption { text-align: left; font-weight: 700; padding-bottom: 0.25rem; }
+table.counts th, table.counts td { border: 1px solid #bbb; padding: 0.25rem 0.5rem; text-align: left; vertical-align: top; }
+.headline li { margin-bottom: 0.75rem; }
+.search label { display: block; font-weight: 700; margin-bottom: 0.25rem; }
+.search input { width: 100%; max-width: 32rem; font-size: 1rem; padding: 0.5rem; border: 2px solid #1a1a1a; border-radius: 4px; }
+#results { padding-left: 1.25rem; }
+#results li { margin: 0.35rem 0; }
+.site-footer { border-top: 1px solid #bbb; margin-top: 2rem; padding-top: 0.5rem; padding-bottom: 2rem; font-size: 0.9rem; }
+@media (max-width: 30rem) {
+  .facts { grid-template-columns: 1fr; }
+  .facts dd { margin-bottom: 0.5rem; }
+  table.counts { font-size: 0.85rem; }
+}
+@media print {
+  nav, .search, details > summary { display: none; }
+  details { display: block; }
+  details > * { display: block; }
+  .banner { background: none; border: 2px solid #000; }
+  a { color: #000; }
+  .action { break-inside: avoid; }
+  body { font-size: 11pt; }
+}

@@ -36,3 +36,6 @@ data/raw/msr/
 data/.reparse-backup/
 data/.reparse-in-progress
 data/.reparse.lock
+
+# Built prototype site: regenerate with python site/build_site.py --out site/dist
+site/dist/
