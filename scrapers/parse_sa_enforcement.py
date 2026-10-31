@@ -43,15 +43,25 @@ from scrapers.common import (
     USER_AGENT,
     Fetched,
     RobotsDisallowed,
+    assign_record_ids,
+    atomic_open,
+    atomic_write_text,
+    ensure_person_names,
     fetch,
     known_hashes,
     log,
     normalise_pr,
     normalise_se,
+    note_withheld_subject,
+    printed_fingerprint,
     record_hash,
+    refuse_if_reparse_incomplete,
     utc_stamp,
+    withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
 )
+from scrapers.profile_providers import name_is_withheld
 
 SOURCE = "sa-enforcement"
 JURISDICTION = "SA"
@@ -102,6 +112,8 @@ FIELDNAMES = [
     "date_issued_raw",
     "period_label",
     "notes",
+    # Structured fact: the end of a printed date range, kept before free text is withheld.
+    "end_date",
 ]
 
 COUNT_FIELDNAMES = [
@@ -458,9 +470,6 @@ ENTITY_MARKER = re.compile(
     r"partnership|nominees|holdings|enterprises|atf|oshc)\b",
     re.IGNORECASE,
 )
-HONORIFIC_NAME = re.compile(
-    r"\b(?:Mr|Mrs|Ms|Miss|Mx|Dr|Prof)\.?\s+[A-Z][A-Za-z'’-]+(?:\s+[A-Z][A-Za-z'’-]+){0,2}"
-)
 LEGAL_REF = re.compile(
     r"\b(?:Sections?|Regulations?|Reg|ss?\.?)\s*\d+[A-Z]*(?:\s*\([A-Za-z0-9]+\))*",
     re.IGNORECASE,
@@ -563,13 +572,6 @@ def extract_legal_references(*texts: str | None) -> list[str]:
             if ref.casefold() not in {r.casefold() for r in refs}:
                 refs.append(ref)
     return refs
-
-
-def strip_personal_names(text: str | None) -> tuple[str | None, int]:
-    if not text:
-        return text, 0
-    cleaned, n = HONORIFIC_NAME.subn("[name removed]", text)
-    return cleaned, n
 
 
 def map_action_type(raw: str) -> str:
@@ -716,8 +718,11 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
     if inferred:
         notes.append("action type inferred from the printed section label, no action text printed")
     date_iso, date_raw = find_date(" ".join(f.get("date", [])))
-    if re.search(r"\d\s+to\s+\d", " ".join(f.get("date", []))):
+    end_date = None
+    date_range = re.split(r"(?<=[0-9])[ ]+to[ ]+(?=[0-9])", " ".join(f.get("date", [])), maxsplit=1)
+    if len(date_range) == 2:
         notes.append("date range printed; the start date is used as date_issued")
+        end_date = find_date(date_range[1])[0]
     if not date_raw:
         date_iso, date_raw = find_date(action_lines[0] if action_lines else "")
         if (
@@ -753,10 +758,8 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
     if kept:
         head, rest = kept[0], [x.lstrip("• ").strip() for x in kept[1:] if x.strip()]
         reason = f"{head} " + "; ".join(rest) if rest else head
-    reason, n_names = strip_personal_names(reason)
-    outcome, n_names_out = strip_personal_names(" ".join(outcome_lines) or None)
-    if n_names + n_names_out:
-        notes.append(f"{n_names + n_names_out} personal name(s) removed at ingest")
+    # Names in the reason or outcome are handled by the shared prose rule in parse_actions.
+    outcome = " ".join(outcome_lines) or None
     if outcome:
         short = outcome if len(outcome) <= 240 else outcome[:240].rsplit(" ", 1)[0] + " ..."
         notes.append(f"outcome printed: {short}")
@@ -784,10 +787,15 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
         service_name_hash = service_name
 
     # Withhold provider names that may be individuals (rule 2).
+    withheld_markers: list[str] = []  # constant phrases only, never source text
     if provider_name:
         family_trust = re.search(r"\bfamily trust\b|^\s*trustee for\b", provider_name, re.I)
-        if family_trust or not is_organisation(provider_name):
-            notes.append(
+        if (
+            family_trust
+            or not is_organisation(provider_name)
+            or name_is_withheld(provider_name)  # shared fail-closed rule
+        ):
+            withheld_markers.append(
                 "provider name withheld: no company or organisation marker or a family trust, "
                 "may identify an individual"
             )
@@ -798,9 +806,11 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
                 and service_name.casefold() == provider_name.casefold()
             ):
                 service_name = None
-                notes.append("service name withheld: identical to the withheld provider name")
+                withheld_markers.append(
+                    "service name withheld: identical to the withheld provider name"
+                )
             if address:
-                notes.append("street address withheld: provider may be an individual")
+                withheld_markers.append("street address withheld: provider may be an individual")
                 address = None
             provider_name = None
 
@@ -839,9 +849,12 @@ def parse_section(heading: str, html: str, *, page_is_current_format: bool = Tru
         "legal_references": json.dumps(refs, ensure_ascii=False),
         "date_issued": date_iso,
         "date_issued_raw": date_raw,
+        "end_date": end_date,
         "notes": notes,
         "_hash_fallback": provider_raw_for_hash or service_name_hash,
         "_hash_service": service_name_hash,
+        "_withheld_markers": withheld_markers,
+        "_subject_raw": provider_text,  # popped in parse_actions, never written
     }
 
 
@@ -871,8 +884,12 @@ def parse_actions(
             continue
         info = parse_section(heading, section_html)
         notes = info.pop("notes")
+        # The record_id hashes the whole printed section (assign_record_ids). Duplicates are found
+        # on the printed action facts instead, because the same action reprinted on another page
+        # can carry an extra outcome sentence.
         fallback = info.pop("_hash_fallback")
         fallback_service = info.pop("_hash_service")
+        withheld_markers = info.pop("_withheld_markers")
         page_year = re.search(r"\b(20\d{2})$", period_label)
         if (
             page_year
@@ -882,29 +899,40 @@ def parse_actions(
             notes.append(
                 f"date year differs from the {page_year.group(1)} page it is printed on: check source"
             )
-        key = info["service_approval_number"] or info["provider_approval_number"] or fallback
-        rows.append(
-            {
-                # Without an SE- number the service name keeps different services of one
-                # provider apart (the pre-2022 pages print no keys).
-                "record_id": record_hash(
-                    "SA",
-                    key,
-                    info["action_type_raw"],
-                    info["date_issued_raw"],
-                    info["reason"],
-                    None if info["service_approval_number"] else fallback_service,
-                ),
-                "jurisdiction": JURISDICTION,
-                "source_register": INDEX_URL,
-                "source_document": source_document,
-                "source_snapshot": source_snapshot,
-                "captured_at": captured_at,
-                **info,
-                "period_label": period_label,
-                "notes": " | ".join(notes) if notes else None,
-            }
-        )
+        row = {
+            "record_id": None,  # set below from non-name facts (assign_record_ids)
+            # In-memory only, never written: the printed action, names included, to find
+            # the same action printed twice (on one page or on two pages).
+            "_fingerprint": printed_fingerprint(
+                heading, BeautifulSoup(section_html, "lxml").get_text(" ")
+            ),
+            # In-memory only, never written: the printed action facts (key, action text, date
+            # as printed, reason), names included, so the same action on two pages is found.
+            "_action_key": record_hash(
+                "SA",
+                info["service_approval_number"] or info["provider_approval_number"] or fallback,
+                info["action_type_raw"],
+                info["date_issued_raw"],
+                info["reason"],
+                None if info["service_approval_number"] else fallback_service,
+            ),
+            "jurisdiction": JURISDICTION,
+            "source_register": INDEX_URL,
+            "source_document": source_document,
+            "source_snapshot": source_snapshot,
+            "captured_at": captured_at,
+            **info,
+            "period_label": period_label,
+            "notes": " | ".join(notes) if notes else None,
+        }
+        subject_raw = row.pop("_subject_raw")
+        if withheld_markers:
+            withhold_free_text(row, tuple(withheld_markers))
+            note_withheld_subject(subject_raw)  # in-memory name set, never written
+        rows.append(row)
+    assign_record_ids(rows)
+    # After the ids: the id never depends on what the prose or URL rule withholds.
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     return rows
 
 
@@ -969,15 +997,17 @@ def parse_counts(
 
 
 def mark_duplicates(rows: list[dict]) -> int:
-    """Flag rows whose record_id repeats (same action printed twice, or on two pages)."""
+    """Flag rows that print the same action again (twice on a page, or on two pages). Rows are
+    compared by their printed action facts (_action_key), never by record_id, which is unique per
+    printed row."""
     seen: dict[str, str] = {}
     dupes = 0
     for row in rows:
-        rid = row["record_id"]
+        rid = row["_action_key"]
         if rid in seen:
             dupes += 1
             extra = (
-                f"duplicate record_id: same action also printed on '{seen[rid]}'; row kept, "
+                f"duplicate row: same action also printed on '{seen[rid]}'; row kept, "
                 "count once when aggregating"
             )
             row["notes"] = f"{row['notes']} | {extra}" if row["notes"] else extra
@@ -989,7 +1019,7 @@ def mark_duplicates(rows: list[dict]) -> int:
 def write_counts(rows: list[dict], raw_inputs: list[Path]) -> Path:
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     out = PROCESSED_DIR / f"{COUNTS_NAME}.csv"
-    with out.open("w", newline="", encoding="utf-8") as fh:
+    with atomic_open(out, newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=COUNT_FIELDNAMES, extrasaction="ignore")
         writer.writeheader()
         for row in rows:
@@ -1010,8 +1040,9 @@ def write_counts(rows: list[dict], raw_inputs: list[Path]) -> Path:
             "with that caveat. Absence of an entry is not evidence of safety."
         ),
     }
-    (PROCESSED_DIR / f"{COUNTS_NAME}.provenance.json").write_text(
-        json.dumps(provenance, indent=2) + "\n"
+    provenance = common.redact_urls_in_obj(provenance)  # the URL rule (Codex round 5)
+    atomic_write_text(
+        PROCESSED_DIR / f"{COUNTS_NAME}.provenance.json", json.dumps(provenance, indent=2) + "\n"
     )
     log.info("processed %s (%d rows)", out.relative_to(PROJECT_ROOT), len(rows))
     return out
@@ -1045,10 +1076,14 @@ def parse_all() -> tuple[list[dict], list[dict], list[Path]]:
         inputs.append(path)
     for slug in sorted(NON_DATA_SLUGS & set(snaps)):
         inputs.append(snaps[slug][0])
+    common.withhold_source_locations(count_rows)  # URL and snapshot rule (Codex round 6)
     return action_rows, count_rows, inputs
 
 
 def main(argv: list[str] | None = None) -> int:
+    if refuse_if_reparse_incomplete():  # an interrupted reparse_offline run (Codex round 5)
+        return 3
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--force", action="store_true", help="write new snapshots even if unchanged")
     ap.add_argument("--skip-fetch", action="store_true", help="parse existing snapshots only")

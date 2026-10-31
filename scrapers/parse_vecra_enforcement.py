@@ -38,15 +38,24 @@ from scrapers.common import (
     RAW_DIR,
     USER_AGENT,
     Fetched,
+    assign_record_ids,
+    atomic_open,
+    atomic_write_text,
+    ensure_person_names,
     fetch,
     known_hashes,
     log,
     normalise_pr,
     normalise_se,
-    record_hash,
+    note_withheld_subject,
+    printed_fingerprint,
+    refuse_if_reparse_incomplete,
     utc_stamp,
+    withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
 )
+from scrapers.profile_providers import name_is_withheld
 
 SOURCE = "vecra-enforcement"
 JURISDICTION = "VIC"
@@ -294,9 +303,6 @@ ENTITY_MARKER = re.compile(
     r"limited partnership|ymca|ywca|shire|city of|trustee)\b",
     re.IGNORECASE,
 )
-HONORIFIC_NAME = re.compile(
-    r"\b(?:Mr|Mrs|Ms|Miss|Mx|Dr|Prof)\.?\s+[A-Z][A-Za-z'’-]+(?:\s+[A-Z][A-Za-z'’-]+){0,2}"
-)
 PERSON_LABELS = re.compile(
     r"nominated supervisor|educator name|person|individual|staff member|volunteer|"
     r"responsible person|certified supervisor|name of",
@@ -347,8 +353,10 @@ def parse_details_cell(cell: Tag) -> dict:
             fields[current] = clean(line.split(":", 1)[1])
             continue
         if m and PERSON_LABELS.search(label or ""):
-            # Person-level field: dropped at ingest, counted only.
+            # Person-level field: dropped at ingest, counted only. The value is kept in memory
+            # for the prose rule's name set and never written.
             dropped_person_fields += 1
+            note_withheld_subject(clean(line.split(":", 1)[1]))
             current = "_person"
             continue
         if current == "service":
@@ -386,14 +394,6 @@ def extract_legal_references(text: str | None) -> list[str]:
         if ref not in refs:
             refs.append(ref)
     return refs
-
-
-def strip_personal_names(text: str | None) -> tuple[str | None, int]:
-    """Replace titled personal names (for example 'Ms Jane Citizen') and count removals."""
-    if not text:
-        return text, 0
-    cleaned, n = HONORIFIC_NAME.subn("[name removed]", text)
-    return cleaned, n
 
 
 def reason_text(cell: Tag) -> str | None:
@@ -482,13 +482,12 @@ def parse_actions(
         info = parse_details_cell(cells[0])
         action_raw = clean(cells[1].get_text(" "))
         reason = reason_text(cells[2])
-        reason, names_in_reason = strip_personal_names(reason)
         date_raw = clean(cells[3].get_text(" ")) or None
         date_iso = parse_date(date_raw)
         refs = extract_legal_references(reason)
 
         notes: list[str] = []
-        stripped = info.pop("dropped_person_fields") + names_in_reason
+        stripped = info.pop("dropped_person_fields")
         if stripped:
             notes.append(f"{stripped} personal name or person field(s) removed at ingest")
         if info["service_approval_number"] is None:
@@ -499,10 +498,16 @@ def parse_actions(
             notes.append(f"date not parsable: {date_raw!r}")
         if not date_raw:
             notes.append("date missing")
-        if info["provider_name"] and not ENTITY_MARKER.search(info["provider_name"]):
-            # Likely a sole trader approved in their own name. Rule 2: never name individuals.
+        withheld_marker = None
+        if info["provider_name"] and (
+            not ENTITY_MARKER.search(info["provider_name"])
+            or name_is_withheld(info["provider_name"])
+        ):
+            # Likely a sole trader approved in their own name, or a name the shared fail-closed
+            # rule does not accept as an organisation. Rule 2: never name individuals.
+            subject_raw = info["provider_name"]
             info["provider_name"] = None
-            notes.append(
+            withheld_marker = (
                 "provider name withheld: no company or organisation marker, may be an individual"
             )
         if "children's services act" in fold_apostrophes(reason or "").lower():
@@ -512,26 +517,32 @@ def parse_actions(
         if not refs:
             notes.append("no legal reference found in reason")
 
-        key = info["service_approval_number"] or info["provider_approval_number"]
-        rows.append(
-            {
-                "record_id": record_hash("VIC", key, action_raw, date_raw, reason),
-                "jurisdiction": JURISDICTION,
-                "source_register": INDEX_URL,
-                "source_document": source_document,
-                "source_snapshot": source_snapshot,
-                "captured_at": captured_at,
-                **info,
-                "action_type": map_action_type(action_raw),
-                "action_type_raw": action_raw,
-                "reason": reason,
-                "legal_references": json.dumps(refs, ensure_ascii=False),
-                "date_issued": date_iso,
-                "date_issued_raw": date_raw,
-                "period_label": period_label,
-                "notes": " | ".join(notes) if notes else None,
-            }
-        )
+        row = {
+            "record_id": None,  # set below from non-name facts (assign_record_ids)
+            # In-memory only, never written: the printed row, to find a row printed twice.
+            "_fingerprint": printed_fingerprint(*(clean(c.get_text(" ")) for c in cells)),
+            "jurisdiction": JURISDICTION,
+            "source_register": INDEX_URL,
+            "source_document": source_document,
+            "source_snapshot": source_snapshot,
+            "captured_at": captured_at,
+            **info,
+            "action_type": map_action_type(action_raw),
+            "action_type_raw": action_raw,
+            "reason": reason,
+            "legal_references": json.dumps(refs, ensure_ascii=False),
+            "date_issued": date_iso,
+            "date_issued_raw": date_raw,
+            "period_label": period_label,
+            "notes": " | ".join(notes) if notes else None,
+        }
+        if withheld_marker:
+            withhold_free_text(row, (withheld_marker,))
+            note_withheld_subject(subject_raw)  # in-memory name set, never written
+        rows.append(row)
+    assign_record_ids(rows)
+    # After the ids: the id never depends on what the prose or URL rule withholds.
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     return rows
 
 
@@ -606,11 +617,11 @@ def mark_duplicates(rows: list[dict]) -> int:
     seen: dict[str, int] = {}
     dupes = 0
     for row in rows:
-        rid = row["record_id"]
+        rid = row["_fingerprint"]  # printed content, not the record_id (unique per row)
         seen[rid] = seen.get(rid, 0) + 1
         if seen[rid] > 1:
             dupes += 1
-            extra = "duplicate record_id within the register; row kept"
+            extra = "duplicate row within the register; row kept"
             row["notes"] = f"{row['notes']} | {extra}" if row["notes"] else extra
     return dupes
 
@@ -618,7 +629,7 @@ def mark_duplicates(rows: list[dict]) -> int:
 def write_counts(rows: list[dict], raw_inputs: list[Path]) -> Path:
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     out = PROCESSED_DIR / f"{COUNTS_NAME}.csv"
-    with out.open("w", newline="", encoding="utf-8") as fh:
+    with atomic_open(out, newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=COUNT_FIELDNAMES, extrasaction="ignore")
         writer.writeheader()
         for row in rows:
@@ -638,8 +649,9 @@ def write_counts(rows: list[dict], raw_inputs: list[Path]) -> Path:
             "but their details are not published, so counts exceed published rows."
         ),
     }
-    (PROCESSED_DIR / f"{COUNTS_NAME}.provenance.json").write_text(
-        json.dumps(provenance, indent=2) + "\n"
+    provenance = common.redact_urls_in_obj(provenance)  # the URL rule (Codex round 5)
+    atomic_write_text(
+        PROCESSED_DIR / f"{COUNTS_NAME}.provenance.json", json.dumps(provenance, indent=2) + "\n"
     )
     log.info("processed %s (%d rows)", out.relative_to(PROJECT_ROOT), len(rows))
     return out
@@ -688,10 +700,14 @@ def parse_all() -> tuple[list[dict], list[dict], list[Path]]:
         inputs.append(path)
     if "index" in snaps:
         inputs.append(snaps["index"][0])
+    common.withhold_source_locations(count_rows)  # URL and snapshot rule (Codex round 6)
     return action_rows, count_rows, inputs
 
 
 def main(argv: list[str] | None = None) -> int:
+    if refuse_if_reparse_incomplete():  # an interrupted reparse_offline run (Codex round 5)
+        return 3
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--force", action="store_true", help="write new snapshots even if unchanged")
     ap.add_argument("--skip-fetch", action="store_true", help="parse existing snapshots only")

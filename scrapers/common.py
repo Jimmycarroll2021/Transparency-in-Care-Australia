@@ -15,14 +15,17 @@ import csv
 import hashlib
 import json
 import logging
+import os
 import re
+import tempfile
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib import robotparser
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 import httpx
 
@@ -30,6 +33,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
 EVIDENCE_DIR = PROJECT_ROOT / "data" / "evidence"
 PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
+# Codex round 5: set while scrapers/reparse_offline.py replaces data/processed; removed only after a
+# fully successful run. Gitignored.
+REPARSE_MARKER = PROJECT_ROOT / "data" / ".reparse-in-progress"
 
 USER_AGENT = (
     "TransparencyInCareAustralia/0.1 "
@@ -284,6 +290,495 @@ def record_hash(*parts: str | None) -> str:
     return hashlib.sha256(joined.encode("utf-8")).hexdigest()[:16]
 
 
+# ---------------------------------------------------------------------------
+# Withheld rows and record ids (CLAUDE.md rule 2)
+# ---------------------------------------------------------------------------
+
+DUPLICATE_NOTE = "duplicate row in source"
+FREE_TEXT_WITHHELD_NOTE = "free text withheld: subject may be an individual"
+# Columns that copy source prose. On a row whose subject or provider name is withheld they are
+# blanked whole: redacting a name word by word leaks (initials, short names, spelling variants).
+# action_type_raw is required and non-empty in the schema, so it becomes a fixed placeholder.
+FREE_TEXT_COLUMNS = ("action_type_raw", "reason", "address", "linked_documents", "details")
+ACTION_TYPE_RAW_WITHHELD = "(withheld)"
+
+
+def withhold_free_text(row: dict, markers: tuple[str, ...] = ()) -> dict:
+    """Blank every free-text column of a withheld row, in place, and set the fixed note.
+
+    Structured columns stay: jurisdiction, dates, the normalised action type, SE-/PR- numbers
+    (normalised and as printed), suburb, state, postcode, period label, and the source register,
+    document and snapshot. legal_references becomes empty (a list stays a list, a JSON array
+    string becomes "[]"). The notes become the parser's fixed markers (constant strings such as
+    "provider name withheld", never source text), then the fixed FREE_TEXT_WITHHELD_NOTE, plus
+    DUPLICATE_NOTE when the row had it, so duplicate counting still works.
+    """
+    had_duplicate = DUPLICATE_NOTE in (row.get("notes") or "")
+    for col in FREE_TEXT_COLUMNS:
+        if col in row:
+            row[col] = ACTION_TYPE_RAW_WITHHELD if col == "action_type_raw" else None
+    if "legal_references" in row:
+        refs = row["legal_references"]
+        if isinstance(refs, list):
+            row["legal_references"] = []
+        else:
+            row["legal_references"] = "[]" if str(refs or "").startswith("[") else ""
+    notes = [*markers, FREE_TEXT_WITHHELD_NOTE] + ([DUPLICATE_NOTE] if had_duplicate else [])
+    row["notes"] = "; ".join(dict.fromkeys(notes))
+    return row
+
+
+PROSE_WITHHELD_NOTE = "free text withheld: may name an individual"
+# Prose columns the shared rule checks on every row. The address is a printed premises
+# locator, not prose: street and place names would trip the detector on most rows, and a
+# withheld subject's address is already withheld whole by withhold_free_text.
+PROSE_COLUMNS = ("action_type_raw", "reason", "details", "_details")
+
+
+def _filter_refs(refs, flagged):
+    """Drop legal reference items the detector flags; keep the column's type."""
+    if isinstance(refs, list):
+        kept = [r for r in refs if not flagged(r)]
+        return kept, len(kept) != len(refs)
+    text = str(refs or "")
+    if not text:
+        return refs, False
+    if text.startswith("["):
+        items = json.loads(text)
+        kept = [r for r in items if not flagged(r)]
+        return json.dumps(kept, ensure_ascii=False), len(kept) != len(items)
+    items = text.split("; ")
+    kept = [r for r in items if not flagged(r)]
+    return "; ".join(kept), len(kept) != len(items)
+
+
+# Codex round 3, finding 3: the run-wide set of personal names (profile_providers.PersonNames),
+# in memory only. Set by reparse_offline across every register, or by ensure_person_names
+# from the ACECQA register when one parser runs alone.
+_PERSON_NAMES = None
+# Raw subjects withheld so far in this process, as a PersonNames set (in memory only).
+_RUN_NAMES = None
+
+
+def note_withheld_subject(raw: str | None) -> None:
+    """Remember, in memory only, the raw printed name of a subject a parser withheld or a
+    person-level field it dropped, so the prose rule can find that name in other rows."""
+    global _RUN_NAMES
+    if not raw:
+        return
+    if _RUN_NAMES is None:
+        from scrapers.profile_providers import PersonNames
+
+        _RUN_NAMES = PersonNames()
+    _RUN_NAMES.add_subject(raw)
+
+
+def run_person_names():
+    """The names noted so far in this process (in memory only), or None."""
+    return _RUN_NAMES
+
+
+def reset_run_names() -> None:
+    global _RUN_NAMES
+    _RUN_NAMES = None
+
+
+def set_person_names(names) -> None:
+    global _PERSON_NAMES
+    _PERSON_NAMES = names
+
+
+def ensure_person_names() -> None:
+    """Load the ACECQA names when no run-wide set was given. Never written anywhere."""
+    if _PERSON_NAMES is None:
+        from scrapers.profile_providers import acecqa_person_names
+
+        set_person_names(acecqa_person_names())
+
+
+URL_WITHHELD_NOTE = "source URL withheld: may name an individual"
+# Columns holding URLs (linked_documents holds several, separated by spaces). A URL is never
+# altered: it is kept whole or nulled (Codex round 4, finding 1).
+URL_COLUMNS = ("source_document", "linked_documents")
+_URL_SEPARATORS = re.compile(r"[-_./+=&?~:;,\\\s]+")
+# Codex round 6: snapshot and raw paths (their file names are slugs of document URLs).
+SNAPSHOT_WITHHELD_NOTE = "source snapshot path withheld: may name an individual"
+SNAPSHOT_TEXT_WITHHELD = "(source snapshot path withheld: may name an individual)"
+SNAPSHOT_COLUMNS = ("source_snapshot",)
+_SCHEME = re.compile(r"(?i)^https?://")
+_URL_LIST_SPLIT = re.compile(r"\s+(?=https?://)", re.IGNORECASE)
+
+
+def _url_words(url: str) -> str:
+    """The decoded path and query of a URL as words: '/docs/Notice-to-Jane%20Example.pdf' ->
+    'docs Notice to Jane Example pdf'. The host is left out (it names the regulator). A
+    path without a scheme (a snapshot or raw path) is split the same way, whole: every
+    segment and the file-name stem, on - _ . / \\ and spaces."""
+    if not _SCHEME.match(url):
+        return _URL_SEPARATORS.sub(" ", unquote(url)).strip()
+    parts = urlsplit(url)
+    return _URL_SEPARATORS.sub(" ", f"{unquote(parts.path)} {unquote(parts.query)}").strip()
+
+
+URL_TEXT_WITHHELD = "(URL withheld: may name an individual)"
+# A URL, or a path or file name of a document, inside free text (summaries, notes, log lines).
+# Codex round 6: a URL or path whose file name holds spaces is matched (and checked) whole.
+_EXT = r"\.(?:pdf|docx?|html?|json|csv|xlsx?|txt)\b"
+_TOKEN = r"[^\s'\",;()\[\]<>]+"
+_URL_IN_TEXT = re.compile(
+    # A URL ending in a document name with no space: matched first, so it never runs on into
+    # the following words.
+    r"https?://[^\s'\",;()\[\]<>]+?"
+    + _EXT
+    # A URL whose document name holds spaces.
+    + r"|https?://"
+    + _TOKEN
+    + r"(?:[ ]"
+    + _TOKEN
+    + r"){1,8}?"
+    + _EXT
+    + r"|https?://"
+    + _TOKEN
+    # A path of two or more directories whose file name holds spaces (at most nine words), so
+    # that prose such as 'PDF/Word files ... robots.txt' is not taken for a path.
+    + r"|(?:[^\s'\",;()\[\]<>:/\\]+[/\\]){2,}[^\s'\",;()\[\]<>:/\\]+"
+    + r"(?:[ ][^\s'\",;()\[\]<>:/\\]+){1,8}?"
+    + _EXT
+    # A path or file name with no spaces.
+    + r"|[^\s'\",;()\[\]<>:]+"
+    + _EXT,
+    re.IGNORECASE,
+)
+
+
+def _run_wide_names():
+    from scrapers.profile_providers import PersonNames
+
+    names = PersonNames()
+    for base in (_PERSON_NAMES, _RUN_NAMES):
+        if base is not None:
+            names.update(base)
+    return names
+
+
+def url_may_name_person(url: str | None, names=None) -> bool:
+    """True when a URL's (or a path's) decoded path and file name may name an individual, by the
+    person detector or the run-wide name set (Codex round 4 and 5)."""
+    if not url:
+        return False
+    from scrapers.profile_providers import prose_may_name_person
+
+    names = _run_wide_names() if names is None else names
+    return prose_may_name_person(_url_words(url), (), names)
+
+
+def redact_urls(text: str | None, names=None) -> str | None:
+    """Replace, whole, every URL or document path in `text` that may name an individual with
+    URL_TEXT_WITHHELD. Other text is unchanged. For summaries, provenance notes and logs."""
+    if not text:
+        return text
+    names = _run_wide_names() if names is None else names
+
+    def replace(m):
+        if not url_may_name_person(m.group(0), names):
+            return m.group(0)
+        return URL_TEXT_WITHHELD if _SCHEME.match(m.group(0)) else SNAPSHOT_TEXT_WITHHELD
+
+    return _URL_IN_TEXT.sub(replace, text)
+
+
+def redact_urls_in_obj(obj, names=None):
+    """redact_urls applied to every string (dictionary keys included) in a JSON-like object."""
+    names = _run_wide_names() if names is None else names
+    if isinstance(obj, str):
+        return redact_urls(obj, names)
+    if isinstance(obj, dict):
+        return {redact_urls_in_obj(k, names): redact_urls_in_obj(v, names) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [redact_urls_in_obj(v, names) for v in obj]
+    return obj
+
+
+class _UrlRuleLogFilter(logging.Filter):
+    """Applies the URL rule to every log line of the scrapers logger."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        try:
+            message = record.getMessage()
+        except Exception:
+            return True
+        redacted = redact_urls(message)
+        if redacted != message:
+            record.msg, record.args = redacted, None
+        return True
+
+
+log.addFilter(_UrlRuleLogFilter())
+
+
+def _add_note(row: dict, note: str) -> None:
+    notes = row.get("notes") or ""
+    sep = " | " if " | " in notes else "; "
+    segments = [seg for seg in notes.split(sep) if seg] if notes else []
+    row["notes"] = sep.join(dict.fromkeys([*segments, note]))
+
+
+def _withhold_locations(row: dict, flagged, counts: dict[str, int]) -> None:
+    """Keep each URL or snapshot path whole or null it (Codex rounds 4 and 6)."""
+    url_hit = False
+    for col in URL_COLUMNS:
+        value = row.get(col)
+        if not isinstance(value, str) or not value:
+            continue
+        urls = _URL_LIST_SPLIT.split(value.strip()) if col == "linked_documents" else [value]
+        kept_urls = [u for u in urls if not flagged(_url_words(u))]
+        if len(kept_urls) != len(urls):
+            row[col] = " ".join(kept_urls) or None
+            counts[col] = counts.get(col, 0) + 1
+            url_hit = True
+    if url_hit:
+        _add_note(row, URL_WITHHELD_NOTE)
+    for col in SNAPSHOT_COLUMNS:
+        value = row.get(col)
+        if isinstance(value, str) and value and flagged(_url_words(value)):
+            row[col] = None
+            counts[col] = counts.get(col, 0) + 1
+            _add_note(row, SNAPSHOT_WITHHELD_NOTE)
+
+
+def withhold_source_locations(rows: list[dict], person_names=None) -> dict[str, int]:
+    """The URL and snapshot-path rule alone, for rows that have no prose (count tables)."""
+    from scrapers.profile_providers import prose_may_name_person
+
+    names = _run_wide_names()
+    if person_names is not None:
+        names.update(person_names)
+    counts: dict[str, int] = {}
+    for row in rows:
+        _withhold_locations(
+            row, lambda t: isinstance(t, str) and prose_may_name_person(t, (), names), counts
+        )
+    return counts
+
+
+def withhold_prose_naming_people(rows: list[dict], person_names=None) -> dict[str, int]:
+    """The shared prose rule, on every row, in place (Codex round 2, finding 1).
+
+    For each prose field, if the shared person detector (profile_providers.
+    prose_may_name_person) finds a possible personal name, the field is nulled
+    (action_type_raw becomes the '(withheld)' placeholder, because the schema requires it), a
+    flagged legal reference or notes segment is dropped, and the fixed PROSE_WITHHELD_NOTE is
+    added once. Rows already withheld whole are skipped. Returns counts of fields nulled."""
+    from scrapers.profile_providers import PersonNames, prose_may_name_person
+
+    # The run-wide names plus the raw subjects withheld in these rows (in memory only).
+    names = PersonNames()
+    for base in (person_names, _PERSON_NAMES, _RUN_NAMES):
+        if base is not None:
+            names.update(base)
+    for row in rows:
+        names.add_subject(row.get("_subject_raw"))
+        for extra in row.get("_person_raw") or ():
+            names.add_subject(extra)
+
+    counts: dict[str, int] = {}
+    for row in rows:
+        known = tuple(row.get(k) for k in ("service_name", "provider_name", "suburb"))
+
+        def flagged(text, known=known):
+            return isinstance(text, str) and prose_may_name_person(text, known, names)
+
+        # URLs and snapshot paths, on every row (withheld rows too): kept whole or nulled.
+        _withhold_locations(row, flagged, counts)
+
+        notes = row.get("notes") or ""
+        if FREE_TEXT_WITHHELD_NOTE in notes:
+            continue
+
+        hit = False
+        for col in PROSE_COLUMNS:
+            value = row.get(col)
+            if value == ACTION_TYPE_RAW_WITHHELD or not flagged(value):
+                continue
+            row[col] = ACTION_TYPE_RAW_WITHHELD if col == "action_type_raw" else None
+            name = col.lstrip("_")
+            counts[name] = counts.get(name, 0) + 1
+            hit = True
+        if "legal_references" in row:
+            refs, dropped = _filter_refs(row["legal_references"], flagged)
+            if dropped:
+                row["legal_references"] = refs
+                counts["legal_references"] = counts.get("legal_references", 0) + 1
+                hit = True
+        sep = " | " if " | " in notes else "; "
+        segments = [seg for seg in notes.split(sep) if seg] if notes else []
+        kept = [seg for seg in segments if not flagged(seg)]
+        if len(kept) != len(segments):
+            counts["notes"] = counts.get("notes", 0) + 1
+            hit = True
+        if hit:
+            row["notes"] = sep.join(dict.fromkeys([*kept, PROSE_WITHHELD_NOTE]))
+    return counts
+
+
+_INVISIBLE_CHARS = re.compile("[​‌‍⁠﻿]")
+
+
+def printed_fingerprint(*texts: str | None) -> str:
+    """Hash of a row's full printed source text: every printed field, whitespace collapsed,
+    zero-width characters removed, case folded. The text is already public in data/raw; only
+    the hash is kept, in memory, and it is never written as text."""
+    parts = [re.sub(r"\s+", " ", _INVISIBLE_CHARS.sub("", t or "")).strip() for t in texts]
+    return record_hash(*parts)
+
+
+def assign_record_ids(rows: list[dict], source_id: str | None = None) -> None:
+    """Give each row a record_id, in place: hash(jurisdiction, source document, printed-text
+    hash), then hash(that, occurrence).
+
+    The printed-text hash is each row's _fingerprint (printed_fingerprint of every printed
+    field). There is no source-order ordinal: reordering rows, or inserting a row, never moves
+    an id. Only rows whose printed text is fully identical share a base; they get an occurrence
+    counter 1, 2, ... and, being identical, are interchangeable. The id never depends on what is
+    published (a name shown or withheld). source_id is the document parsed (defaults to each
+    row's source_document).
+    """
+    seen: dict[str, int] = {}
+    for row in rows:
+        base = record_hash(
+            row.get("jurisdiction"), source_id or row.get("source_document"), row["_fingerprint"]
+        )
+        seen[base] = seen.get(base, 0) + 1
+        row["record_id"] = record_hash(base, str(seen[base]))
+
+
+@contextmanager
+def atomic_open(path: Path, newline: str | None = None) -> Iterator:
+    """Open a temporary file next to `path` for writing; on a clean exit flush, fsync and
+    os.replace it over `path`. On any error the temporary file is removed and `path` is left
+    exactly as it was, so no output is ever half-written (Codex round 5)."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline=newline) as fh:
+            yield fh
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def atomic_write_text(path: Path, text: str, newline: str | None = None) -> None:
+    with atomic_open(path, newline=newline) as fh:
+        fh.write(text)
+
+
+def atomic_write_bytes(path: Path, data: bytes) -> None:
+    path = Path(path)
+    fd, tmp = tempfile.mkstemp(prefix=f".{path.name}.", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+BACKUP_MANIFEST = "MANIFEST.json"
+
+
+class BackupInvalid(RuntimeError):
+    """A reparse backup that does not match its manifest. Nothing may be restored from it."""
+
+
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def verify_backup(backup: Path) -> list[str]:
+    """Problems found when checking a reparse backup against its manifest (relative path, size
+    and sha256 of every file). An empty list means the backup is complete and intact."""
+    backup = Path(backup)
+    manifest_path = backup / BACKUP_MANIFEST
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        entries = manifest["files"]
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        return [f"manifest missing or unreadable ({type(exc).__name__})"]
+    problems: list[str] = []
+    for entry in entries:
+        path = backup / entry["path"]
+        if not path.is_file():
+            problems.append(f"{entry['path']}: missing")
+        elif path.stat().st_size != entry["size"]:
+            problems.append(f"{entry['path']}: size differs")
+        elif file_sha256(path) != entry["sha256"]:
+            problems.append(f"{entry['path']}: sha256 differs")
+    return problems
+
+
+def _marker_backup() -> Path | None:
+    try:
+        for line in REPARSE_MARKER.read_text(encoding="utf-8").splitlines():
+            if line.startswith("backup: "):
+                return Path(line[len("backup: ") :].strip())
+    except OSError:
+        return None
+    return None
+
+
+def reparse_recovery_message() -> str | None:
+    """Recovery instructions when an interrupted reparse_offline run left its marker, else None.
+    The backup is offered only after it verifies against its manifest (Codex round 6)."""
+    if not REPARSE_MARKER.exists():
+        return None
+    backup = _marker_backup()
+    problems = verify_backup(backup) if backup is not None else ["no backup named in the marker"]
+    head = (
+        f"An earlier scrapers/reparse_offline.py run did not finish (marker {REPARSE_MARKER}). "
+        "data/processed may be partly replaced. "
+    )
+    if problems:
+        return head + (
+            f"The backup {backup} failed verification against its manifest "
+            f"({'; '.join(problems[:3])}). Do not copy anything from it. Run "
+            "`git checkout -- data/processed`, then remove any untracked files under "
+            "data/processed (git status shows them), delete the marker and run again."
+        )
+    return head + (
+        f"The backup {backup} is verified against its manifest {backup / BACKUP_MANIFEST}. "
+        "Recover first: either copy the files listed in the manifest from that backup into "
+        "data/processed, or run `git checkout -- data/processed`. Then remove any untracked "
+        "files under data/processed (git status shows them), delete the marker and run again."
+    )
+
+
+def refuse_if_reparse_incomplete() -> bool:
+    """True (and print why) when an interrupted reparse left data/processed in doubt."""
+    message = reparse_recovery_message()
+    if message is None:
+        return False
+    log.error("refusing to run: %s", message)
+    print(message)
+    return True
+
+
 def write_processed(
     name: str,
     rows: list[dict],
@@ -296,7 +791,7 @@ def write_processed(
     """Write data/processed/<name>.csv and <name>.provenance.json listing the raw inputs used."""
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     out = PROCESSED_DIR / f"{name}.csv"
-    with out.open("w", newline="", encoding="utf-8") as fh:
+    with atomic_open(out, newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         for row in rows:
@@ -306,9 +801,16 @@ def write_processed(
         "written_at": utc_now().isoformat(),
         "rows": len(rows),
         "schema": schema,
-        "raw_inputs": [p.relative_to(PROJECT_ROOT).as_posix() for p in raw_inputs],
+        "raw_inputs": [
+            SNAPSHOT_TEXT_WITHHELD if url_may_name_person(rel) else rel
+            for rel in (p.relative_to(PROJECT_ROOT).as_posix() for p in raw_inputs)
+        ],
         "notes": notes,
     }
-    (PROCESSED_DIR / f"{name}.provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
+    # Codex round 5: no URL or path that may name an individual reaches a provenance file.
+    provenance = redact_urls_in_obj(provenance)
+    atomic_write_text(
+        PROCESSED_DIR / f"{name}.provenance.json", json.dumps(provenance, indent=2) + "\n"
+    )
     log.info("processed %s (%d rows)", out.relative_to(PROJECT_ROOT), len(rows))
     return out

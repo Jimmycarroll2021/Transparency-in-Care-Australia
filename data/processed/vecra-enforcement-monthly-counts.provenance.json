@@ -1,6 +1,6 @@
 {
   "output": "data/processed/vecra-enforcement-monthly-counts.csv",
-  "written_at": "2026-10-30T11:51:36.172970+00:00",
+  "written_at": "2026-10-30T23:51:53.369038+00:00",
   "rows": 99,
   "schema": null,
   "raw_inputs": [

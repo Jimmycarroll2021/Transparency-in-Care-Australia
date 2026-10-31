@@ -93,6 +93,7 @@ try:
     from scrapers.common import (
         PROCESSED_DIR,
         PROJECT_ROOT,
+        atomic_write_text,
         log,
         normalise_pr,
         normalise_se,
@@ -107,6 +108,7 @@ except ImportError:  # run as a plain script: python3 scrapers/join_enforcement.
     from scrapers.common import (
         PROCESSED_DIR,
         PROJECT_ROOT,
+        atomic_write_text,
         log,
         normalise_pr,
         normalise_se,
@@ -181,6 +183,17 @@ ACTION_COLUMNS = [
     "date_issued_raw",
     "period_label",
     "notes",
+    # QLD: every other URL linked from the Details cell, after the URL rule (Codex round 4).
+    "linked_documents",
+    # Structured facts some parsers keep apart from the prose (null where a register does not
+    # print them). Carried through unchanged so that withholding prose never loses them.
+    "service_type",
+    "start_date",
+    "end_date",
+    "date_charged",
+    "date_of_sentence",
+    "plea",
+    "penalty_amount_aud",
 ]
 JOIN_COLUMNS = [
     "join_key_kind",
@@ -482,9 +495,24 @@ def usable_provider_name(value: str | None) -> bool:
     )
 
 
+# The shared prose rule's note (scrapers.common.PROSE_WITHHELD_NOTE). It says a prose field
+# was withheld, not the subject's name, so it does not make a row name-withheld.
+PROSE_WITHHELD_NOTE = "free text withheld: may name an individual"
+# The URL rule's note (scrapers.common.URL_WITHHELD_NOTE): a URL was withheld, not the name.
+URL_WITHHELD_NOTE = "source URL withheld: may name an individual"
+# The snapshot-path rule's note (scrapers.common.SNAPSHOT_WITHHELD_NOTE).
+SNAPSHOT_WITHHELD_NOTE = "source snapshot path withheld: may name an individual"
+
+
 def name_withheld_row(row: dict) -> bool:
     """True where a parser withheld the subject's name as a possible individual."""
-    notes = (row.get("notes") or "").lower()
+    notes = (
+        (row.get("notes") or "")
+        .lower()
+        .replace(PROSE_WITHHELD_NOTE, "")
+        .replace(URL_WITHHELD_NOTE.lower(), "")
+        .replace(SNAPSHOT_WITHHELD_NOTE.lower(), "")
+    )
     return "withheld" in notes or "individual" in notes
 
 
@@ -1678,7 +1706,7 @@ def main() -> None:
         )
     ]
     report["joined_before_unlisted_stage"] = matched_before
-    REPORT_JSON.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    atomic_write_text(REPORT_JSON, json.dumps(report, indent=2) + "\n")
     log.info("wrote %s", REPORT_JSON.relative_to(PROJECT_ROOT))
     for j, s in report["per_jurisdiction"].items():
         log.info(

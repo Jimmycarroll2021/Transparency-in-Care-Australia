@@ -55,3 +55,53 @@ def test_tas_rows_conform_to_schema():
 
     for r in rows:
         jsonschema.validate(r, SCHEMA)
+
+
+def test_tas_person_named_trust_provider_is_withheld_by_shared_rule():
+    html = TAS_HTML.replace(
+        "Lady Gowrie Tasmania Inc, PR-00005936",
+        "Example Holdings Pty Ltd ATF Jane Example Unit Trust, PR-00005936",
+    )
+    r0 = parse_page(html, page_url=INDEX_URL, captured_at="2026-10-29T08:00:00Z")[0]
+    assert r0["provider_name"] is None
+    assert r0["provider_approval_number"] == "PR-00005936"
+    assert "Jane" not in json.dumps(r0)
+
+
+# --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------
+
+from scrapers.common import FREE_TEXT_WITHHELD_NOTE  # noqa: E402
+
+
+def _tas_withheld(name="Jane Example"):
+    html = TAS_HTML.replace(
+        "Lady Gowrie Tasmania Inc, PR-00005936", f"{name}, PR-00005936"
+    ).replace("Children left unsupervised", f"{name} left children unsupervised")
+    return parse_page(html, page_url=INDEX_URL, captured_at="2026-10-29T08:00:00Z")[0]
+
+
+def test_withheld_tas_row_keeps_no_free_text_and_keeps_keys():
+    r0 = _tas_withheld()
+    assert r0["provider_name"] is None
+    assert r0["reason"] is None and r0["action_type_raw"] == "(withheld)"
+    assert FREE_TEXT_WITHHELD_NOTE in r0["notes"]
+    assert r0["service_approval_number"] == "SE-00009943"
+    assert r0["provider_approval_number"] == "PR-00005936"
+    assert "Jane" not in json.dumps(r0)
+
+
+def test_tas_record_ids_are_stable():
+    assert _tas_withheld("Jane Example")["record_id"] == _tas_withheld("Jane Example")["record_id"]
+    assert _tas_withheld("Jane Example")["record_id"] != _tas_withheld("Mary Sample")["record_id"]
+
+
+def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
+    # Codex round 2, finding 1: the shared prose rule runs on every row, not only withheld ones.
+    html = TAS_HTML.replace(
+        "Children left unsupervised", "Educator Jane Example left children unsupervised"
+    )
+    r0 = parse_page(html, page_url=INDEX_URL, captured_at="2026-10-29T08:00:00Z")[0]
+    assert r0["provider_name"] == "Lady Gowrie Tasmania Inc"
+    assert r0["reason"] is None
+    assert "free text withheld: may name an individual" in r0["notes"]
+    assert "Jane" not in json.dumps(r0)

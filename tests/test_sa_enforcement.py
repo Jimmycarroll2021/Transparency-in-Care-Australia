@@ -252,7 +252,7 @@ def test_record_id_is_stable_and_duplicates_are_marked():
     assert len({r["record_id"] for r in first}) == len(first)
     both = first + second
     assert sa.mark_duplicates(both) == len(first)
-    assert "duplicate record_id" in both[-1]["notes"]
+    assert "duplicate row" in both[-1]["notes"]
 
 
 def test_summary_counts():
@@ -350,3 +350,91 @@ def test_counts_provenance_records_posix_paths_on_every_platform(tmp_path, monke
     provenance = json.loads(sidecar.read_text(encoding="utf-8"))
     assert provenance["output"] == f"data/processed/{sa.COUNTS_NAME}.csv"
     assert provenance["raw_inputs"] == ["data/raw/sa-enforcement/2026-10-29T0800Z-current.html"]
+
+
+def test_person_named_trust_provider_is_withheld_by_shared_rule():
+    html = CURRENT_FIXTURE.replace(
+        "Smartcare Solutions Pty. Ltd. (PR-400366356)",
+        "Example Holdings Pty Ltd ATF Jane Example Unit Trust (PR-400366356)",
+    )
+    row = by_service(rows_for(html), "Blueskies")
+    assert row["provider_name"] is None
+    assert "provider name withheld" in row["notes"]
+    assert "Jane" not in json.dumps(row)
+
+
+# --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------
+
+from scrapers.common import FREE_TEXT_WITHHELD_NOTE  # noqa: E402
+
+
+def test_withheld_sa_row_keeps_no_free_text_and_keeps_keys():
+    row = by_service(rows_for(CURRENT_FIXTURE), "Citizen Family Day Care")
+    assert row["provider_name"] is None
+    assert row["reason"] is None and row["action_type_raw"] == "(withheld)"
+    assert row["legal_references"] == "[]"
+    assert FREE_TEXT_WITHHELD_NOTE in row["notes"]
+    assert row["provider_approval_number"] == "PR-00009999"
+    assert row["service_approval_number"] == "SE-00011111"
+    assert row["action_type"] == "emergency_action_notice"
+
+
+def test_sa_record_ids_are_stable_and_unique():
+    a, b = rows_for(CURRENT_FIXTURE), rows_for(CURRENT_FIXTURE)
+    assert [r["record_id"] for r in a] == [r["record_id"] for r in b]
+    assert len({r["record_id"] for r in a}) == len(a)
+
+
+# --- Codex round 2, finding 4: the end of a printed date range is kept as a column ----------
+
+
+def _range_rows(date_text):
+    html = OLD_FIXTURE.replace(
+        "<p><strong>Date of action:</strong> 30/10/15</p>",
+        f"<p><strong>Date of action:</strong> {date_text}</p>",
+    )
+    return by_service(rows_for(html, period="2015"), "Little Sprouts")
+
+
+def test_date_range_end_is_kept_and_survives_withholding():
+    row = _range_rows("24/6/2015 to 23/9/2015")
+    assert row["action_type_raw"] == "(withheld)"
+    assert row["date_issued"] == "2015-06-24"
+    assert row["end_date"] == "2015-09-23"
+
+
+def test_single_date_means_null_end_date():
+    assert _range_rows("30/10/15")["end_date"] is None
+    assert by_service(rows_for(OLD_FIXTURE), "Cobbler Creek")["end_date"] is None
+
+
+def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
+    # Codex round 2, finding 1: the shared rule replaces the honorific-only stripper, so a name
+    # without an honorific is caught too.
+    html = CURRENT_FIXTURE.replace("Repair the fence.", "Jane Example to repair the fence.")
+    html = html.replace(
+        "Regulation 103 - Premises to be safe",
+        "Regulation 103 - Premises to be safe, per Ms Jane Example",
+    )
+    row = by_service(rows_for(html), "Happy Haven")
+    assert row["provider_name"] is not None
+    assert "free text withheld: may name an individual" in row["notes"]
+    assert "Jane" not in json.dumps(row)
+    assert not hasattr(sa, "strip_personal_names")
+
+
+def test_same_action_on_two_pages_with_an_added_outcome_line_is_a_duplicate():
+    # Regression found in the Codex round 2 regeneration: the record_id hashes the whole printed
+    # section, but the same action reprinted on a second page with an extra outcome sentence is
+    # still the same action. Duplicates are found on the printed action facts.
+    later = OLD_FIXTURE.replace(
+        "<p><strong>The approved provider has provided evidence that they have complied.</strong></p>",
+        "",
+    )
+    a = rows_for(OLD_FIXTURE, period="Historical compliance action 2022")
+    b = rows_for(later, period="Historical compliance action 2022-23")
+    cobbler_a, cobbler_b = by_service(a, "Cobbler Creek"), by_service(b, "Cobbler Creek")
+    assert cobbler_a["record_id"] != cobbler_b["record_id"]
+    both = a + b
+    assert sa.mark_duplicates(both) == len(b)
+    assert "duplicate row" in by_service(b, "Cobbler Creek")["notes"]

@@ -63,13 +63,20 @@ from scrapers import common
 from scrapers.common import (
     PROJECT_ROOT,
     RAW_DIR,
+    assign_record_ids,
+    ensure_person_names,
     fetch,
     list_snapshots,
     log,
-    record_hash,
+    note_withheld_subject,
+    printed_fingerprint,
+    refuse_if_reparse_incomplete,
+    withhold_free_text,
+    withhold_prose_naming_people,
     write_processed,
 )
 from scrapers.parse_qld_enforcement import clean
+from scrapers.profile_providers import name_is_withheld
 
 SOURCE = "cth-ccs-enforcement"
 JURISDICTION = "CTH"
@@ -113,6 +120,13 @@ FIELDNAMES = [
     "date_issued_raw",
     "period_label",
     "notes",
+    # Structured facts from labelled fields, kept apart from the prose so that withholding
+    # free text never deletes them. Source-faithful: null when not printed or not parsable.
+    "service_type",
+    "end_date",
+    "date_charged",
+    "date_of_sentence",
+    "plea",
 ]
 
 STATE_CODES = {"NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"}
@@ -152,6 +166,21 @@ NOTE_FIELDS = [
     ("date_charged", "date_charged"),
     ("date_sentence", "date_of_sentence"),
 ]
+
+# Labelled date fields kept as structured ISO columns: field key -> (column, printed label).
+STRUCTURED_DATES = [
+    ("end_date", "end_date", "end date"),
+    ("date_charged", "date_charged", "date charged"),
+    ("date_sentence", "date_of_sentence", "date of sentence"),
+]
+# Controlled vocabularies: a printed value outside them is not copied into a column.
+SERVICE_TYPES = {
+    "family day care": "Family Day Care",
+    "centre based day care": "Centre Based Day Care",
+    "outside school hours care": "Outside School Hours Care",
+    "in home care": "In Home Care",
+}
+PLEAS = {"guilty": "Guilty", "not guilty": "Not guilty"}
 
 _ABN = re.compile(r"\bABN\b\s*:?\s*(?:ABN\s*:?\s*)?((?:\d\s?){11})(?!\d)", re.I)
 _ABN_TAIL = re.compile(r"\s*[–—-]?\s*(?:ABN\s*:?\s*)+[\d\s]*$", re.I)
@@ -285,7 +314,13 @@ def split_abn(provider_raw: str) -> tuple[str, str | None, str | None]:
 
 
 def is_individual(provider: str) -> bool:
-    """True when the Provider value looks like a natural person (over-withholds on purpose)."""
+    """True when the Provider value looks like a natural person (over-withholds on purpose).
+
+    The shared fail-closed rule (profile_providers.name_is_withheld) applies first, so a
+    company or trust word cannot carry an individual trustee or a person-named trust through.
+    """
+    if name_is_withheld(provider):
+        return True
     if _TITLE.search(provider) or _PARTNERSHIP_OF.match(provider):
         return True
     if _STRONG.search(provider):
@@ -305,14 +340,6 @@ def person_tokens(provider: str) -> set[str]:
 
 def _words(text: str) -> set[str]:
     return {w.lower() for w in re.findall(r"[A-Za-z][A-Za-z\-]*", text)}
-
-
-def redact_words(text: str, tokens: set[str]) -> str:
-    return re.sub(
-        r"[A-Za-z][A-Za-z\-]*",
-        lambda m: "[name withheld]" if m.group(0).lower() in tokens else m.group(0),
-        text,
-    )
 
 
 # ---------------------------------------------------------------------------
@@ -431,6 +458,7 @@ def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
     abn: str | None = None
     redact: set[str] = set()
     withheld = False
+    withheld_markers: list[str] = []  # constant phrases only, never source text
     if provider_raw:
         stripped, abn, abn_problem = split_abn(provider_raw)
         if abn_problem and not is_individual(stripped):
@@ -438,27 +466,20 @@ def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
         if is_individual(stripped):
             withheld = True
             redact = person_tokens(stripped)
-            notes.append(WITHHELD_NOTE)
+            withheld_markers.append(WITHHELD_NOTE)
             if abn:
-                notes.append("ABN not kept because the subject is an individual")
+                withheld_markers.append("ABN not kept because the subject is an individual")
                 abn = None
         else:
             provider_name = stripped or None
     else:
         notes.append("provider not printed")
 
-    service_withheld = False
     if withheld and service_name and redact & _words(service_name):
         service_name = None
-        service_withheld = True
-        notes.append("service name withheld: it repeats a word from the individual's name")
-    if withheld and grounds and redact & _words(grounds):
-        grounds = redact_words(grounds, redact)
-        notes.append("reason text redacted: it repeated a word from the individual's name")
-    if withheld:
-        for text_key in ("charge", "plea"):
-            if fields.get(text_key) and redact & _words(fields[text_key]):
-                fields[text_key] = redact_words(fields[text_key], redact)
+        withheld_markers.append(
+            "service name withheld: it repeats a word from the individual's name"
+        )
 
     if abn:
         notes.insert(0, f"ccs_identifier: ABN {abn}")
@@ -491,20 +512,16 @@ def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
     if not fields.get("location"):
         notes.append("location not printed")
 
-    blob = " ".join(v for _, v in entry["pairs"])
-    se_raw = None if withheld else (_SE.search(blob) or [None])[0]
-    pr_raw = None if withheld else (_PR.search(blob) or [None])[0]
+    # Approval numbers are public keys of the service and provider approvals, never a name:
+    # withholding a name never drops them.
+    blob = " ".join([entry["service"] or "", *(v for _, v in entry["pairs"])])
+    se_raw = (_SE.search(blob) or [None])[0]
+    pr_raw = (_PR.search(blob) or [None])[0]
     if not (se_raw or pr_raw):
         notes.append("register prints no SE-/PR- number in this row")
 
-    return {
-        "record_id": record_hash(
-            JURISDICTION,
-            "service name withheld" if service_withheld else service_name,
-            provider_name or "withheld",
-            sanction_raw,
-            date_raw,
-        ),
+    row = {
+        "record_id": None,  # set by parse_page from non-name facts (assign_record_ids)
         "jurisdiction": JURISDICTION,
         "source_register": CURRENT_URL,
         "source_document": page_url,
@@ -528,19 +545,39 @@ def _build_row(entry: dict, *, role: str, page_url: str) -> dict | None:
         "date_issued_raw": date_raw or None,
         "period_label": role,
         "notes": "; ".join(notes) or None,
+        # In-memory only, never written: the printed entry, names included, so a repeated row
+        # is spotted without ever using a name or a placeholder in the record_id.
+        "_fingerprint": printed_fingerprint(
+            entry["service"], *(f"{k}: {v}" for k, v in entry["pairs"])
+        ),
     }
+    # Structured facts, taken before any free text is withheld.
+    row["service_type"] = SERVICE_TYPES.get(clean(fields.get("service_type", "")).lower())
+    row["plea"] = PLEAS.get(clean(fields.get("plea", "")).lower())
+    for key, column, label in STRUCTURED_DATES:
+        printed = fields.get(key, "")
+        row[column] = parse_cth_date(printed) if printed else None
+        if printed and row[column] is None:
+            notes.append(f"{label} printed but not parsable")
+            withheld_markers.append(f"{label} printed but not parsable")
+    row["notes"] = "; ".join(notes) or None
+    if withheld:
+        withhold_free_text(row, tuple(withheld_markers))
+        note_withheld_subject(provider_raw)  # in-memory name set, never written
+    return row
 
 
 def mark_duplicates(rows: list[dict]) -> None:
-    """Append '; duplicate row in source' to later rows sharing a record_id. Keeps every row."""
+    """Append '; duplicate row in source' to later rows that print the same entry. Keeps every
+    row. Rows are compared by their printed content, not by record_id."""
     seen: set[str] = set()
     for row in rows:
-        if row["record_id"] in seen:
+        if row["_fingerprint"] in seen:
             if DUPLICATE_NOTE not in (row["notes"] or ""):
                 row["notes"] = (
                     f"{row['notes']}; {DUPLICATE_NOTE}" if row["notes"] else DUPLICATE_NOTE
                 )
-        seen.add(row["record_id"])
+        seen.add(row["_fingerprint"])
 
 
 def parse_page(
@@ -563,6 +600,9 @@ def parse_page(
         row["source_snapshot"] = source_snapshot
         rows.append(row)
     mark_duplicates(rows)
+    assign_record_ids(rows, source_id=page_url)
+    # After the ids: the id never depends on what the prose or URL rule withholds.
+    withhold_prose_naming_people(rows)  # shared prose rule, every row
     return rows
 
 
@@ -621,6 +661,9 @@ def _latest_by_role() -> dict[str, Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    if refuse_if_reparse_incomplete():  # an interrupted reparse_offline run (Codex round 5)
+        return 3
+    ensure_person_names()  # in-memory names for the prose rule (Codex round 3)
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--skip-fetch", action="store_true", help="parse the newest local snapshots")
     ap.add_argument(
@@ -669,7 +712,7 @@ def main(argv: list[str] | None = None) -> int:
             role=role,
             page_url=PAGES[role],
             captured_at=meta.get("fetched_at", ""),
-            source_snapshot=str(path.relative_to(PROJECT_ROOT)),
+            source_snapshot=path.relative_to(PROJECT_ROOT).as_posix(),
         )
         per_page[role] = len(page_rows)
         rows.extend(page_rows)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from scrapers.common import record_hash
 from scrapers.parse_wa_enforcement import (
     INDIVIDUAL_NOTE,
@@ -37,7 +39,7 @@ SAMPLE_TABLE_HTML = """
   <tr>
     <td>Year of action: 2015</td>
     <td>Date of action: 30/11/2015</td>
-    <td>Provider (provider number): Mary Maker (PR-00008204)</td>
+    <td>Provider (provider number): Mara Sample (PR-00008204)</td>
     <td>Service name: Nyier Family Day Care (SE-00014349)</td>
     <td>Compliance action type: Suspension of Provider Approval</td>
     <td>Post code: 6090</td>
@@ -53,7 +55,7 @@ SAMPLE_TABLE_HTML = """
   <tr>
     <td>Year of action: 2015</td>
     <td>Date of action: 18/12/2015</td>
-    <td>Provider (provider number): Raima-Leigh ZAHRA (CS-00051586)</td>
+    <td>Provider (provider number): Rae-Lee EXAMPLE (CS-00051586)</td>
     <td>Service name:</td>
     <td>Compliance action type: Prosecution</td>
     <td>Post code: 6000</td>
@@ -94,7 +96,7 @@ def test_extract_provider_info_company():
 
 
 def test_extract_provider_info_individual_withheld():
-    name, pr, cs, notes = extract_provider_info("Mary Maker (PR-00008204)")
+    name, pr, cs, notes = extract_provider_info("Mara Sample (PR-00008204)")
     assert name is None  # Withheld
     assert pr == "PR-00008204"
     assert cs is None
@@ -102,7 +104,7 @@ def test_extract_provider_info_individual_withheld():
 
 
 def test_extract_provider_info_certified_supervisor_withheld():
-    name, pr, cs, notes = extract_provider_info("Raima-Leigh ZAHRA (CS-00051586)")
+    name, pr, cs, notes = extract_provider_info("Rae-Lee EXAMPLE (CS-00051586)")
     assert name is None  # Withheld
     assert pr is None
     assert cs == "CS-00051586"
@@ -151,7 +153,9 @@ def test_parse_wa_html_table():
     r3 = rows[3]
     assert r3["provider_name"] is None
     assert INDIVIDUAL_NOTE in r3["notes"]
-    assert "certified_supervisor: CS-00051586" in r3["notes"]
+    # Codex round 1, finding 1: a certified supervisor number identifies a person, not an
+    # approval, so it goes with the rest of the withheld row's free text.
+    assert "CS-00051586" not in r3["notes"]
 
 
 # --- name fields carrying address text or key fragments -------------------------
@@ -171,9 +175,13 @@ def test_provider_key_printed_without_brackets_is_removed_from_the_name():
 
 
 def test_provider_key_printed_first_leaves_the_name_after_it():
-    name, pr, _, _ = extract_provider_info("PR-40011786 METHODIST LADIES' COLLEGE")
-    assert name == "METHODIST LADIES' COLLEGE"
+    name, pr, _, _ = extract_provider_info("PR-40011786 EXAMPLE LADIES' COLLEGE LIMITED")
+    assert name == "EXAMPLE LADIES' COLLEGE LIMITED"
     assert pr == "PR-40011786"
+    # Codex round 1, finding 4: an institutional word alone is not organisation evidence, so the
+    # name is withheld, but the key printed first is still read.
+    name, pr, _, notes = extract_provider_info("PR-40011786 METHODIST LADIES' COLLEGE")
+    assert name is None and pr == "PR-40011786"
 
 
 def test_text_after_the_provider_key_is_removed_and_noted_without_repeating_it():
@@ -199,9 +207,9 @@ def test_person_named_with_an_educator_role_is_withheld():
     # Rule 2. The role in brackets contains business words ('Family Day Care'), which made the
     # entity heuristic read the whole cell as an organisation.
     for cell in (
-        "Mary Maker (Family Day Care Educator)",
-        "Mary MAKER (FDC Educator)",
-        "Mary Maker (Former Family Day Care Educator)",
+        "Mara Sample (Family Day Care Educator)",
+        "Mara SAMPLE (FDC Educator)",
+        "Mara Sample (Former Family Day Care Educator)",
     ):
         name, _, _, notes = extract_provider_info(cell)
         assert name is None, cell
@@ -209,7 +217,7 @@ def test_person_named_with_an_educator_role_is_withheld():
 
 
 def test_person_with_an_unbracketed_key_is_still_withheld():
-    name, pr, _, notes = extract_provider_info("Mary Maker PR-00008204")
+    name, pr, _, notes = extract_provider_info("Mara Sample PR-00008204")
     assert name is None
     assert pr == "PR-00008204"
     assert INDIVIDUAL_NOTE in notes
@@ -266,15 +274,21 @@ def test_record_id_is_stable_when_the_service_name_is_cleaned():
     after = parse_wa_html_table(contaminated, "s.html", "2026-10-29T08:00:00Z")[0]
     assert after["service_name"] == "Melville Day Care Centre"
     assert after["address"] == "39 Rome Road Melville"
-    # record_id still hashes the name text as printed before the first comma, so ids already
-    # used downstream do not change when the cleaned name does.
-    assert after["record_id"] == record_hash(
-        "WA",
-        "Melville Day Care Centre 39 Rome Road Melville",
-        "PR-00007392",
-        "compliance_notice",
-        "2013-09-16",
-    )
+    # Codex round 2, finding 3: record_id hashes the row as printed (source document plus the
+    # full printed text), so cleaning the service name for output never changes it.
+    from scrapers.common import printed_fingerprint
+    from scrapers.parse_wa_enforcement import INDEX_URL
+
+    printed = [
+        "Year of action: 2013",
+        "Date of action: 16/09/2013",
+        "Provider (provider number): Lady Bug Holdings Pty Ltd (PR-00007392)",
+        "Service name: Melville Day Care Centre 39 Rome Road Melville",
+        "Compliance action type: Compliance Notice",
+        "Post code: 6158",
+    ]
+    base = record_hash("WA", INDEX_URL, printed_fingerprint(*printed))
+    assert after["record_id"] == record_hash(base, "1")
 
 
 def test_service_number_printed_in_the_provider_cell_is_removed_from_the_name():
@@ -288,3 +302,60 @@ def test_record_id_ignores_cleaning_of_zero_width_characters():
     d = extract_service_details(f"{ZWSP}Tall Tree Early Learning{ZWSP} SE-40017749 1 Example Way")
     assert d["service_name"] == "Tall Tree Early Learning"
     assert d["legacy_name"] == f"{ZWSP}Tall Tree Early Learning{ZWSP} SE-40017749 1 Example Way"
+
+
+def test_person_named_trust_provider_is_withheld_by_shared_rule():
+    # Shared fail-closed rule: a company trustee does not make a person-named trust shown.
+    name, pr, _, notes = extract_provider_info(
+        "Example Holdings Pty Ltd ATF Jane Example Unit Trust (PR-00008204)"
+    )
+    assert name is None
+    assert pr == "PR-00008204"
+    assert "Jane" not in " ".join(notes)
+    kept, _, _, _ = extract_provider_info(
+        "Example Holdings Pty Ltd ATF Sunrise Unit Trust (PR-00008205)"
+    )
+    assert kept == "Example Holdings Pty Ltd ATF Sunrise Unit Trust"
+
+
+# --- Codex round 1: withheld rows keep no free text, keep keys, ids ignore names -------------
+
+import json  # noqa: E402
+
+from scrapers.common import FREE_TEXT_WITHHELD_NOTE  # noqa: E402
+
+
+def test_withheld_wa_row_keeps_no_free_text_and_keeps_keys():
+    row = parse_wa_html_table(SAMPLE_TABLE_HTML, "s.html", "2026-10-29T08:00:00Z")[1]
+    assert row["provider_name"] is None
+    assert row["action_type_raw"] == "(withheld)" and row["address"] is None
+    assert FREE_TEXT_WITHHELD_NOTE in row["notes"]
+    assert row["provider_approval_number"] == "PR-00008204"
+    assert row["service_approval_number"] == "SE-00014349"
+    assert row["action_type"] == "approval_suspended"
+    assert "Sample" not in json.dumps(row)
+
+
+def test_wa_record_ids_survive_reordering_and_are_unique():
+    a = parse_wa_html_table(SAMPLE_TABLE_HTML, "s.html", "2026-10-29T08:00:00Z")
+    trs = re.findall(r"  <tr>\n    <td>Year of action.*?</tr>\n", SAMPLE_TABLE_HTML, flags=re.S)
+    swapped = SAMPLE_TABLE_HTML.replace(trs[0], "@@0@@").replace(trs[1], trs[0])
+    swapped = swapped.replace("@@0@@", trs[1])
+    b = parse_wa_html_table(swapped, "s.html", "2026-10-29T08:00:00Z")
+    by_date = lambda rows: {r["date_issued_raw"]: r["record_id"] for r in rows}  # noqa: E731
+    assert by_date(a) == by_date(b)
+    assert len({r["record_id"] for r in a}) == len(a)
+
+
+def test_prose_naming_a_person_is_withheld_on_an_organisation_row():
+    # Codex round 2, finding 1: the shared prose rule runs on every row, not only withheld ones.
+    html = SAMPLE_TABLE_HTML.replace(
+        "Compliance action type: Compliance Notice",
+        "Compliance action type: Compliance Notice to Jane Example",
+    )
+    row = parse_wa_html_table(html, "s.html", "2026-10-29T08:00:00Z")[0]
+    assert row["provider_name"] == "Lady Bug Holdings Pty Ltd"
+    assert row["action_type_raw"] == "(withheld)"
+    assert row["action_type"] == "compliance_notice"
+    assert "free text withheld: may name an individual" in row["notes"]
+    assert "Jane" not in str(row)
