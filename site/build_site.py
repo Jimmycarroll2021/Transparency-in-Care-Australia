@@ -448,6 +448,13 @@ def fmt_date(value: str | None) -> str:
     return f"{d.day} {MONTHS[d.month - 1]} {d.year}"
 
 
+def fmt_date_short(value: str | None) -> str:
+    """'2026-10-28' as '28 Oct 2026', for narrow table headers."""
+    full = fmt_date(value)
+    m = re.match(r"^(\d{1,2}) ([A-Z][a-z]+) (\d{4})$", full)
+    return f"{m.group(1)} {m.group(2)[:3]} {m.group(3)}" if m else full
+
+
 def fmt_money(value: str) -> str:
     try:
         amount = float(value)
@@ -613,14 +620,43 @@ class Data:
 # Page frame
 
 NAV = (
-    ("index.html", "Home"),
+    ("index.html#search", "Search"),
     ("sources.html", "Sources and methods"),
 )
 
+FAVICON_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22">'
+    '<rect x="1" y="1" width="20" height="20" rx="4" fill="#0B5566"/>'
+    '<rect x="5" y="6" width="12" height="2" rx="1" fill="#fff"/>'
+    '<rect x="5" y="10" width="9" height="2" rx="1" fill="#fff"/>'
+    '<rect x="5" y="14" width="11" height="2" rx="1" fill="#fff"/></svg>\n'
+)
 
-def page(title: str, body: str, depth: int = 0, description: str = "") -> str:
-    up = "../" * depth
-    nav = " ".join(f'<a href="{up}{href}">{esc(label)}</a>' for href, label in NAV)
+# A small register mark for the wordmark: three ruled lines of differing length.
+MARK_SVG = (
+    '<svg class="wm-mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" '
+    'focusable="false"><rect x="1" y="1" width="20" height="20" rx="4" class="wm-box"/>'
+    '<rect x="5" y="6" width="12" height="2" rx="1" class="wm-line"/>'
+    '<rect x="5" y="10" width="9" height="2" rx="1" class="wm-line"/>'
+    '<rect x="5" y="14" width="11" height="2" rx="1" class="wm-line"/></svg>'
+)
+
+
+def page(
+    title: str,
+    body: str,
+    depth: int = 0,
+    description: str = "",
+    current: str = "",
+    base: str | None = None,
+) -> str:
+    """Wrap a page body in the shared frame. base overrides the relative prefix: the 404 page is
+    served at any path, so it links from the site root."""
+    up = base if base is not None else "../" * depth
+    links = []
+    for href, label in NAV:
+        mark = ' aria-current="page"' if href == current else ""
+        links.append(f'<a href="{up}{href}"{mark}>{esc(label)}</a>')
     desc = f'<meta name="description" content="{esc(description)}">\n' if description else ""
     return (
         "<!doctype html>\n"
@@ -628,24 +664,157 @@ def page(title: str, body: str, depth: int = 0, description: str = "") -> str:
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"{ROBOTS_META}\n"
         '<meta name="referrer" content="no-referrer">\n'
+        '<meta name="color-scheme" content="light dark">\n'
         f"{desc}"
         f"<title>{esc(title)} | Transparency in Care Australia (prototype)</title>\n"
         f'<link rel="stylesheet" href="{up}assets/site.css">\n'
+        f'<link rel="icon" href="{up}assets/favicon.svg" type="image/svg+xml">\n'
         "</head>\n<body>\n"
-        f'<div class="banner" role="note"><strong>{esc(BANNER)}</strong></div>\n'
-        '<header class="site-header"><p class="site-name">'
-        f'<a href="{up}index.html">Transparency in Care Australia</a></p>\n'
-        f'<nav aria-label="Main">{nav}</nav></header>\n'
-        f'<main id="main">\n{body}\n</main>\n'
-        '<footer class="site-footer"><p>'
-        f"{esc(BANNER)} Every entry links to the regulator's own published record. "
-        f"{esc(ABSENCE)}</p></footer>\n"
+        '<a class="skip" href="#main">Skip to content</a>\n'
+        f'<div class="banner" role="note"><div class="wrap"><strong>{esc(BANNER)}</strong></div></div>\n'
+        '<header class="site-header"><div class="wrap header-inner">'
+        f'<a class="wordmark" href="{up}index.html">{MARK_SVG}'
+        "<span>Transparency in Care Australia</span></a>\n"
+        f'<nav class="site-nav" aria-label="Main">{"".join(links)}</nav></div></header>\n'
+        f'<main id="main" class="wrap">\n{body}\n</main>\n'
+        '<footer class="site-footer"><div class="wrap">'
+        f"<p><strong>{esc(BANNER)}</strong></p>"
+        "<p>Every entry links to the regulator's own published record. An enforcement action is a "
+        "step a regulator took; it is not a finding of guilt and not a conviction. "
+        f"{esc(ABSENCE)}</p>"
+        f'<p><a href="{up}sources.html">Sources and methods</a></p>'
+        "</div></footer>\n"
         "</body>\n</html>\n"
     )
 
 
 def absence_block() -> str:
-    return f'<p class="absence"><strong>{esc(ABSENCE)}</strong></p>'
+    return (
+        '<div class="absence" role="note"><svg class="absence-icon" width="20" height="20" '
+        'viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="9" '
+        'class="icon-ring"/><rect x="9" y="8.5" width="2" height="6" rx="1" class="icon-glyph"/>'
+        '<circle cx="10" cy="5.8" r="1.2" class="icon-glyph"/></svg>'
+        f"<p><strong>{esc(ABSENCE)}</strong></p></div>"
+    )
+
+
+# ---------------------------------------------------------------------------------------------
+# Visual building blocks: category badges, chips, charts. Every chart is inline SVG with a
+# title, a description and a table alternative; every badge carries its category's text label.
+
+JURISDICTION_NAMES = {
+    "NSW": "New South Wales",
+    "VIC": "Victoria",
+    "QLD": "Queensland",
+    "SA": "South Australia",
+    "WA": "Western Australia",
+    "TAS": "Tasmania",
+    "CTH": "Commonwealth (Child Care Subsidy)",
+}
+
+
+def category(action_type: str) -> str:
+    return action_type if action_type in TYPE_LABELS else "other"
+
+
+def badge(action_type: str) -> str:
+    t = category(action_type)
+    return f'<span class="badge cat-{t}">{esc(TYPE_LABELS[t])}</span>'
+
+
+def time_tag(value: str) -> str:
+    """A <time> element for an ISO date, or the plain text when it does not parse."""
+    text = (value or "").strip()
+    m = re.match(r"^\d{4}-\d{2}-\d{2}", text)
+    if not m:
+        return esc(fmt_date(text))
+    return f'<time datetime="{esc(m.group(0))}">{esc(fmt_date(text))}</time>'
+
+
+def chips(items: list[tuple[str, str]]) -> str:
+    """A row of stat chips: (value html, label html)."""
+    lis = "".join(
+        f'<li class="chip"><span class="chip-value">{v}</span>'
+        f'<span class="chip-label">{lab}</span></li>'
+        for v, lab in items
+    )
+    return f'<ul class="chips">{lis}</ul>'
+
+
+def bar_chart(
+    cid: str, title: str, desc: str, items: list[tuple[str, int, str]], total: int
+) -> str:
+    """A horizontal bar chart as inline SVG, with a table alternative.
+
+    Bars are sized in percentages of the SVG's own width and the SVG has no viewBox, so the text
+    keeps its size at any screen width. Each value is printed with its denominator.
+    """
+    row_h = 46
+    peak = max((v for _, v, _ in items), default=0) or 1
+    rows = []
+    for i, (label, value, cls) in enumerate(items):
+        y = i * row_h
+        width = 100 * value / peak
+        if value and width < 0.8:
+            width = 0.8
+        rows.append(
+            f'<g class="chart-row"><text class="chart-label" x="0" y="{y + 17}">{esc(label)}</text>'
+            f'<text class="chart-value" x="100%" y="{y + 17}" text-anchor="end">'
+            f"{fmt_int(value)} of {fmt_int(total)}</text>"
+            f'<rect class="chart-track" x="0" y="{y + 25}" width="100%" height="12" rx="3"/>'
+            f'<rect class="bar {cls}" x="0" y="{y + 25}" width="{width:.2f}%" height="12" '
+            'rx="3"/></g>'
+        )
+    height = row_h * len(items)
+    table_rows = "".join(
+        f'<tr><th scope="row">{esc(label)}</th><td>{fmt_int(value)} of {fmt_int(total)}</td></tr>'
+        for label, value, _ in items
+    )
+    return (
+        f'<figure class="chart-figure" aria-labelledby="{cid}-cap">'
+        f'<figcaption id="{cid}-cap"><span class="chart-title">{esc(title)}</span>'
+        f'<span class="chart-desc">{esc(desc)}</span></figcaption>'
+        f'<svg class="chart" width="100%" height="{height}" role="img" '
+        f'aria-labelledby="{cid}-t {cid}-d"><title id="{cid}-t">{esc(title)}</title>'
+        f'<desc id="{cid}-d">{esc(desc)}</desc>{"".join(rows)}</svg>'
+        '<details class="chart-table"><summary>Show the figures as a table</summary>'
+        f'<table class="counts"><caption>{esc(title)}</caption><thead><tr>'
+        '<th scope="col">Group</th><th scope="col">Rows</th></tr></thead>'
+        f"<tbody>{table_rows}</tbody></table></details></figure>"
+    )
+
+
+def sparkline(per_year: dict[int, int], years: list[int], label: str, undated: int = 0) -> str:
+    """A small bar sparkline of actions per year, with a text title."""
+    if not years:
+        return ""
+    width, height = 120, 30
+    slot = width / len(years)
+    bar = max(slot - 2, 1.5)
+    peak = max(per_year.values(), default=0) or 1
+    rects = []
+    for i, year in enumerate(years):
+        n = per_year.get(year, 0)
+        x = i * slot + (slot - bar) / 2
+        if n:
+            h = max(3.0, (height - 2) * n / peak)
+            rects.append(
+                f'<rect class="spark-bar" x="{x:.1f}" y="{height - h:.1f}" '
+                f'width="{bar:.1f}" height="{h:.1f}" rx="1"/>'
+            )
+        else:
+            rects.append(
+                f'<rect class="spark-zero" x="{x:.1f}" y="{height - 1:.1f}" '
+                f'width="{bar:.1f}" height="1"/>'
+            )
+    parts = [f"{y}: {per_year[y]}" for y in years if per_year.get(y)]
+    text = f"{label}, {years[0]} to {years[-1]}. " + ("; ".join(parts) or "None dated") + "."
+    if undated:
+        text += f" {fmt_int(undated)} with no parsable date."
+    return (
+        f'<svg class="spark" width="{width}" height="{height}" viewBox="0 0 {width} {height}" '
+        f'role="img"><title>{esc(text)}</title>{"".join(rects)}</svg>'
+    )
 
 
 # ---------------------------------------------------------------------------------------------
@@ -661,76 +830,104 @@ def withheld_text(notes: list[str]) -> str:
     return "Withheld: " + "; ".join(notes) + "."
 
 
-def render_action(raw: dict) -> str:
-    a = pick(raw, ACTION_COLUMNS)
-    withheld, dated = note_segments(a["notes"])
-    jurisdiction = a["jurisdiction"]
-    regulator = REGULATORS.get(jurisdiction, {}).get("name", jurisdiction)
-    rows = []
-
-    if a["date_issued"]:
-        date_html = esc(fmt_date(a["date_issued"]))
-    else:
-        date_html = "Not printed as a parsable date. See the source."
-    if dated:
-        date_html += f' <span class="note">({esc("; ".join(dated))})</span>'
-    rows.append(("Date", date_html))
-    rows.append(("Regulator", esc(f"{regulator} ({jurisdiction})")))
-    if a["period_label"]:
-        rows.append(("Register period", esc(a["period_label"])))
-
+def action_label_html(a: dict, withheld: list[str]) -> str:
+    """The register's own label, or the withheld note where the label was withheld."""
     label = a["action_type_raw"]
     if not label or label == "(withheld)":
-        label_html = f'<span class="withheld">{esc(withheld_text(withheld))}</span>'
-    else:
-        label_html = esc(label)
-    rows.append(("Action as labelled by the register", label_html))
-    rows.append(("Category", esc(TYPE_LABELS.get(a["action_type"], "Other"))))
+        return f'<span class="withheld">{esc(withheld_text(withheld))}</span>'
+    return esc(label)
 
-    if a["reason"] and len(a["reason"]) <= SHORT_TEXT:
-        rows.append(("Description as printed", f'<p class="quote">{esc(a["reason"])}</p>'))
-    elif a["reason"]:
-        rows.append(
-            (
-                "Description as printed",
-                f"<details><summary>Show the register's text ({fmt_int(len(a['reason']))} "
-                f'characters)</summary><p class="quote">{esc(a["reason"])}</p></details>',
-            )
-        )
-    elif any("free text withheld" in n for n in withheld):
-        rows.append(
-            ("Description", f'<span class="withheld">{esc(withheld_text(withheld))}</span>')
-        )
 
-    if a["penalty_amount_aud"]:
-        rows.append(
-            (
-                "Penalty",
-                f"{esc(fmt_money(a['penalty_amount_aud']))} "
-                '<span class="note">(the fine amount printed in the register entry\'s '
-                "headline; read the register entry for the full outcome)</span>",
-            )
-        )
-
-    rows.append(("How it was joined", esc(MATCH_LABELS.get(a["match_confidence"], "Not stated."))))
-
+def source_link(a: dict) -> str:
     doc = safe_url(a["source_document"])
     register = safe_url(a["source_register"])
     captured = fmt_date(a["captured_at"])
     if doc:
-        src = f'<a href="{esc(doc)}" rel="noreferrer">{esc(doc)}</a>'
+        host = re.sub(r"^https://([^/]+).*$", r"\1", doc)
+        link = (
+            f'<a class="source-link" href="{esc(doc)}" rel="noreferrer">View source record</a> '
+            f'<span class="note">on {esc(host)}.</span>'
+        )
     elif register:
-        src = (
-            f'<a href="{esc(register)}" rel="noreferrer">{esc(register)}</a> '
-            '<span class="note">(the specific page is withheld: it may name an individual)</span>'
+        link = (
+            f'<a class="source-link" href="{esc(register)}" rel="noreferrer">View the register</a> '
+            '<span class="note">(the specific page is withheld: it may name an individual).</span>'
         )
     else:
-        src = "Not available."
-    rows.append(("Source", f"{src}. Captured {esc(captured)} (UTC)."))
-    rows.append(("Record", f"<code>{esc(a['record_id'])}</code>"))
+        link = '<span class="note">Source not available.</span>'
+    return f'<p class="action-source">{link} <span class="note">Captured {esc(captured)} (UTC).</span></p>'
 
-    items = "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in rows)
-    return f'<article class="action"><dl>{items}</dl></article>'
+
+def render_action(raw: dict) -> str:
+    """One timeline item: the date, then a card with the category badge and the register's label."""
+    a = pick(raw, ACTION_COLUMNS)
+    withheld, dated = note_segments(a["notes"])
+    jurisdiction = a["jurisdiction"]
+    regulator = REGULATORS.get(jurisdiction, {}).get("name", jurisdiction)
+
+    if a["date_issued"]:
+        date_html = time_tag(a["date_issued"])
+    else:
+        date_html = (
+            '<span class="nodate">Date not printed as a parsable date. See the source.</span>'
+        )
+    if dated:
+        date_html += f'<span class="note date-note">({esc("; ".join(dated))})</span>'
+
+    sub = esc(f"{regulator} ({jurisdiction}).")
+    if a["period_label"]:
+        sub += f" Register period {esc(a['period_label'])}."
+
+    facts = []
+    if a["penalty_amount_aud"]:
+        facts.append(
+            (
+                "Penalty",
+                f'<span class="penalty">{esc(fmt_money(a["penalty_amount_aud"]))}</span> '
+                '<span class="note">(the fine amount printed in the register entry\'s headline; '
+                "read the register entry for the full outcome)</span>",
+            )
+        )
+    facts.append(("How it was joined", esc(MATCH_LABELS.get(a["match_confidence"], "Not stated."))))
+    facts.append(("Record", f"<code>{esc(a['record_id'])}</code>"))
+    facts_html = "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in facts)
+
+    if a["reason"] and len(a["reason"]) <= SHORT_TEXT:
+        reason = (
+            '<div class="reason"><p class="reason-label">Description as printed</p>'
+            f'<blockquote class="quote">{esc(a["reason"])}</blockquote></div>'
+        )
+    elif a["reason"]:
+        reason = (
+            '<details class="reason"><summary>Description as printed '
+            f'<span class="note">({fmt_int(len(a["reason"]))} characters)</span></summary>'
+            f'<blockquote class="quote">{esc(a["reason"])}</blockquote></details>'
+        )
+    elif any("free text withheld" in n for n in withheld):
+        reason = (
+            '<div class="reason"><p class="reason-label">Description</p>'
+            f'<p class="withheld">{esc(withheld_text(withheld))}</p></div>'
+        )
+    else:
+        reason = ""
+
+    return (
+        '<li class="tl-item">'
+        f'<p class="tl-date">{date_html}</p>'
+        '<article class="action">'
+        f'<header class="action-head"><p class="action-cat"><span class="visually-hidden">Category: </span>{badge(a["action_type"])}</p>'
+        f'<h3 class="action-label"><span class="visually-hidden">Action as labelled by the '
+        f"register: </span>{action_label_html(a, withheld)}</h3>"
+        f'<p class="action-sub">{sub}</p></header>'
+        f"{reason}"
+        f'<dl class="action-facts">{facts_html}</dl>'
+        f"{source_link(a)}"
+        "</article></li>"
+    )
+
+
+def timeline(rows: list[dict]) -> str:
+    return '<ol class="timeline">' + "".join(render_action(a) for a in rows) + "</ol>"
 
 
 def sort_actions(rows: list[dict]) -> list[dict]:
@@ -750,18 +947,19 @@ def counts_table(row: dict, window_start: str, window_end: str, caption: str) ->
         n_recent = to_int(row.get(f"last24m_{t}"))
         if n_all or n_recent:
             lines.append(
-                f'<tr><th scope="row">{esc(TYPE_LABELS[t])}</th>'
+                f'<tr><th scope="row">{badge(t)}</th>'
                 f"<td>{fmt_int(n_all)} of {fmt_int(total)}</td>"
                 f"<td>{fmt_int(n_recent)} of {fmt_int(recent)}</td></tr>"
             )
     head = (
-        '<tr><th scope="col">Action category</th>'
+        '<tr><th scope="col">Category</th>'
         '<th scope="col">All published dates</th>'
-        f'<th scope="col">{esc(fmt_date(window_start))} to {esc(fmt_date(window_end))}</th></tr>'
+        f'<th scope="col">{esc(fmt_date_short(window_start))} to '
+        f"{esc(fmt_date_short(window_end))}</th></tr>"
     )
     return (
-        f'<table class="counts"><caption>{esc(caption)}</caption>'
-        f"<thead>{head}</thead><tbody>{''.join(lines)}</tbody></table>"
+        f'<div class="table-wrap"><table class="counts"><caption>{esc(caption)}</caption>'
+        f"<thead>{head}</thead><tbody>{''.join(lines)}</tbody></table></div>"
     )
 
 
@@ -811,14 +1009,23 @@ def coverage_block(row: dict) -> str:
     )
     if note:
         parts.append(f'<p class="note">{esc(note)}</p>')
-    return "".join(parts)
+    if not parts:
+        return ""
+    return '<section class="side-block"><h2>Coverage</h2>' + "".join(parts) + "</section>"
 
 
 def stub_note(kind: str) -> str:
     return (
-        f'<p class="note">This {kind} approval is not in the ACECQA register export of the '
+        f'<p class="stub-note">This {kind} approval is not in the ACECQA register export of the '
         "snapshot date, usually because it has ceased. Its details here come from the "
         "enforcement register that printed it.</p>"
+    )
+
+
+def action_jurisdictions(rows: list[dict]) -> list[str]:
+    present = {r.get("jurisdiction") or "" for r in rows} - {""}
+    return [j for j in JURISDICTION_ORDER if j in present] + sorted(
+        present - set(JURISDICTION_ORDER)
     )
 
 
@@ -831,36 +1038,34 @@ def render_service(data: Data, se: str) -> str:
     by_name = to_int(s["actions_matched_by_name"])
     pr = s["provider_approval_number"]
     prov_name, prov_key, prov_note = provider_display(data, pr)
+    actions = sort_actions(data.by_service.get(se, []))
+    ws, we = fmt_date(s["window_start"]), fmt_date(s["window_end"])
 
-    facts = []
+    keys = [("Service approval number", f"<code>{esc(se)}</code>")]
     if not published:
         note = SERVICE_NAME_WITHHELD if se in data.withheld_service_names else "Not published."
-        facts.append(("Service name", f'<span class="withheld">{esc(note)}</span>'))
-    facts += [
-        ("Service approval number", f"<code>{esc(se)}</code>"),
-        ("Suburb", esc(s["suburb"] or "Not published")),
-        ("State", esc(s["state"] or "Not published")),
-    ]
+        keys.append(("Service name", f'<span class="withheld">{esc(note)}</span>'))
     if prov_name and prov_key:
         link = (
             f'<a href="../provider/{esc(prov_key)}.html">{esc(prov_name)}</a>'
             if has_provider_page(data, prov_key)
             else esc(prov_name)
         )
-        facts.append(("Approved provider", link))
-        facts.append(("Provider approval number", f"<code>{esc(prov_key)}</code>"))
+        keys.append(("Approved provider", link))
+        keys.append(("Provider approval number", f"<code>{esc(prov_key)}</code>"))
     elif prov_note:
-        facts.append(("Approved provider", f'<span class="withheld">{esc(prov_note)}</span>'))
+        keys.append(("Approved provider", f'<span class="withheld">{esc(prov_note)}</span>'))
     else:
-        facts.append(("Approved provider", "Not stated in the source."))
-    facts_html = "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in facts)
+        keys.append(("Approved provider", "Not stated in the source."))
+    keys_html = "".join(f"<div><dt>{k}</dt><dd>{v}</dd></div>" for k, v in keys)
+    place = ", ".join(x for x in (s["suburb"], s["state"]) if x) or "Suburb and state not published"
 
     summary = (
         f'<p class="count">{fmt_int(total)} published enforcement '
         f"{'action is' if total == 1 else 'actions are'} joined to this service, "
         f"{esc(date_range(s['first_action_date'], s['last_action_date']))}. "
         f"{fmt_int(recent)} of {fmt_int(total)} {are(recent)} dated "
-        f"{esc(fmt_date(s['window_start']))} to {esc(fmt_date(s['window_end']))}."
+        f"{esc(ws)} to {esc(we)}."
     )
     if by_name:
         summary += (
@@ -869,21 +1074,60 @@ def render_service(data: Data, se: str) -> str:
         )
     summary += "</p>"
 
-    actions = sort_actions(data.by_service.get(se, []))
+    chip_items = [
+        (fmt_int(total), "published actions, all dates"),
+        (f"{fmt_int(recent)} of {fmt_int(total)}", f"dated {esc(ws)} to {esc(we)}"),
+    ]
+    if s["first_action_date"]:
+        chip_items.append((esc(fmt_date(s["first_action_date"])), "first dated action"))
+    if s["last_action_date"]:
+        chip_items.append((esc(fmt_date(s["last_action_date"])), "latest dated action"))
+    jurs = action_jurisdictions(actions)
+    if jurs:
+        chip_items.append(
+            (esc(", ".join(jurs)), "regulator publishing" if len(jurs) == 1 else "regulators")
+        )
+    if by_name:
+        chip_items.append((f"{fmt_int(by_name)} of {fmt_int(total)}", "joined by name"))
+
     body = (
-        f"<h1>{esc(name)}</h1>\n"
+        '<header class="entity-head">'
+        '<p class="entity-kind">Approved education and care service</p>'
+        f"<h1>{esc(name)}</h1>"
+        f'<p class="entity-place">{esc(place)}</p>'
+        f'<dl class="keys">{keys_html}</dl>'
         + (stub_note("service") if s["spine_status"] != "current" else "")
-        + absence_block()
-        + f'<dl class="facts">{facts_html}</dl>\n'
-        + "<h2>Summary</h2>\n"
+        + chips(chip_items)
+        + "</header>\n"
         + summary
+        + absence_block()
+        + '<div class="entity-layout"><section class="entity-main" aria-labelledby="tl-h">'
+        + '<h2 id="tl-h">Actions, newest first</h2>'
+        + f'<p class="note">{fmt_int(len(actions))} of {fmt_int(total)} listed. Each card shows '
+        "the register's own label, with this site's category alongside.</p>"
+        + timeline(actions)
+        + "</section>"
+        + '<aside class="entity-side">'
+        + '<section class="side-block"><h2>By category</h2>'
         + counts_table(s, s["window_start"], s["window_end"], "Actions by category")
+        + "</section>"
         + coverage_block(s)
-        + f"<h2>Actions ({fmt_int(len(actions))} of {fmt_int(total)} listed)</h2>\n"
-        + "".join(render_action(a) for a in actions)
+        + "</aside></div>"
         + absence_block()
     )
     return page(name, body, depth=1, description=f"Published enforcement actions for {se}.")
+
+
+def per_year(rows: list[dict]) -> tuple[dict[int, int], int]:
+    counts: dict[int, int] = defaultdict(int)
+    undated = 0
+    for r in rows:
+        m = re.match(r"^(\d{4})-", r.get("date_issued") or "")
+        if m:
+            counts[int(m.group(1))] += 1
+        else:
+            undated += 1
+    return dict(counts), undated
 
 
 def render_provider(data: Data, pr: str) -> str:
@@ -896,18 +1140,23 @@ def render_provider(data: Data, pr: str) -> str:
     svc_level = to_int(p["service_level_actions"])
     prov_level = to_int(p["provider_level_actions"])
     by_name = to_int(p["actions_matched_by_name"])
+    ws, we = fmt_date(p["window_start"]), fmt_date(p["window_end"])
 
     services = sorted(
         (
             pick(r, SERVICE_COLUMNS)
             for r in data.services.values()
-            if r.get("provider_approval_number") == pr and to_int(r.get("actions_total")) > 0
+            if r.get("provider_approval_number") == pr
+            and to_int(r.get("actions_total")) > 0
+            and safe_key(r.get("service_approval_number") or "")
         ),
         key=lambda r: (
+            -to_int(r["actions_total"]),
             (data.service_name(r["service_approval_number"]) or "~").lower(),
             r["service_approval_number"],
         ),
     )
+    provider_actions = sort_actions(data.provider_level.get(pr, []))
 
     lines = [
         f'<p class="count">{fmt_int(total)} published enforcement '
@@ -916,10 +1165,12 @@ def render_provider(data: Data, pr: str) -> str:
         f"{fmt_int(svc_level)} of {fmt_int(total)} against one of its services and "
         f"{fmt_int(prov_level)} of {fmt_int(total)} against the provider itself. "
         f"{fmt_int(recent)} of {fmt_int(total)} {are(recent)} dated "
-        f"{esc(fmt_date(p['window_start']))} "
-        f"to {esc(fmt_date(p['window_end']))}.</p>"
+        f"{esc(ws)} to {esc(we)}.</p>"
     ]
-    if p["spine_status"] == "current" and p["service_count_basis"] == "acecqa_current_register":
+    counted_services = (
+        p["spine_status"] == "current" and p["service_count_basis"] == "acecqa_current_register"
+    )
+    if counted_services:
         lines.append(
             f'<p class="count">{fmt_int(with_any)} of its {fmt_int(service_count)} services in '
             "the ACECQA register export have at least one joined action.</p>"
@@ -930,34 +1181,82 @@ def render_provider(data: Data, pr: str) -> str:
             f"{'rests' if by_name == 1 else 'rest'} on a name match, not a printed key.</p>"
         )
 
-    svc_items = "".join(
-        f'<li><a href="../service/{esc(s["service_approval_number"])}.html">'
-        f"{esc(data.service_name(s['service_approval_number']) or 'Service name withheld')}</a>, "
-        f"{esc(s['suburb'])} {esc(s['state'])} (<code>{esc(s['service_approval_number'])}</code>): "
-        f"{fmt_int(to_int(s['actions_total']))} "
-        f"{'action' if to_int(s['actions_total']) == 1 else 'actions'}</li>"
-        for s in services
-        if safe_key(s["service_approval_number"])
+    chip_items = [
+        (fmt_int(total), "published actions, all dates"),
+        (f"{fmt_int(recent)} of {fmt_int(total)}", f"dated {esc(ws)} to {esc(we)}"),
+    ]
+    if counted_services:
+        chip_items.append(
+            (f"{fmt_int(with_any)} of {fmt_int(service_count)}", "services with an action")
+        )
+    chip_items.append((f"{fmt_int(prov_level)} of {fmt_int(total)}", "against the provider itself"))
+    if p["last_action_date"]:
+        chip_items.append((esc(fmt_date(p["last_action_date"])), "latest dated action"))
+
+    # One shared year axis for every sparkline on the page.
+    all_rows = [a for s in services for a in data.by_service.get(s["service_approval_number"], [])]
+    years_seen = sorted(per_year(all_rows)[0])
+    years = list(range(years_seen[0], years_seen[-1] + 1)) if years_seen else []
+    if years and len(years) < 3:
+        years = list(range(years[-1] - 2, years[-1] + 1))
+
+    rows_html = []
+    for s in services:
+        se = s["service_approval_number"]
+        n = to_int(s["actions_total"])
+        counts, undated = per_year(data.by_service.get(se, []))
+        svc_name = data.service_name(se)
+        name_html = (
+            esc(svc_name) if svc_name else '<span class="withheld">Service name withheld</span>'
+        )
+        place = ", ".join(x for x in (s["suburb"], s["state"]) if x)
+        rows_html.append(
+            "<tr>"
+            f'<th scope="row"><a href="../service/{esc(se)}.html">{name_html}</a>'
+            f'<span class="row-key"><code>{esc(se)}</code></span></th>'
+            f"<td>{esc(place)}</td>"
+            f"<td>{fmt_int(n)} of {fmt_int(total)}</td>"
+            f"<td>{time_tag(s['last_action_date']) if s['last_action_date'] else 'Not dated'}</td>"
+            f'<td class="spark-cell">{sparkline(counts, years, "Actions per year at this service", undated)}</td>'
+            "</tr>"
+        )
+    span = f"{years[0]} to {years[-1]}" if years else "no dated actions"
+    services_html = (
+        '<div class="table-wrap"><table class="services">'
+        f"<caption>Services with at least one joined action ({fmt_int(len(services))}). "
+        f"Counts are of the provider's {fmt_int(total)} actions; the bars show actions per year, "
+        f"{esc(span)}.</caption>"
+        '<thead><tr><th scope="col">Service</th><th scope="col">Suburb and state</th>'
+        '<th scope="col">Actions</th><th scope="col">Latest action</th>'
+        '<th scope="col">Per year</th></tr></thead>'
+        f"<tbody>{''.join(rows_html)}</tbody></table></div>"
+        if rows_html
+        else "<p>None joined to a named service.</p>"
     )
-    provider_actions = sort_actions(data.provider_level.get(pr, []))
 
     body = (
-        f"<h1>{esc(name)}</h1>\n"
+        '<header class="entity-head">'
+        '<p class="entity-kind">Approved provider</p>'
+        f"<h1>{esc(name)}</h1>"
+        f'<dl class="keys"><div><dt>Provider approval number</dt><dd><code>{esc(key)}</code></dd>'
+        "</div></dl>"
         + (stub_note("provider") if p["spine_status"] != "current" else "")
-        + absence_block()
-        + f'<dl class="facts"><dt>Provider approval number</dt><dd><code>{esc(key)}</code></dd></dl>'
-        + "<h2>Summary</h2>\n"
+        + chips(chip_items)
+        + "</header>\n"
         + "".join(lines)
+        + absence_block()
+        + '<div class="entity-layout"><section class="entity-main">'
+        + f"<h2>Services with actions ({fmt_int(len(services))})</h2>"
+        + services_html
+        + f"<h2>Actions against the provider itself ({fmt_int(len(provider_actions))})</h2>"
+        + (timeline(provider_actions) if provider_actions else "<p>None.</p>")
+        + "</section>"
+        + '<aside class="entity-side">'
+        + '<section class="side-block"><h2>By category</h2>'
         + counts_table(p, p["window_start"], p["window_end"], "Actions by category")
+        + "</section>"
         + coverage_block(p)
-        + f"<h2>Services with actions ({fmt_int(len(services))})</h2>\n"
-        + (f"<ul>{svc_items}</ul>" if svc_items else "<p>None joined to a named service.</p>")
-        + f"<h2>Actions against the provider itself ({fmt_int(len(provider_actions))})</h2>\n"
-        + (
-            "".join(render_action(a) for a in provider_actions)
-            if provider_actions
-            else "<p>None.</p>"
-        )
+        + "</aside></div>"
         + absence_block()
     )
     return page(name or pr, body, depth=1, description=f"Published enforcement actions for {pr}.")
@@ -1028,15 +1327,69 @@ def captured_text(first: str, last: str) -> str:
     return f"{fmt_date(first)} to {fmt_date(last)}"
 
 
-def render_home(data: Data, h: dict, n_services: int, n_providers: int) -> str:
-    jur = ordered_jurisdictions(jurisdiction_stats(data))
+RECENT_LIMIT = 10
+
+
+def recent_actions(data: Data, service_keys: list[str]) -> list[tuple[str, dict]]:
+    """The latest dated actions joined to a service that has a page, newest first."""
+    pairs = [
+        (se, row)
+        for se in service_keys
+        for row in data.by_service.get(se, [])
+        if row.get("date_issued")
+    ]
+    pairs.sort(key=lambda p: (p[1]["date_issued"], p[1].get("record_id") or ""), reverse=True)
+    return pairs[:RECENT_LIMIT]
+
+
+def render_recent(data: Data, pairs: list[tuple[str, dict]]) -> str:
+    items = []
+    for se, raw in pairs:
+        a = pick(raw, ACTION_COLUMNS)
+        withheld, _ = note_segments(a["notes"])
+        s = pick(data.services[se], SERVICE_COLUMNS)
+        svc_name = data.service_name(se)
+        name_html = esc(svc_name) if svc_name else "Service name withheld"
+        place = ", ".join(x for x in (s["suburb"], s["state"]) if x)
+        items.append(
+            '<li class="recent-item">'
+            f'<p class="recent-date">{time_tag(a["date_issued"])}</p>'
+            '<div class="recent-body">'
+            f'<p class="recent-what">{badge(a["action_type"])} '
+            f'<span class="recent-label">{action_label_html(a, withheld)}</span></p>'
+            f'<p class="recent-where"><a href="service/{esc(se)}.html">{name_html}</a>'
+            f"{', ' + esc(place) if place else ''} "
+            f'<span class="row-key"><code>{esc(se)}</code></span> '
+            f'<span class="note">Published by {esc(a["jurisdiction"])}.</span></p>'
+            "</div></li>"
+        )
+    return '<ol class="recent">' + "".join(items) + "</ol>"
+
+
+def stat_card(number: str, of: str, label: str, basis: str) -> str:
+    of_html = f' <span class="stat-of">{of}</span>' if of else ""
+    return (
+        '<div class="stat">'
+        f'<p class="stat-number">{number}{of_html}</p>'
+        f'<p class="stat-label">{label}</p>'
+        f'<p class="stat-basis">{basis}</p></div>'
+    )
+
+
+def render_home(data: Data, h: dict, service_keys: list[str], n_providers: int) -> str:
+    stats = jurisdiction_stats(data)
+    jur = ordered_jurisdictions(stats)
     names = [j if j != "CTH" else "the Commonwealth" for j in jur]
     regulator_list = ", ".join(names[:-1]) + (f" and {names[-1]}" if len(names) > 1 else names[0])
     ws, we = fmt_date(h["window_start"]), fmt_date(h["window_end"])
+    all_dates = f"{fmt_date(h['first'])} to {fmt_date(h['last'])}"
+    captured = captured_text(h["captured_first"], h["captured_last"])
+    n_services = len(service_keys)
+
     counts = [
         f"{fmt_int(h['rows'])} enforcement action rows published by {h['regulators']} regulators "
         f"({esc(regulator_list)}), dated between {esc(fmt_date(h['first']))} and "
-        f"{esc(fmt_date(h['last']))} and captured {esc(captured_text(h['captured_first'], h['captured_last']))}. "
+        f"{esc(fmt_date(h['last']))} and captured {esc(captured)}. "
         f"{fmt_int(h['nodate'])} of {fmt_int(h['rows'])} print no parsable date. "
         f"{fmt_int(h['uncounted'])} of {fmt_int(h['rows'])} are rows a source printed twice and are "
         "not counted.",
@@ -1053,27 +1406,110 @@ def render_home(data: Data, h: dict, n_services: int, n_providers: int) -> str:
         f"the ACECQA register export have at least one joined action dated {esc(ws)} to {esc(we)}.",
     ]
     counts_html = "".join(f'<li class="count">{c}</li>' for c in counts)
-    body = f"""<h1>Childcare enforcement actions, joined across regulators</h1>
-<p>This prototype gathers the enforcement actions that Australian education and care regulators
-publish, and links each one, where the source allows, to the approved service or provider it
-concerns. Every entry links to the regulator's own published record. An enforcement action is a
-step a regulator took; it is not a finding of guilt and not a conviction.</p>
-{absence_block()}
-<section aria-labelledby="search-heading" class="search">
-<h2 id="search-heading">Search</h2>
-<label for="q">Service or provider name, suburb, postcode, or approval number (SE- or PR-)</label>
-<input id="q" type="search" autocomplete="off" spellcheck="false" aria-describedby="search-help" aria-controls="results">
-<p id="search-help" class="note">Searches {fmt_int(n_services)} services and {fmt_int(n_providers)} providers that have at least one joined action. Names withheld as possible individuals are not searchable.</p>
+
+    cards = "".join(
+        [
+            stat_card(
+                fmt_int(h["rows"]),
+                "",
+                f"enforcement action rows published by {h['regulators']} regulators",
+                f"All published dates, {esc(all_dates)}. Captured {esc(captured)}.",
+            ),
+            stat_card(
+                fmt_int(h["joined"]),
+                f"of {fmt_int(h['rows_in'])}",
+                "rows joined to an approved service or provider",
+                f"{esc(percent(h['joined'], h['rows_in']))}. All published dates.",
+            ),
+            stat_card(
+                fmt_int(h["services_recent"]),
+                f"of {fmt_int(h['services_total'])}",
+                "services in the ACECQA register export with a joined action",
+                f"Actions dated {esc(ws)} to {esc(we)}.",
+            ),
+            stat_card(
+                fmt_int(h["providers_recent"]),
+                f"of {fmt_int(h['providers_total'])}",
+                "approved providers in the ACECQA register export with a joined action",
+                f"Actions dated {esc(ws)} to {esc(we)}.",
+            ),
+        ]
+    )
+
+    by_jur = sorted(
+        ((JURISDICTION_NAMES.get(j, j), stats[j]["rows"], "bar-primary") for j in jur),
+        key=lambda item: -item[1],
+    )
+    jur_chart = bar_chart(
+        "chart-jurisdiction",
+        "Rows by publishing regulator",
+        f"Enforcement action rows each regulator publishes, of {fmt_int(h['rows'])} rows in all. "
+        f"All published dates, {all_dates}. Coverage windows differ by regulator, so the bars "
+        "compare what is published, not how often actions happen.",
+        by_jur,
+        h["rows"],
+    )
+    type_counts: dict[str, int] = defaultdict(int)
+    for row in data.actions_all:
+        type_counts[category(row.get("action_type") or "")] += 1
+    by_type = sorted(
+        ((TYPE_LABELS[t], n, f"cat-{t}") for t, n in type_counts.items() if n),
+        key=lambda item: -item[1],
+    )
+    type_chart = bar_chart(
+        "chart-category",
+        "Rows by action category",
+        f"Enforcement action rows in each of this site's categories, of {fmt_int(h['rows'])} rows "
+        f"in all. All published dates, {all_dates}. A category describes the step a regulator "
+        "took; it is not a finding of guilt.",
+        by_type,
+        h["rows"],
+    )
+
+    recent = recent_actions(data, service_keys)
+    body = f"""<section class="hero" aria-labelledby="hero-title">
+<h1 id="hero-title">Childcare enforcement actions, joined across regulators</h1>
+<p class="lede">Australian education and care regulators each publish their own enforcement
+registers. This prototype gathers them in one place and links each action, where the source
+allows, to the approved service or provider it concerns.</p>
+<p class="lede-note">Every entry links to the regulator's own published record. An enforcement
+action is a step a regulator took; it is not a finding of guilt and not a conviction.</p>
+<div class="search" id="search" role="search">
+<label for="q">Search services and providers</label>
+<div class="search-field"><svg class="search-icon" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" focusable="false"><circle cx="9.5" cy="9.5" r="6.5" class="icon-stroke"/><rect x="14.2" y="15.6" width="7" height="2.4" rx="1.2" transform="rotate(45 14.2 15.6)" class="icon-glyph"/></svg>
+<input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="Name, suburb, postcode or approval number" aria-describedby="search-help" aria-controls="results"></div>
+<p id="search-help" class="note">Searches {fmt_int(n_services)} services and {fmt_int(n_providers)} providers that have at least one joined action, by name, suburb, postcode or SE- or PR- approval number. Names withheld as possible individuals are not searchable.</p>
 <p id="status" role="status" aria-live="polite"></p>
-<ul id="results"></ul>
+<ul id="results" class="results"></ul>
 <noscript><p>Search needs JavaScript. The sources and methods page explains what is here.</p></noscript>
+</div>
 </section>
-<section aria-labelledby="counts-heading">
-<h2 id="counts-heading">What the data holds</h2>
+{absence_block()}
+<section class="section" aria-labelledby="stats-heading">
+<h2 id="stats-heading">The data at a glance</h2>
+<div class="stat-grid">{cards}</div>
+</section>
+<section class="section" aria-labelledby="charts-heading">
+<h2 id="charts-heading">Where the rows come from</h2>
+<div class="chart-grid">{jur_chart}{type_chart}</div>
+</section>
+<section class="section" aria-labelledby="recent-heading">
+<h2 id="recent-heading">Most recent actions</h2>
+<p class="note">The {fmt_int(len(recent))} latest dated actions joined to a service, newest first. Each links to the service's page.</p>
+{render_recent(data, recent)}
+</section>
+<section class="section notes" aria-labelledby="counts-heading">
+<h2 id="counts-heading">Reading these figures</h2>
 <ul class="headline">{counts_html}</ul>
 </section>
 <script src="assets/search.js"></script>"""
-    return page("Home", body, depth=0, description="Private prototype. Not for publication.")
+    return page(
+        "Home",
+        body,
+        depth=0,
+        description="Private prototype. Not for publication.",
+        current="index.html#search",
+    )
 
 
 def render_sources(data: Data, h: dict, withheld_providers: int, withheld_services: int) -> str:
@@ -1082,6 +1518,7 @@ def render_sources(data: Data, h: dict, withheld_providers: int, withheld_servic
     per = report.get("per_jurisdiction", {})
     coverage = report.get("coverage", {})
     reg_sections = []
+    overview_rows = []
     for j in ordered_jurisdictions(stats):
         s = stats[j]
         reg = REGULATORS.get(
@@ -1102,17 +1539,35 @@ def render_sources(data: Data, h: dict, withheld_providers: int, withheld_servic
                 f"; {fmt_int(s['nodate'])} of {fmt_int(s['rows'])} "
                 f"{'prints' if s['nodate'] == 1 else 'print'} no parsable date"
             )
-        reg_sections.append(
-            f"<h3>{esc(reg['name'])} ({esc(j)})</h3><dl>"
-            f"<dt>What is published</dt><dd>{esc(reg['published'])}</dd>"
-            f"<dt>Coverage as collected</dt><dd>{esc(coverage.get(j, 'Not stated.'))}</dd>"
-            f"<dt>Licence</dt><dd>{esc(reg['licence'])}</dd>"
-            f"<dt>Window</dt><dd>{esc(window)}.</dd>"
-            f"<dt>Captured</dt><dd>{esc(captured_text(caps[0], caps[-1]) if caps else 'Not stated')} (UTC).</dd>"
-            f"<dt>Rows and joins</dt><dd>{fmt_int(s['rows'])} {'row' if s['rows'] == 1 else 'rows'}; "
-            f"{fmt_int(rows_in - unmatched)} of "
-            f"{fmt_int(rows_in)} joined; {fmt_int(unmatched)} of {fmt_int(rows_in)} unmatched.</dd></dl>"
+        span = f"{time_tag(dates[0])} to {time_tag(dates[-1])}" if dates else "No parsable dates"
+        overview_rows.append(
+            f'<tr><th scope="row"><a href="#reg-{esc(j.lower())}">{esc(reg["name"])}</a> '
+            f'<span class="row-key">{esc(j)}</span></th>'
+            f"<td>{fmt_int(s['rows'])} of {fmt_int(h['rows'])}</td>"
+            f"<td>{fmt_int(rows_in - unmatched)} of {fmt_int(rows_in)}</td>"
+            f"<td>{span}</td></tr>"
         )
+        reg_sections.append(
+            f'<section class="reg-card" id="reg-{esc(j.lower())}" aria-labelledby="reg-{esc(j.lower())}-h">'
+            f'<h3 id="reg-{esc(j.lower())}-h">{esc(reg["name"])} <span class="row-key">{esc(j)}</span></h3>'
+            '<dl class="reg-facts">'
+            f"<div><dt>What is published</dt><dd>{esc(reg['published'])}</dd></div>"
+            f"<div><dt>Coverage as collected</dt><dd>{esc(coverage.get(j, 'Not stated.'))}</dd></div>"
+            f"<div><dt>Licence</dt><dd>{esc(reg['licence'])}</dd></div>"
+            f"<div><dt>Window</dt><dd>{esc(window)}.</dd></div>"
+            f"<div><dt>Captured</dt><dd>{esc(captured_text(caps[0], caps[-1]) if caps else 'Not stated')} (UTC).</dd></div>"
+            f"<div><dt>Rows and joins</dt><dd>{fmt_int(s['rows'])} {'row' if s['rows'] == 1 else 'rows'}; "
+            f"{fmt_int(rows_in - unmatched)} of "
+            f"{fmt_int(rows_in)} joined; {fmt_int(unmatched)} of {fmt_int(rows_in)} unmatched.</dd></div>"
+            "</dl></section>"
+        )
+    overview = (
+        '<div class="table-wrap"><table class="counts overview">'
+        "<caption>Regulators at a glance</caption>"
+        '<thead><tr><th scope="col">Regulator</th><th scope="col">Rows of all rows</th>'
+        '<th scope="col">Joined of its rows</th><th scope="col">Dates published</th></tr></thead>'
+        f"<tbody>{''.join(overview_rows)}</tbody></table></div>"
+    )
 
     residual = report["overall"].get("unmatched_residual", {})
     residual_items = "".join(
@@ -1130,24 +1585,47 @@ def render_sources(data: Data, h: dict, withheld_providers: int, withheld_servic
         for j in ordered_jurisdictions(per)
     )
     residual_head = "".join(
-        f'<th scope="col">{esc(k.replace("_", " "))}</th>' for k in RESIDUAL_LABELS
+        f'<th scope="col">{esc(k.replace("_", " ").capitalize())}</th>' for k in RESIDUAL_LABELS
     )
     definitions = "".join(
-        f"<dt>{esc(TYPE_LABELS[t])}</dt><dd>{esc(TYPE_DEFINITIONS[t])}</dd>" for t in ACTION_TYPES
+        f"<div><dt>{badge(t)}</dt><dd>{esc(TYPE_DEFINITIONS[t])}</dd></div>" for t in ACTION_TYPES
     )
     ws, we = fmt_date(h["window_start"]), fmt_date(h["window_end"])
     h_services = sum(1 for r in data.services.values() if to_int(r.get("actions_total")) > 0)
+    toc = "".join(
+        f'<li><a href="#{a}">{esc(t)}</a></li>'
+        for a, t in (
+            ("regulators", "Regulators"),
+            ("joins", "How joins work"),
+            ("withholding", "How names are withheld"),
+            ("categories", "What the categories mean"),
+            ("windows", "Counts and windows"),
+            ("licences", "Licences"),
+            ("limitations", "Known limitations"),
+        )
+    )
 
-    body = f"""<h1>Sources and methods</h1>
+    body = f"""<header class="page-head">
+<h1>Sources and methods</h1>
+<p class="lede">Where every row comes from, how rows are joined to services and providers, what is
+withheld and why, and what the categories mean.</p>
+</header>
 {absence_block()}
-<h2>Regulators</h2>
+<div class="doc-layout">
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ol>{toc}</ol></nav>
+<div class="doc">
+<section id="regulators" aria-labelledby="regulators-h">
+<h2 id="regulators-h">Regulators</h2>
 <p>Each figure below is counted from the processed data this site was built from. Text quoted
 from a register is reproduced as printed, including its punctuation.</p>
-{"".join(reg_sections)}
+{overview}
+<div class="reg-grid">{"".join(reg_sections)}</div>
 <p>The Northern Territory publishes no enforcement register and the ACT has no register, so
 neither contributes rows.</p>
+</section>
 
-<h2>How joins work</h2>
+<section id="joins" aria-labelledby="joins-h">
+<h2 id="joins-h">How joins work</h2>
 <p>Each action is joined to the national register of approved services and providers kept by
 ACECQA, using the export captured for the snapshot date {esc(we)}. The join tries, in order:
 the service or provider approval number printed in the register; then, where no number is
@@ -1161,13 +1639,15 @@ kept out of the counts of current services and providers.</p>
 to the current export and {fmt_int(h["joined_unlisted"])} to stubs). {fmt_int(h["unmatched"])} of
 {fmt_int(h["rows_in"])} are unmatched, each for one stated reason:</p>
 <ul>{residual_items}</ul>
-<table class="counts"><caption>Unmatched rows by regulator and reason</caption>
+<div class="table-wrap"><table class="counts"><caption>Unmatched rows by regulator and reason</caption>
 <thead><tr><th scope="col">Regulator</th><th scope="col">Unmatched of rows</th>{residual_head}</tr></thead>
-<tbody>{per_residual}</tbody></table>
+<tbody>{per_residual}</tbody></table></div>
 <p>Unmatched rows are not shown on any service or provider page. The aim is that every row is
 joined or explained; a full match rate is not the goal, because reaching it would mean guessing.</p>
+</section>
 
-<h2>How names are withheld</h2>
+<section id="withholding" aria-labelledby="withholding-h">
+<h2 id="withholding-h">How names are withheld</h2>
 <p>This site never names individuals. The parsers withhold a provider name, service name, free
 text, street address, ABN or source address when it is classed as, or cannot be confirmed not to
 be, a person's name. A withheld value shows its note, never a guess. This is a keyword heuristic,
@@ -1180,25 +1660,34 @@ joined to it notes that the subject is, or may be, an individual, because a serv
 contain the provider's own name. {fmt_int(withheld_services)} of the {fmt_int(h_services)}
 services with a page are shown by approval number, suburb and state only. Street addresses are
 not shown anywhere.</p>
+</section>
 
-<h2>What the categories mean</h2>
+<section id="categories" aria-labelledby="categories-h">
+<h2 id="categories-h">What the categories mean</h2>
 <p>These are plain-language summaries of this project's categories. The law and each register's
-own text govern, and every action also shows the register's own label.</p>
-<dl>{definitions}</dl>
+own text govern, and every action also shows the register's own label. Category colours only
+help tell categories apart; they do not rank them.</p>
+<dl class="definitions">{definitions}</dl>
+<div class="distinction">
 <p>Several different things must not be confused. A <strong>breach</strong> is a contravention of
 the law, whether alleged or found. A <strong>confirmed breach</strong> is one a regulator has
 confirmed. An <strong>enforcement action</strong> is a step a regulator took, such as a notice, a
 condition or a cancellation. A <strong>prosecution</strong> is a proceeding brought in a court or
 tribunal. A <strong>conviction</strong> is a court's finding of guilt. This site counts published
 enforcement actions only. It does not count breaches or convictions.</p>
+</div>
+</section>
 
-<h2>Counts and windows</h2>
+<section id="windows" aria-labelledby="windows-h">
+<h2 id="windows-h">Counts and windows</h2>
 <p>Every count is given with its denominator and its window. Two windows are used: all dates the
 collected registers publish, which differ by regulator (see above); and the 24 months
 {esc(ws)} to {esc(we)}, ending on the ACECQA snapshot date. Rows a source printed twice are listed
 once and counted once.</p>
+</section>
 
-<h2>Licences</h2>
+<section id="licences" aria-labelledby="licences-h">
+<h2 id="licences-h">Licences</h2>
 <ul>
 <li>NSW and Victorian content is licensed under CC BY 4.0.</li>
 <li>South Australian (Education Standards Board) content is all rights reserved. It is used here
@@ -1210,8 +1699,10 @@ for non-commercial research only.</li>
 site</strong> while consent is pending. ACECQA data is used only to join actions to services and
 providers, and for service and provider names, suburbs, states and service counts.</li>
 </ul>
+</section>
 
-<h2>Known limitations</h2>
+<section id="limitations" aria-labelledby="limitations-h">
+<h2 id="limitations-h">Known limitations</h2>
 <ul>
 <li>Coverage differs by regulator: NSW from January 2025, Victoria from January 2026, Queensland
 entries can be removed at the regulator's discretion, the Commonwealth register is a rolling
@@ -1225,12 +1716,16 @@ name or not at all.</li>
 <li>The data is a snapshot captured on the dates shown, not a live feed.</li>
 <li>Nothing on this site has had legal review.</li>
 </ul>
+</section>
+</div>
+</div>
 {absence_block()}"""
-    return page("Sources and methods", body, depth=0)
+    return page("Sources and methods", body, depth=0, current="sources.html")
 
 
 def search_index(data: Data, service_keys: list[str], provider_keys: list[str]) -> list[list]:
-    """Compact rows: [kind, name, suburb, postcode, state, key, provider name, provider key, url]."""
+    """Compact rows: [kind, name, suburb, postcode, state, key, provider name, provider key, url,
+    actions total]."""
     out: list[list] = []
     for se in service_keys:
         s = pick(data.services[se], INDEX_SERVICE_COLUMNS)
@@ -1248,11 +1743,25 @@ def search_index(data: Data, service_keys: list[str], provider_keys: list[str]) 
                 prov_name or "",
                 prov_key or "",
                 f"service/{se}.html",
+                to_int(data.services[se].get("actions_total")),
             ]
         )
     for pr in provider_keys:
         name, key, _ = provider_display(data, pr)
-        out.append(["p", name or "", "", "", "", key or "", "", "", f"provider/{pr}.html"])
+        out.append(
+            [
+                "p",
+                name or "",
+                "",
+                "",
+                "",
+                key or "",
+                "",
+                "",
+                f"provider/{pr}.html",
+                to_int(data.providers[pr].get("actions_total")),
+            ]
+        )
     return out
 
 
@@ -1293,14 +1802,21 @@ def build(data_dir: Path, out: Path) -> dict:
         write(f"service/{se}.html", render_service(data, se))
     for pr in provider_keys:
         write(f"provider/{pr}.html", render_provider(data, pr))
-    write("index.html", render_home(data, h, len(service_keys), len(provider_keys)))
+    write("index.html", render_home(data, h, service_keys, len(provider_keys)))
     withheld_services = sum(1 for se in service_keys if data.service_name(se) is None)
     write("sources.html", render_sources(data, h, withheld_providers, withheld_services))
     write(
         "404.html",
-        page("Not found", f"<h1>Not found</h1><p>No page at this address.</p>{absence_block()}"),
+        page(
+            "Not found",
+            '<header class="page-head"><h1>Not found</h1><p class="lede">No page at this '
+            'address. Try the <a href="/index.html#search">search</a>.</p></header>'
+            f"{absence_block()}",
+            base="/",
+        ),
     )
     write("robots.txt", ROBOTS_TXT)
+    write("assets/favicon.svg", FAVICON_SVG)
     write(
         "assets/search-index.json",
         json.dumps(
