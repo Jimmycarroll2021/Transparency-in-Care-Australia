@@ -1,7 +1,7 @@
 {
   "output": "data/processed/provider-coreported-msr.csv",
-  "written_at": "2026-10-30T22:17:40.518563+00:00",
-  "rows": 46,
+  "written_at": "2026-10-31T00:15:52.317597+00:00",
+  "rows": 36,
   "schema": null,
   "raw_inputs": [
     "data/raw/msr/all-statements/2026-10-30T1932Z.csv",

@@ -1,7 +1,7 @@
 {
   "output": "data/processed/provider-group-review-msr.csv",
-  "written_at": "2026-10-30T22:17:40.527966+00:00",
-  "rows": 125,
+  "written_at": "2026-10-31T00:15:52.351811+00:00",
+  "rows": 115,
   "schema": null,
   "raw_inputs": [
     "data/raw/msr/all-statements/2026-10-30T1932Z.csv",

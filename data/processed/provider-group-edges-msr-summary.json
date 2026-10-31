@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T22:17:40.906222+00:00",
+  "generated_at": "2026-10-31T00:15:52.614858+00:00",
   "definitions": [
     "controlled_entity_of: the provider is listed as an included entity in a Single modern slavery statement on the Modern Slavery Statements Register, that is, included in the group's statement as owned or controlled by the one reporting entity (group_key). Matched only by the included entity's ABN on the statement page equalling the provider's ABN. It is not a verified ownership chain, shareholding or date of acquisition. This is the only ownership edge in this layer.",
     "group_parent_self: the provider, matched by ABN, is itself the one reporting entity of a Single statement that lists included entities. It marks the provider as a group head; it is not an edge to another provider.",
@@ -9,9 +9,9 @@
     "candidate_statements": 136,
     "included_entities_parsed": 530,
     "included_entities_with_abn": 350,
-    "relations_total": 85,
+    "relations_total": 75,
     "relations_by_class": {
-      "co_reported_joint": 46,
+      "co_reported_joint": 36,
       "controlled_entity_of": 11,
       "group_parent_self": 3,
       "self_report_no_included_entities": 25
@@ -29,33 +29,34 @@
       "services_of_those_providers": 298
     },
     "co_reported_joint_not_ownership": {
-      "rows": 46,
-      "distinct_providers": 16,
+      "rows": 36,
+      "distinct_providers": 13,
       "statements": 22,
-      "providers_with_only_joint_relations": 14
+      "providers_with_only_joint_relations": 11
     },
     "priority_providers_total": 1210,
     "priority_providers_with_abn": 901,
-    "priority_providers_screened_in": 1121,
-    "screened_providers_with_valid_abn": 901,
+    "priority_providers_screened_in": 1030,
+    "screened_providers_with_valid_abn": 893,
     "services_total": 18186,
     "services_note": null,
-    "review_queue": 125,
+    "review_queue": 115,
     "review_by_reason": {
       "fuzzy_corporate_suffix_differs": 9,
-      "name_match_provider_abn_not_resolved": 63,
+      "name_match_provider_abn_not_resolved": 53,
       "name_match_without_msr_abn": 53
     },
-    "name_matches_to_excluded_providers": 4,
+    "name_matches_to_excluded_providers": 0,
     "screening": {
       "providers_considered": 10073,
-      "providers_screened_in": 8973,
+      "providers_screened_in": 7830,
       "excluded_missing_profile": 0,
       "excluded_duplicate_profile_rows": 0,
       "excluded_duplicate_provider_abn_rows": 0,
-      "excluded_not_positively_organisation": 1100,
-      "excluded_name_withheld": 0,
+      "excluded_not_positively_organisation": 1130,
+      "excluded_name_withheld": 1113,
       "excluded_blank_legal_name": 0,
+      "excluded_classifier_withholds_name": 0,
       "excluded_abn_step_individual_or_unknown": 0,
       "excluded_abr_individual": 0,
       "excluded_abr_type_conflict": 0,
@@ -63,6 +64,7 @@
       "rule": "A provider is used only with exactly one provider-profile.csv row positively classified as an organisation, not withheld, with a legal name, at most one provider-abn.csv row, and no local ABR source marking it as an individual or disagreeing on its ABN's type. Each excluded provider is counted once, under the first reason that applies."
     },
     "candidate_pages_missing": 0,
+    "statement_url_fields_withheld": {},
     "csv_columns_dropped": 0,
     "abn_placeholders_read_as_no_abn": 1
   },
@@ -129,7 +131,6 @@
       "reporting_entity_count": 53,
       "reporting_entity_abns": "15050192660; 42624828306; 64047619369; 72823907843; 29608297012; 76000005210; 55210770582; 73470086952; 22616685167; 94493967364; 94643894384; 47634504135; 21578907988; 69064946318; 85744325709; 46619593369; 66661001798; 68629894686; 93638070836; 91621266993; 54610124322; 11079815697; 79078299288; 76654014794; 83096708922; 77191901062; 31098197490; 96487116582; 51166477318; 69154531870; 89614115856; 58072422925; 24097986470; 76131082374; 65104033471; 21930207958; 91161127340; 14211506904; 75073503536; 25328758007; 35020644975; 49991006857; 21528592597; 50979741889; 52768159282; 69330643210; 47824127996; 67786923621; 96372268340; 36345537994; 62089182027; 92119459853; 32004364103",
       "included_providers": [
-        "PR-00000702",
         "PR-40015072",
         "PR-40023899",
         "PR-40028424"
@@ -142,7 +143,6 @@
       "reporting_entity_count": 44,
       "reporting_entity_abns": "90702916776; 15050192660; 42624828306; 64047619369; 72823907843; 58600950933; 29608297012; 15679442089; 94643894384; 47634504135; 69064946318; 46619593369; 66661001798; 68629894686; 93638070836; 91621266993; 54610124322; 11079815697; 79078299288; 76654014794; 83096708922; 31098197490; 69154531870; 89614115856; 58072422925; 24097986470; 76131082374; 65104033471; 55046572944; 21930207958; 91161127340; 14211506904; 75073503536; 25328758007; 21528592597; 54281755117; 69330643210; 47824127996; 67786923621; 96372268340; 36345537994; 62089182027; 92119459853; 32004364103",
       "included_providers": [
-        "PR-00000702",
         "PR-00007426",
         "PR-40015072",
         "PR-40023899",
