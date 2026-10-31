@@ -31,7 +31,7 @@ def setup(tmp_path, monkeypatch):
     monkeypatch.setattr(ro, "LOCK_PATH", tmp_path / ".reparse.lock")
     monkeypatch.setattr(ro, "BUILDERS", [])  # PR #12: no provider profile in these tests
     monkeypatch.setattr(ro, "PRE_JOIN_BUILDERS", [])
-    monkeypatch.setattr(ro, "ABN_DETAILS_PATH", tmp_path / "no-abn-details.csv")
+    monkeypatch.setattr(ro, "JOIN_INPUTS", [tmp_path / "no-join-input.csv"])
 
     def join_ok():
         (d / "enforcement-actions-all.csv").write_text("new join\n", encoding="utf-8")

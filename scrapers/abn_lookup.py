@@ -278,11 +278,12 @@ def cached_business_names(
     built from (expected_sha256). No network call is made."""
     digits = re.sub(r"\D", "", abn or "")
     cache_dir = cache_dir or RAW_DIR / SOURCE
-    if len(digits) != 11 or not cache_dir.exists():
+    # Round 4: with no expected response hash the cache entry cannot be verified: fail closed.
+    if len(digits) != 11 or not expected_sha256 or not cache_dir.exists():
         return None
     client = AbnLookupClient(None, cache_dir=cache_dir, offline=True)
     hit = client.cached(ENDPOINT_ABN, {"abn": digits})
-    if hit is None or (expected_sha256 and hit.sha256 != expected_sha256):
+    if hit is None or hit.sha256 != expected_sha256:
         return None
     names = hit.data.get("BusinessName") or []
     if isinstance(names, str):

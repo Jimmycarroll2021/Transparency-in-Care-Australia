@@ -65,10 +65,16 @@ PARSERS = [qld, vecra, sa, tas, cth, wa, nsw]
 # re-filter of abn-details.csv and stage C of the groups from provider-abn.csv (no ABN Lookup call).
 BUILDERS = [(profile, []), (abn_lookup, ["refilter"]), (groups, ["--skip-lookup"])]
 # Round 3: the ABR re-filter also runs before the join, so that the join reads the same
-# abn-details.csv as the end of the run; the join is repeated until abn-details.csv no longer
-# changes, so that a second run uses the same candidate set and writes the same outputs.
-PRE_JOIN_BUILDERS = [(abn_lookup, ["refilter"])]
-ABN_DETAILS_PATH = PROCESSED_DIR / "abn-details.csv"
+# abn-details.csv as the end of the run; the join is repeated until its inputs no longer change,
+# so that a second run uses the same candidate set and writes the same outputs.
+# Round 4: the provider profile is rebuilt before the first join too (the join reads it), and
+# the loop runs until every join input the builders write is stable.
+PRE_JOIN_BUILDERS = [(profile, []), (abn_lookup, ["refilter"]), (groups, ["--skip-lookup"])]
+JOIN_INPUTS = [
+    PROCESSED_DIR / "abn-details.csv",
+    PROCESSED_DIR / "provider-profile.csv",
+    PROCESSED_DIR / "provider-abn.csv",
+]
 # Persistent backups of data/processed, one directory per run (gitignored).
 BACKUP_ROOT = PROJECT_ROOT / "data" / ".reparse-backup"
 # Single-writer lock (Codex round 7, gitignored). Taken with an exclusive create.
@@ -340,7 +346,7 @@ def _run() -> int:
         for module, argv in PRE_JOIN_BUILDERS:
             _run_parser(module, argv)
         while True:
-            abn_before = _sha_or_none(ABN_DETAILS_PATH)
+            inputs_before = [_sha_or_none(path) for path in JOIN_INPUTS]
             run_join()
             # PR #12 round 1: the cross-output pass, then the builders (which see every withheld
             # name), then the pass again, so that every output agrees whatever the write order.
@@ -352,8 +358,8 @@ def _run() -> int:
                     _run_parser(module, argv)
                 if not common.refilter_processed_names():
                     break
-            # Round 3: the join read abn-details.csv; if the passes changed it, join again.
-            if _sha_or_none(ABN_DETAILS_PATH) == abn_before:
+            # Rounds 3 and 4: if the passes changed a join input, join again.
+            if [_sha_or_none(path) for path in JOIN_INPUTS] == inputs_before:
                 break
     except BaseException as exc:  # includes SystemExit from the join
         log.error("writing or join failed (%r)", exc)

@@ -132,6 +132,7 @@ SERVICES_CSV = PROCESSED_DIR / "acecqa-services-latest.csv"
 PROVIDERS_CSV = PROCESSED_DIR / "acecqa-providers-latest.csv"
 PROFILE_CSV = PROCESSED_DIR / "provider-profile.csv"
 ABN_DETAILS_CSV = PROCESSED_DIR / "abn-details.csv"
+PROVIDER_ABN_CSV = PROCESSED_DIR / "provider-abn.csv"
 REPORT_JSON = PROCESSED_DIR / "enforcement-join-report.json"
 SPINE_UNLISTED_NAME = "spine-unlisted"
 SCHEMA_PATH = PROJECT_ROOT / "data" / "schemas" / "enforcement-action.schema.json"
@@ -582,6 +583,26 @@ def load_abn_details(path: Path = ABN_DETAILS_CSV) -> dict[str, dict] | None:
 
 
 ABN_NOT_RESTORABLE_NOTE = "ambiguous: business names withheld and not restorable"
+ABN_RESCUE_NOTE = "accepted: the provider's resolved ABN equals the row's ABN"
+ABN_RESCUE_REJECTED_NOTE = (
+    "not accepted: the provider's resolved ABN is unknown or differs from the row's ABN"
+)
+# provider-abn.csv match kinds whose ABN is accepted (as profile_providers._ABR_ACCEPTED).
+ABN_ACCEPTED_KINDS = frozenset({"accepted_unique", "accepted_unique_in_state"})
+
+
+def load_provider_abns(path: Path | None = None) -> dict[str, str]:
+    """Provider approval number -> accepted ABN (digits) from provider-abn.csv, or {}."""
+    path = path or PROVIDER_ABN_CSV
+    if not path.exists():
+        return {}
+    out: dict[str, str] = {}
+    for row in load_csv(path):
+        pr = normalise_pr(row.get("provider_approval_number"))
+        abn = re.sub(r"\D", "", row.get("abn") or "")
+        if pr and len(abn) == 11 and row.get("match_kind") in ABN_ACCEPTED_KINDS:
+            out[pr] = abn
+    return out
 
 
 def _withheld_business_count(record: dict) -> int:
@@ -704,9 +725,19 @@ def _row_state(out: dict, jurisdiction: str) -> str | None:
 
 
 def join_actions(
-    actions: list[dict], spine: Spine, abn_details: dict[str, dict] | None = None
+    actions: list[dict],
+    spine: Spine,
+    abn_details: dict[str, dict] | None = None,
+    provider_abns: dict[str, str] | None = None,
 ) -> list[dict]:
-    """Stack-order join. Adds occurrence, join columns and spine columns to a copy of each row."""
+    """Stack-order join. Adds occurrence, join columns and spine columns to a copy of each row.
+
+    PR #12 round 4: a row whose ABN entity match failed closed (business names withheld and not
+    restorable) is flagged in memory (_abn_unrestorable). A later name stage may join it only
+    when the matched provider's accepted ABN (provider_abns, from provider-abn.csv) equals the
+    row's ABN (_abn_rescued); otherwise it stays unmatched. Its notes are appended, never
+    overwritten."""
+    provider_abns = provider_abns or {}
     seen: Counter = Counter()
     joined: list[dict] = []
     for action in actions:
@@ -782,6 +813,8 @@ def join_actions(
             matched_pr, note = match_by_abn_entity(out["abn"], abn_details, spine)
             if matched_pr is None:
                 out["join_note"] = f"{out['join_note']}; ABN entity: {note}"
+                if note == ABN_NOT_RESTORABLE_NOTE:
+                    out["_abn_unrestorable"] = True
             else:
                 out.update(join_key_kind=KIND_ABN_ENTITY, match_confidence=CONFIDENCE_ABN_ENTITY)
                 out["join_note"] = note
@@ -802,13 +835,29 @@ def join_actions(
         ):
             state = _row_state(out, jurisdiction)
             matched_pr, note = match_by_provider_name(out, spine, state)
-            if matched_pr is None:
+            unrestorable = bool(out.get("_abn_unrestorable"))
+            if (
+                matched_pr is not None
+                and unrestorable
+                and provider_abns.get(matched_pr) != out["abn"]
+            ):
+                # Round 4: the name match is not confirmed by the ABN, so it is not accepted.
+                out["join_note"] = (
+                    f"{out['join_note']}; provider name: {note}; {ABN_RESCUE_REJECTED_NOTE}"
+                )
+            elif matched_pr is None:
                 out["join_note"] = f"{out['join_note']}; provider name: {note}"
             else:
                 out.update(
                     join_key_kind="provider_name_match", match_confidence=CONFIDENCE_PROVIDER_NAME
                 )
-                out["join_note"] = note
+                if unrestorable:
+                    out["_abn_rescued"] = True
+                    out["join_note"] = (
+                        f"{out['join_note']}; provider name: {note}; {ABN_RESCUE_NOTE}"
+                    )
+                else:
+                    out["join_note"] = note
                 attach_provider(out, matched_pr, spine.profiles[matched_pr])
                 service, pin_note = pin_service(out, spine, matched_pr, state)
                 if service is not None:
@@ -1701,10 +1750,14 @@ def main(argv: list[str] | None = None) -> None:
             "the count is recorded in the join report",
             unrestored,
         )
-    joined = join_actions(actions, spine, abn_details)
-    # PR #12 round 3: rows whose ABN entity match failed closed because withheld business names
-    # could not be restored. Like unrestored service names: refuse before writing anything.
-    abn_unrestored = sum(1 for r in joined if ABN_NOT_RESTORABLE_NOTE in (r.get("join_note") or ""))
+    joined = join_actions(actions, spine, abn_details, load_provider_abns())
+    # PR #12 rounds 3 and 4: rows whose ABN entity match failed closed because withheld business
+    # names could not be restored, counted whether or not a later stage rescued them. Rows
+    # still unmatched block a default run, like unrestored service names; rows rescued by a name
+    # match confirmed by the ABN do not, but are reported.
+    abn_flagged = sum(1 for r in joined if r.get("_abn_unrestorable"))
+    abn_rescued = sum(1 for r in joined if r.get("_abn_rescued"))
+    abn_unrestored = abn_flagged - abn_rescued
     if abn_unrestored and not args.allow_unrestored:
         message = ABN_UNRESTORED_MESSAGE.format(n=abn_unrestored)
         log.error(message)
@@ -1829,6 +1882,8 @@ def main(argv: list[str] | None = None) -> None:
     # Round 2: rows whose withheld service name was not available for the name match (0 under
     # scrapers/reparse_offline.py; above 0 only with --allow-unrestored).
     report["unrestored_withheld_service_names"] = unrestored
+    report["abn_entity_rows_business_names_not_restorable"] = abn_flagged
+    report["abn_entity_rows_rescued_by_abn_consistent_name_match"] = abn_rescued
     report["abn_entity_rows_not_matched_business_names_not_restorable"] = abn_unrestored
     # PR #12 round 1: a name withheld in a later output is withheld in the earlier ones too.
     refilter_processed_names(
