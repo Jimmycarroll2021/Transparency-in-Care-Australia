@@ -624,7 +624,14 @@ def withhold_prose_naming_people(rows: list[dict], person_names=None) -> dict[st
 
     counts: dict[str, int] = {}
     for row in rows:
-        known = tuple(row.get(k) for k in ("service_name", "provider_name", "suburb"))
+        # PR #12 round 6: a structured value is exempt (stripped before the check) only when the
+        # shared name rule would publish it; a service, provider or trading name it would
+        # withhold stays in the text, so the detector sees it.
+        known = tuple(
+            v
+            for v in (row.get("service_name"), row.get("provider_name"), row.get("trading_name"))
+            if not name_may_name_person_in_row(v, row, names)
+        ) + (row.get("suburb"),)
 
         def flagged(text, known=known):
             return isinstance(text, str) and prose_may_name_person(text, known, names)
@@ -717,12 +724,34 @@ def reset_withheld_names() -> None:
     _WITHHELD_NAME_VALUES.clear()
 
 
+# The context last loaded from disk, with the size and mtime of the files it came from, so that a
+# reset (reset_withheld_names) does not re-read unchanged ACECQA tables. In memory only.
+_LOADED_CONTEXT: tuple | None = None
+
+
+def _context_source_key() -> tuple:
+    from scrapers.profile_providers import PROVIDER_ABN_CSV, PROVIDERS_CSV, SERVICES_CSV
+
+    key = []
+    for path in (PROVIDERS_CSV, SERVICES_CSV, PROVIDER_ABN_CSV):
+        try:
+            st = path.stat()
+            key.append((str(path), st.st_size, st.st_mtime_ns))
+        except OSError:
+            key.append((str(path), None, None))
+    return tuple(key)
+
+
 def ensure_name_context():
     """Load the ACECQA name context when none was set. Never written anywhere."""
+    global _LOADED_CONTEXT
     if _NAME_CONTEXT is None:
         from scrapers.profile_providers import acecqa_name_context
 
-        set_name_context(acecqa_name_context())
+        source = _context_source_key()
+        if _LOADED_CONTEXT is None or _LOADED_CONTEXT[0] != source:
+            _LOADED_CONTEXT = (source, acecqa_name_context())
+        set_name_context(_LOADED_CONTEXT[1])
     return _NAME_CONTEXT
 
 
@@ -791,7 +820,7 @@ def withhold_person_named_names(
     The withheld values are kept in memory only (by output and row index) for the join."""
     cols = [c for c in NAME_COLUMN_NOTES if c in fieldnames]
     counts: dict[str, int] = {}
-    if not cols:
+    if not has_name_rule_columns(fieldnames):
         return rows, fieldnames, counts
     names = _run_wide_names() if names is None else names
     fieldnames = list(fieldnames)
@@ -861,7 +890,91 @@ def withhold_person_named_names(
             withheld = {**withheld, **previous[1]}  # a later pass keeps the first values
         _WITHHELD_NAME_VALUES[(output, index)] = (row.get("record_id"), _InMemory(withheld))
         out.append(new)
+    out = _withhold_prose_repeating_withheld_names(out, fieldnames, counts)
     return out, fieldnames, counts
+
+
+# PR #12 round 6: free-text columns scanned for any withheld trading, service or business name.
+PROSE_SCAN_COLUMNS = (
+    "action_type_raw",
+    "reason",
+    "details",
+    "description",
+    "address",
+    "legal_references",
+    "notes",
+)
+_HYPHENS = re.compile("[-\u2010\u2011\u2012\u2013\u2014]")  # hyphen and dash characters
+
+
+def _prose_norm(text: str) -> str:
+    return " ".join(_HYPHENS.sub(" ", text.casefold()).split())
+
+
+def has_name_rule_columns(fieldnames) -> bool:
+    return any(c in fieldnames for c in NAME_COLUMN_NOTES) or any(
+        c in fieldnames for c in PROSE_SCAN_COLUMNS if c != "notes"
+    )
+
+
+def _withheld_name_matcher():
+    """A whole-word, case-insensitive matcher (spacing and hyphens normalised) for every name
+    withheld so far in this process, or None when there is none. In memory only."""
+    keys = sorted({_prose_norm(k) for k in _WITHHELD_NAME_STRINGS if len(k.strip()) >= 4})
+    keys = [k for k in keys if k]
+    if not keys:
+        return None
+    keys.sort(key=len, reverse=True)
+    pattern = re.compile(r"(?<!\w)(?:" + "|".join(re.escape(k) for k in keys) + r")(?!\w)")
+    return lambda text: isinstance(text, str) and bool(pattern.search(_prose_norm(text)))
+
+
+def _withhold_prose_repeating_withheld_names(
+    rows: list[dict], fieldnames: list[str], counts: dict[str, int]
+) -> list[dict]:
+    """Null any free-text cell that repeats a withheld name (whole word), with the fixed
+    PROSE_WITHHELD_NOTE. action_type_raw becomes the placeholder; a flagged legal reference or
+    notes segment is dropped. Changed rows are copied."""
+    cols = [c for c in PROSE_SCAN_COLUMNS if c in fieldnames]
+    flagged = _withheld_name_matcher() if cols else None
+    if flagged is None:
+        return rows
+    note_col = "notes" if "notes" in fieldnames else ("note" if "note" in fieldnames else None)
+    out: list[dict] = []
+    for row in rows:
+        new = None
+        for col in cols:
+            value = row.get(col)
+            if not value or value == ACTION_TYPE_RAW_WITHHELD:
+                continue
+            if col == "legal_references":
+                refs, dropped = _filter_refs(value, flagged)
+                if not dropped:
+                    continue
+                replacement = refs
+            elif col == "notes":
+                sep = " | " if " | " in value else "; "
+                segments = [seg for seg in value.split(sep) if seg]
+                kept = [seg for seg in segments if not flagged(seg)]
+                if len(kept) == len(segments):
+                    continue
+                replacement = sep.join(kept) or None
+            elif flagged(value):
+                replacement = ACTION_TYPE_RAW_WITHHELD if col == "action_type_raw" else None
+            else:
+                continue
+            new = new or dict(row)
+            new[col] = replacement
+            counts[col] = counts.get(col, 0) + 1
+        if new is None:
+            out.append(row)
+            continue
+        if note_col is None:
+            note_col = "notes"
+            fieldnames.append(note_col)
+        _append_note(new, note_col, PROSE_WITHHELD_NOTE)
+        out.append(new)
+    return out
 
 
 def restore_withheld_names(output: str, rows: list[dict]) -> int:
@@ -1080,7 +1193,7 @@ def refilter_processed_names(names: list[str] | None = None) -> dict[str, dict[s
                 reader = csv.DictReader(fh)
                 fieldnames = list(reader.fieldnames or [])
                 rows = list(reader)
-            if not any(c in fieldnames for c in NAME_COLUMN_NOTES):
+            if not has_name_rule_columns(fieldnames):
                 continue
             rows, fieldnames, counts = withhold_person_named_names(name, rows, fieldnames)
             if not counts:
@@ -1093,8 +1206,9 @@ def refilter_processed_names(names: list[str] | None = None) -> dict[str, dict[s
                 block = prov.setdefault(
                     "names_withheld",
                     {
-                        "rule": "trading and service names withheld when they may name an "
-                        "individual (scrapers.common.withhold_person_named_names)",
+                        "rule": "trading, service and business names withheld when they may name "
+                        "an individual, and free text repeating a withheld name "
+                        "(scrapers.common.withhold_person_named_names)",
                         "counts": {},
                     },
                 )
@@ -1124,7 +1238,7 @@ def write_processed(
     Every trading-name and service-name column passes the shared name rule first (PR #12,
     withhold_person_named_names); the caller's rows are not changed."""
     names_withheld: dict[str, int] | None = None
-    if any(c in fieldnames for c in NAME_COLUMN_NOTES):
+    if has_name_rule_columns(fieldnames):
         ensure_person_names()
         rows, fieldnames, names_withheld = withhold_person_named_names(name, rows, fieldnames)
         if names_withheld:
@@ -1146,7 +1260,8 @@ def write_processed(
     if names_withheld is not None:
         # Counts only, never a name.
         provenance["names_withheld"] = {
-            "rule": "trading and service names withheld when they may name an individual "
+            "rule": "trading, service and business names withheld when they may name an individual, "
+            "and free text repeating a withheld name "
             "(scrapers.common.withhold_person_named_names)",
             "counts": dict(sorted(names_withheld.items())),
         }
