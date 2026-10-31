@@ -57,7 +57,8 @@ Join rules
   enforcement-by-service.csv and enforcement-by-provider.csv with spine_status
   not_in_current_register; they are never added to the live denominators.
 - Every row still unmatched after all stages gets exactly one residual reason in the report:
-  no_key_and_name_withheld, no_key_no_name_match, ambiguous_name or other. The goal is that every
+  no_key_and_name_withheld, no_key_no_name_match, ambiguous_name, abn_business_names_not_restorable
+  or other. The goal is that every
   row is joined by key, joined by unique name, or explicitly explained; it is not a 100 per cent
   match rate.
 
@@ -80,6 +81,7 @@ Run: python3 scrapers/join_enforcement.py
 
 from __future__ import annotations
 
+import argparse
 import calendar
 import csv
 import json
@@ -93,10 +95,15 @@ try:
     from scrapers.common import (
         PROCESSED_DIR,
         PROJECT_ROOT,
+        SERVICE_NAME_WITHHELD_NOTE,
+        TRADING_NAME_WITHHELD_NOTE,
         atomic_write_text,
         log,
         normalise_pr,
         normalise_se,
+        refilter_processed_names,
+        restore_withheld_names,
+        unrestored_withheld_names,
         utc_now,
         write_processed,
     )
@@ -108,10 +115,15 @@ except ImportError:  # run as a plain script: python3 scrapers/join_enforcement.
     from scrapers.common import (
         PROCESSED_DIR,
         PROJECT_ROOT,
+        SERVICE_NAME_WITHHELD_NOTE,
+        TRADING_NAME_WITHHELD_NOTE,
         atomic_write_text,
         log,
         normalise_pr,
         normalise_se,
+        refilter_processed_names,
+        restore_withheld_names,
+        unrestored_withheld_names,
         utc_now,
         write_processed,
     )
@@ -154,6 +166,7 @@ RESIDUAL_REASONS = (
     "no_key_and_name_withheld",
     "no_key_no_name_match",
     "ambiguous_name",
+    "abn_business_names_not_restorable",
     "other",
 )
 VARIANT_SEPARATOR = " | "
@@ -512,6 +525,8 @@ def name_withheld_row(row: dict) -> bool:
         .replace(PROSE_WITHHELD_NOTE, "")
         .replace(URL_WITHHELD_NOTE.lower(), "")
         .replace(SNAPSHOT_WITHHELD_NOTE.lower(), "")
+        .replace(SERVICE_NAME_WITHHELD_NOTE, "")
+        .replace(TRADING_NAME_WITHHELD_NOTE, "")
     )
     return "withheld" in notes or "individual" in notes
 
@@ -564,7 +579,46 @@ def load_abn_details(path: Path = ABN_DETAILS_CSV) -> dict[str, dict] | None:
         abn = re.sub(r"\D", "", row.get("abn") or "")
         if abn:
             out[abn] = row
+    restore_business_names(out)
     return out
+
+
+# PR #12 rounds 3 and 5: the ABN entity stage cannot check uniqueness, so the row is not matched
+# by this stage or by any later name stage (never "rescued").
+ABN_NOT_RESTORABLE_NOTE = "not matched: ABR business names withheld and not restorable"
+
+
+def _withheld_business_count(record: dict) -> int:
+    try:
+        return int(record.get("business_names_withheld") or 0)
+    except ValueError:
+        return 1  # unreadable count: treat as withheld (fail closed)
+
+
+def restore_business_names(abn_details: dict[str, dict], cache_dir: Path | None = None) -> int:
+    """PR #12 round 3: for each ok abn-details row with business names withheld, put the FULL
+    business-name list from the local ABR cache into the row, in memory only
+    (_business_names_full), so that the ABN entity stage checks uniqueness against every
+    name. A row whose list cannot be restored is marked (_business_names_unrestored): its
+    ABN entity match fails closed. Returns the number of rows that could not be restored."""
+    try:
+        from scrapers.abn_lookup import cached_business_names
+    except ImportError:  # run as a plain script
+        from abn_lookup import cached_business_names  # type: ignore[no-redef]
+
+    unrestored = 0
+    for abn, record in abn_details.items():
+        if (record.get("lookup_status") or "").strip() != "ok":
+            continue
+        if _withheld_business_count(record) <= 0:
+            continue
+        full = cached_business_names(abn, record.get("response_sha256"), cache_dir)
+        if full is None:
+            record["_business_names_unrestored"] = True
+            unrestored += 1
+        else:
+            record["_business_names_full"] = full
+    return unrestored
 
 
 def match_by_abn_entity(
@@ -581,10 +635,14 @@ def match_by_abn_entity(
     status = (record.get("lookup_status") or "").strip()
     if status != "ok":
         return None, f"ABR lookup status {status or 'unknown'}; not matched"
+    # PR #12 round 3: uniqueness is checked against the FULL business-name list (in memory);
+    # when names were withheld and the list cannot be restored, the match fails closed.
+    if record.get("_business_names_unrestored"):
+        return None, ABN_NOT_RESTORABLE_NOTE
     entity_key = normalise_provider_name(record.get("entity_name"))
-    business = [
-        normalise_provider_name(n) for n in (record.get("business_names") or "").split("; ") if n
-    ]
+    full = record.get("_business_names_full")
+    names = full if full is not None else (record.get("business_names") or "").split("; ")
+    business = [normalise_provider_name(n) for n in names if n]
     by_entity = set(spine.provider_names.get(entity_key, set())) if entity_key else set()
     by_business: set = set()
     for key in business:
@@ -652,7 +710,11 @@ def _row_state(out: dict, jurisdiction: str) -> str | None:
 def join_actions(
     actions: list[dict], spine: Spine, abn_details: dict[str, dict] | None = None
 ) -> list[dict]:
-    """Stack-order join. Adds occurrence, join columns and spine columns to a copy of each row."""
+    """Stack-order join. Adds occurrence, join columns and spine columns to a copy of each row.
+
+    PR #12 round 5: a row whose ABN entity match failed closed (business names withheld and not
+    restorable) is flagged in memory (_abn_unrestorable) and stays unmatched: no later name stage
+    may join it. Its note is kept."""
     seen: Counter = Counter()
     joined: list[dict] = []
     for action in actions:
@@ -728,6 +790,8 @@ def join_actions(
             matched_pr, note = match_by_abn_entity(out["abn"], abn_details, spine)
             if matched_pr is None:
                 out["join_note"] = f"{out['join_note']}; ABN entity: {note}"
+                if note == ABN_NOT_RESTORABLE_NOTE:
+                    out["_abn_unrestorable"] = True
             else:
                 out.update(join_key_kind=KIND_ABN_ENTITY, match_confidence=CONFIDENCE_ABN_ENTITY)
                 out["join_note"] = note
@@ -739,12 +803,14 @@ def join_actions(
                 out["join_note"] += pin_note
 
         # Fourth stage: provider name, for rows with no printed key that are still unmatched.
+        # Round 5: never for a row whose ABN entity stage failed closed.
         if (
             out["match_confidence"] == CONFIDENCE_NONE
             and not se
             and not pr
             and out["provider_name"]
             and not name_withheld_row(out)
+            and not out.get("_abn_unrestorable")
         ):
             state = _row_state(out, jurisdiction)
             matched_pr, note = match_by_provider_name(out, spine, state)
@@ -922,6 +988,8 @@ def residual_reason(row: dict) -> str:
     note = row.get("join_note") or ""
     if row.get("service_approval_number") or row.get("provider_approval_number"):
         return "other"
+    if row.get("_abn_unrestorable") or ABN_NOT_RESTORABLE_NOTE in note:
+        return "abn_business_names_not_restorable"
     if name_withheld_row(row):
         return "no_key_and_name_withheld"
     if "ambiguous" in note:
@@ -1208,6 +1276,7 @@ def aggregate(
                 "provider_approval_number": pr,
                 "legal_name": None if withheld else blank_to_none(profile.get("legal_name")),
                 "trading_name": None if withheld else blank_to_none(profile.get("trading_name")),
+                "trading_name_note": blank_to_none(profile.get("trading_name_note")),
                 "name_withheld": "true" if withheld else "false",
                 "entity_form": blank_to_none(profile.get("entity_form")),
                 "provider_state": blank_to_none(profile.get("provider_state")),
@@ -1240,6 +1309,7 @@ def service_columns(types: list[str]) -> list[str]:
             "service_approval_number",
             "provider_approval_number",
             "service_name",
+            "service_name_note",
             "suburb",
             "state",
             "postcode",
@@ -1265,6 +1335,7 @@ def provider_columns(types: list[str]) -> list[str]:
             "provider_approval_number",
             "legal_name",
             "trading_name",
+            "trading_name_note",
             "name_withheld",
             "entity_form",
             "provider_state",
@@ -1548,7 +1619,7 @@ def build_report(
             + SAFETY_SENTENCE,
             "Name-withheld providers are excluded from the top lists. A provider with spine_status not_in_current_register appears only when its name is printed on the enforcement register; its service_count is the number of distinct unlisted services seen in the enforcement register, so its rate per service has an actions-derived denominator and is not comparable with a current provider's.",
             "Rows joined by an unlisted key (match_confidence exact_key_unlisted) carry an identity taken from the enforcement register, not from ACECQA: the approval is absent from the current ACECQA export, usually because it has ceased. They hold no current rating. They are reported separately from the live denominators (services and providers in the ACECQA export).",
-            "Every unmatched row has exactly one stated reason in unmatched_residual (no_key_and_name_withheld, no_key_no_name_match, ambiguous_name, other). The aim is that each row is joined by key, joined by unique name, or explained; a 100 per cent match rate is not the goal and would require guessing.",
+            "Every unmatched row has exactly one stated reason in unmatched_residual (no_key_and_name_withheld, no_key_no_name_match, ambiguous_name, abn_business_names_not_restorable, other). The aim is that each row is joined by key, joined by unique name, or explained; a 100 per cent match rate is not the goal and would require guessing.",
             "Rows joined by provider name (provider_name_unique, provider_and_service_name) carry no printed key: they are accepted only when exactly one ACECQA provider has the normalised name, but a name match is weaker evidence than a key. actions_matched_by_name on each table shows how many of a row's counts rest on a name.",
             "Commonwealth CCS sanctions attach to the CCS approved provider, so a provider-name match is provider-level unless the service is pinned. ABNs are carried in enforcement-actions-all.csv.",
             "Rows joined by ABN entity (match_confidence abn_unique_entity) printed an ABN that the ABN Lookup web services resolved to an organisation whose ABR entity or business name, normalised, matches exactly one ACECQA provider. ACECQA holds no ABN, so this is still a name match (ABR name to ACECQA name), anchored by the printed ABN. Individuals and sole traders are never matched.",
@@ -1565,7 +1636,31 @@ def discover_action_files() -> list[Path]:
     return sorted(PROCESSED_DIR.glob(ACTION_GLOB))
 
 
-def main() -> None:
+UNRESTORED_EXIT = 5
+UNRESTORED_MESSAGE = (
+    "Refusing to write: {n} enforcement rows have a service name withheld by the name rule and no "
+    "value in memory, so their name match is not possible and joins would be lost. Run "
+    "`python scrapers/reparse_offline.py`, which re-parses the registers and runs the join in the "
+    "same process. Nothing was written. To write anyway (fewer joins), pass --allow-unrestored."
+)
+ABN_UNRESTORED_MESSAGE = (
+    "Refusing to write: {n} enforcement rows reach the ABN entity stage for an ABN whose withheld "
+    "ABR business names cannot be restored from the local cache (data/raw/abr-lookup/), so the "
+    "match fails closed and joins would be lost. Restore the cache (scrapers/abn_lookup.py stage "
+    "A, which needs ABN Lookup access) and run `python scrapers/reparse_offline.py`. Nothing was "
+    "written. To write anyway (fewer joins), pass --allow-unrestored."
+)
+
+
+def main(argv: list[str] | None = None) -> None:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument(
+        "--allow-unrestored",
+        action="store_true",
+        help="write even when withheld service names cannot be restored in memory (fewer joins; "
+        "the count is recorded in the join report)",
+    )
+    args = ap.parse_args(argv)
     action_files = discover_action_files()
     for needed in (SERVICES_CSV, PROFILE_CSV, PROVIDERS_CSV):
         if not needed.exists():
@@ -1591,11 +1686,51 @@ def main() -> None:
     types = load_action_types()
 
     actions: list[dict] = []
+    restored = 0
     for path in action_files:
         rows = load_csv(path)
         log.info("%s: %d rows", path.name, len(rows))
+        # PR #12: service names the name rule withheld from this file earlier in the same run
+        # (scrapers/reparse_offline.py) are put back in memory only, so that the name match
+        # works; they are withheld again when the outputs are written.
+        restored += restore_withheld_names(path.name.removesuffix(".csv"), rows)
         actions.extend(rows)
+    unrestored = unrestored_withheld_names(actions)
+    log.info(
+        "service names withheld by the name rule: %d restored in memory for matching, %d not "
+        "available",
+        restored,
+        unrestored,
+    )
+    # PR #12 round 2: fail closed. A standalone join cannot restore names withheld by an earlier
+    # process; it stops before writing anything unless the user accepts the lost joins.
+    if unrestored and not args.allow_unrestored:
+        message = UNRESTORED_MESSAGE.format(n=unrestored)
+        log.error(message)
+        print(message)
+        raise SystemExit(UNRESTORED_EXIT)
+    if unrestored:
+        log.warning(
+            "--allow-unrestored: writing with %d withheld service names unavailable for matching; "
+            "the count is recorded in the join report",
+            unrestored,
+        )
     joined = join_actions(actions, spine, abn_details)
+    # PR #12 rounds 3 and 5: rows whose ABN entity match failed closed because withheld business
+    # names could not be restored. They stay unmatched; like unrestored service names, they block
+    # a default run before anything is written.
+    abn_unrestored = sum(1 for r in joined if r.get("_abn_unrestorable"))
+    if abn_unrestored and not args.allow_unrestored:
+        message = ABN_UNRESTORED_MESSAGE.format(n=abn_unrestored)
+        log.error(message)
+        print(message)
+        raise SystemExit(UNRESTORED_EXIT)
+    if abn_unrestored:
+        log.warning(
+            "--allow-unrestored: %d rows not matched by ABN entity because withheld business names "
+            "cannot be restored; the count is recorded in the join report",
+            abn_unrestored,
+        )
     matched_before = sum(1 for r in joined if r["match_confidence"] != CONFIDENCE_NONE)
     stubs = add_unlisted_stage(joined, spine, end)
     # Only claim CTH coverage in notes if CTH rows actually joined to a service or provider.
@@ -1706,6 +1841,19 @@ def main() -> None:
         )
     ]
     report["joined_before_unlisted_stage"] = matched_before
+    # Round 2: rows whose withheld service name was not available for the name match (0 under
+    # scrapers/reparse_offline.py; above 0 only with --allow-unrestored).
+    report["unrestored_withheld_service_names"] = unrestored
+    report["abn_entity_rows_not_matched_business_names_not_restorable"] = abn_unrestored
+    # PR #12 round 1: a name withheld in a later output is withheld in the earlier ones too.
+    refilter_processed_names(
+        [
+            SPINE_UNLISTED_NAME,
+            "enforcement-actions-all",
+            "enforcement-by-service",
+            "enforcement-by-provider",
+        ]
+    )
     atomic_write_text(REPORT_JSON, json.dumps(report, indent=2) + "\n")
     log.info("wrote %s", REPORT_JSON.relative_to(PROJECT_ROOT))
     for j, s in report["per_jurisdiction"].items():

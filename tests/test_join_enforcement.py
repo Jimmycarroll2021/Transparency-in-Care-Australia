@@ -797,6 +797,7 @@ def test_report_residual_breakdown_sums_to_unmatched(spine):
         "no_key_and_name_withheld": 1,
         "no_key_no_name_match": 2,
         "ambiguous_name": 1,
+        "abn_business_names_not_restorable": 0,
         "other": 1,
     }
     assert sum(overall["unmatched_residual"].values()) == overall["unmatched"]

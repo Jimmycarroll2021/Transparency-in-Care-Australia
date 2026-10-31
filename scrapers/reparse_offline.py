@@ -22,11 +22,13 @@ prints recovery instructions. Only a fully successful run removes the marker and
 
 The set exists only in memory. It is never written, logged or printed; only counts are logged.
 
-Usage: python scrapers/reparse_offline.py   (no network; the same as each parser's --skip-fetch)
+Usage: python scrapers/reparse_offline.py [--allow-unrestored]   (no network; the same as each
+parser's --skip-fetch)
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import secrets
@@ -39,9 +41,11 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from scrapers import (
+    abn_lookup,  # noqa: E402
     common,  # noqa: E402
     join_enforcement,  # noqa: E402
 )
+from scrapers import build_provider_groups as groups  # noqa: E402
 from scrapers import parse_cth_ccs_enforcement as cth  # noqa: E402
 from scrapers import parse_nsw_enforcement as nsw  # noqa: E402
 from scrapers import parse_qld_enforcement as qld  # noqa: E402
@@ -49,10 +53,37 @@ from scrapers import parse_sa_enforcement as sa  # noqa: E402
 from scrapers import parse_tas_enforcement as tas  # noqa: E402
 from scrapers import parse_vecra_enforcement as vecra  # noqa: E402
 from scrapers import parse_wa_enforcement as wa  # noqa: E402
+from scrapers import profile_providers as profile  # noqa: E402
 from scrapers.common import PROCESSED_DIR, PROJECT_ROOT, log  # noqa: E402
 from scrapers.profile_providers import PersonNames, acecqa_person_names  # noqa: E402
 
 PARSERS = [qld, vecra, sa, tas, cth, wa, nsw]
+# PR #12: builders run last, after the join and inside the same backup and marker, so that the
+# name rule on provider-profile.csv trading names uses the run-wide names and every name withheld
+# by an earlier output in this run (a name withheld once is withheld everywhere).
+# Round 2: the ABR tables (business names) and the provider groups are rebuilt too, offline: the
+# re-filter of abn-details.csv and stage C of the groups from provider-abn.csv (no ABN Lookup call).
+BUILDERS = [(profile, []), (abn_lookup, ["refilter"]), (groups, ["--skip-lookup"])]
+# Round 3: the ABR re-filter also runs before the join, so that the join reads the same
+# abn-details.csv as the end of the run; the join is repeated until its inputs no longer change,
+# so that a second run uses the same candidate set and writes the same outputs.
+# Round 4: the provider profile is rebuilt before the first join too (the join reads it), and
+# the loop runs until every join input the builders write is stable.
+PRE_JOIN_BUILDERS = [(profile, []), (abn_lookup, ["refilter"]), (groups, ["--skip-lookup"])]
+# Round 5: provider-abn.csv is no longer read by the join (it feeds the profile, which is here).
+JOIN_INPUTS = [
+    PROCESSED_DIR / "abn-details.csv",
+    PROCESSED_DIR / "provider-profile.csv",
+]
+# Round 5: the join, the passes and the builders are repeated at most this many times; a run
+# that has not converged by then fails closed (data/processed restored from the backup).
+MAX_JOIN_ITERATIONS = 10
+
+
+class NotConverged(RuntimeError):
+    pass
+
+
 # Persistent backups of data/processed, one directory per run (gitignored).
 BACKUP_ROOT = PROJECT_ROOT / "data" / ".reparse-backup"
 # Single-writer lock (Codex round 7, gitignored). Taken with an exclusive create.
@@ -65,10 +96,10 @@ class ParserFailed(RuntimeError):
     pass
 
 
-def _run_parser(module) -> None:
+def _run_parser(module, argv: list[str] | None = None) -> None:
     name = module.__name__.rsplit(".", 1)[-1]
     try:
-        code = module.main(list(ARGV))
+        code = module.main(list(ARGV) if argv is None else list(argv))
     except SystemExit as exc:  # argparse or an explicit exit
         code = exc.code
     except Exception as exc:
@@ -121,8 +152,16 @@ def _held_writes(module) -> list:
     return held
 
 
+# PR #12 round 3: passed to the join by --allow-unrestored (fewer joins, recorded in the report).
+ALLOW_UNRESTORED = False
+
+
 def run_join() -> None:
-    join_enforcement.main()
+    join_enforcement.main(["--allow-unrestored"] if ALLOW_UNRESTORED else [])
+
+
+def _sha_or_none(path: Path) -> str | None:
+    return common.file_sha256(path) if path.exists() else None
 
 
 def _fsync_file(path: Path) -> None:
@@ -254,6 +293,15 @@ def _release_lock() -> None:
 def main(argv: list[str] | None = None) -> int:
     """Single writer (Codex round 7): the lock is taken before anything is read or written and
     released on every exit path. A held or stale lock is reported, never removed."""
+    global ALLOW_UNRESTORED
+    ap = argparse.ArgumentParser(description=__doc__.split(chr(10) * 2)[0])
+    ap.add_argument(
+        "--allow-unrestored",
+        action="store_true",
+        help="let the join write even when withheld names cannot be restored in memory (fewer "
+        "joins; the counts are recorded in the join report)",
+    )
+    ALLOW_UNRESTORED = ap.parse_args(argv).allow_unrestored
     try:
         _acquire_lock()
     except LockHeld:
@@ -304,7 +352,34 @@ def _run() -> int:
     try:
         for fn, args, kwargs in held:
             fn(*args, **kwargs)
-        run_join()
+        for module, argv in PRE_JOIN_BUILDERS:
+            _run_parser(module, argv)
+        for iteration in range(1, MAX_JOIN_ITERATIONS + 1):
+            inputs_before = [_sha_or_none(path) for path in JOIN_INPUTS]
+            run_join()
+            # PR #12 round 1: the cross-output pass, then the builders (which see every withheld
+            # name), then the pass again, so that every output agrees whatever the write order.
+            common.refilter_processed_names()
+            # Round 2: builders, then the cross-output pass, until the pass changes nothing (the
+            # set of withheld names only grows, so this ends).
+            for _ in range(MAX_JOIN_ITERATIONS):
+                for module, argv in BUILDERS:
+                    _run_parser(module, argv)
+                if not common.refilter_processed_names():
+                    break
+            else:
+                raise NotConverged(
+                    f"the builders and the cross-output pass did not converge after "
+                    f"{MAX_JOIN_ITERATIONS} passes; nothing kept"
+                )
+            # Rounds 3 and 4: if the passes changed a join input, join again.
+            if [_sha_or_none(path) for path in JOIN_INPUTS] == inputs_before:
+                log.info("join inputs stable after %d join(s)", iteration)
+                break
+        else:
+            raise NotConverged(
+                f"the join inputs did not converge after {MAX_JOIN_ITERATIONS} joins; nothing kept"
+            )
     except BaseException as exc:  # includes SystemExit from the join
         log.error("writing or join failed (%r)", exc)
         try:

@@ -99,7 +99,7 @@ scrapers/             Collection scripts (Phase 2 onward)
 - Parse Queensland enforcement register: `python3 scrapers/parse_qld_enforcement.py`
 - Parse Commonwealth CCS enforcement register: `python3 scrapers/parse_cth_ccs_enforcement.py --current-file F --past-file G` (education.gov.au drops non-browser clients: save both pages from a browser; `--skip-fetch` re-parses the newest snapshots)
 - Parse NSW enforcement register: `python3 scrapers/parse_nsw_enforcement.py`
-- Join enforcement onto the ACECQA spine: `python3 scrapers/join_enforcement.py`
+- Join enforcement onto the ACECQA spine: `python3 scrapers/reparse_offline.py` (re-parses every register offline and joins in one process, so that service names withheld by the name rule can be matched in memory). `python3 scrapers/join_enforcement.py` alone stops before writing when such names cannot be restored, or when withheld ABR business names cannot be restored from the local cache `data/raw/abr-lookup/` for the ABN entity stage; `--allow-unrestored` (on either script) writes anyway with fewer joins and records the counts in the join report
 - Parse SA enforcement register: `python3 scrapers/parse_sa_enforcement.py`
 - Parse WA enforcement register: `python3 scrapers/parse_wa_enforcement.py` (needs `pip install playwright && playwright install chromium`; the ECRU register is a Caspio search form with no static page)
 - Resolve ABNs (needs ABN_LOOKUP_GUID in .env): `python3 scrapers/abn_lookup.py` (stage A: Commonwealth ABNs to `abn-details.csv`; `abn <ABN>` or `name "<name>" --state NSW` for single lookups; `--offline` uses the local cache)

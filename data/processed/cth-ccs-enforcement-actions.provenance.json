@@ -1,11 +1,17 @@
 {
   "output": "data/processed/cth-ccs-enforcement-actions.csv",
-  "written_at": "2026-10-30T23:51:53.440740+00:00",
+  "written_at": "2026-10-31T11:32:30.289424+00:00",
   "rows": 236,
   "schema": "data/schemas/enforcement-action.schema.json",
   "raw_inputs": [
     "data/raw/cth-ccs-enforcement/2026-10-29T0749Z-current.html",
     "data/raw/cth-ccs-enforcement/2026-10-29T0749Z-past.html"
   ],
-  "notes": "Parsed from browser-saved pages (dt/dd entry layout). ABN is in notes as 'ccs_identifier: ABN ...'; individuals' names, and their ABNs, are withheld."
+  "notes": "Parsed from browser-saved pages (dt/dd entry layout). ABN is in notes as 'ccs_identifier: ABN ...'; individuals' names, and their ABNs, are withheld.",
+  "names_withheld": {
+    "rule": "trading, service and business names withheld when they may name an individual, and free text repeating a withheld name (scrapers.common.withhold_person_named_names)",
+    "counts": {
+      "service_name": 30
+    }
+  }
 }

@@ -38,11 +38,15 @@ def processed(tmp_path, monkeypatch):
     (d / "b.csv").write_text("old b\n", encoding="utf-8")
     (d / "enforcement-actions-all.csv").write_text("old join\n", encoding="utf-8")
     monkeypatch.setattr(ro, "PROCESSED_DIR", d)
+    monkeypatch.setattr(common, "PROCESSED_DIR", d)  # the cross-output pass
     monkeypatch.setattr(ro, "acecqa_person_names", lambda: pp.PersonNames())
     # Codex round 5: the marker and the persistent backup live outside data/processed.
     monkeypatch.setattr(common, "REPARSE_MARKER", tmp_path / ".reparse-in-progress")
     monkeypatch.setattr(ro, "BACKUP_ROOT", tmp_path / ".reparse-backup")
     monkeypatch.setattr(ro, "LOCK_PATH", tmp_path / ".reparse.lock")  # Codex round 7
+    monkeypatch.setattr(ro, "BUILDERS", [])  # PR #12: no provider profile in these tests
+    monkeypatch.setattr(ro, "PRE_JOIN_BUILDERS", [])
+    monkeypatch.setattr(ro, "JOIN_INPUTS", [tmp_path / "no-join-input.csv"])
 
     def join_ok():
         (d / "enforcement-actions-all.csv").write_text("new join\n", encoding="utf-8")
@@ -302,3 +306,81 @@ def test_recovery_message_offers_the_backup_only_when_it_verifies(processed, mon
     (backup / "a.csv").write_text("x", encoding="utf-8")
     message = common.reparse_recovery_message()
     assert "failed verification" in message and "git checkout -- data/processed" in message
+
+
+def test_a_changed_profile_input_reaches_the_join_in_the_same_run(processed, monkeypatch, tmp_path):
+    # PR #12 round 4: the profile builder runs before the first join.
+    profile = processed / "provider-profile.csv"
+    profile.write_text("old profile\n", encoding="utf-8")
+
+    class FakeProfile:
+        __name__ = "profile_providers"
+
+        @staticmethod
+        def main(argv):
+            profile.write_text("rebuilt profile\n", encoding="utf-8")
+            return 0
+
+    seen = []
+
+    def join_reads_profile():
+        seen.append(profile.read_text(encoding="utf-8"))
+
+    monkeypatch.setattr(ro, "PARSERS", [make_parser(processed, "a")])
+    monkeypatch.setattr(ro, "PRE_JOIN_BUILDERS", [(FakeProfile, [])])
+    monkeypatch.setattr(ro, "JOIN_INPUTS", [profile])
+    monkeypatch.setattr(ro, "run_join", join_reads_profile)
+    assert ro.main([]) == 0
+    assert seen == ["rebuilt profile\n"]
+
+
+def test_the_join_runs_again_when_a_builder_changes_a_join_input(processed, monkeypatch):
+    profile = processed / "provider-profile.csv"
+    profile.write_text("v0\n", encoding="utf-8")
+    versions = iter(["v1\n", "v2\n", "v2\n", "v2\n"])
+
+    class FakeBuilder:
+        __name__ = "builder"
+
+        @staticmethod
+        def main(argv):
+            profile.write_text(next(versions), encoding="utf-8")
+            return 0
+
+    seen = []
+    monkeypatch.setattr(ro, "PARSERS", [make_parser(processed, "a")])
+    monkeypatch.setattr(ro, "PRE_JOIN_BUILDERS", [(FakeBuilder, [])])
+    monkeypatch.setattr(ro, "BUILDERS", [(FakeBuilder, [])])
+    monkeypatch.setattr(ro, "JOIN_INPUTS", [profile])
+    monkeypatch.setattr(ro, "run_join", lambda: seen.append(profile.read_text(encoding="utf-8")))
+    assert ro.main([]) == 0
+    assert seen == ["v1\n", "v2\n"]  # joined again after the input changed, then stable
+
+
+def test_a_run_that_does_not_converge_fails_closed(processed, monkeypatch, capsys):
+    # PR #12 round 5: an iteration cap; past it the run restores data/processed and fails.
+    profile = processed / "provider-profile.csv"
+    profile.write_text("v0", encoding="utf-8")
+    counter = {"n": 0}
+
+    class ChangesEveryTime:
+        __name__ = "builder"
+
+        @staticmethod
+        def main(argv):
+            counter["n"] += 1
+            profile.write_text(f"v{counter['n']}", encoding="utf-8")
+            return 0
+
+    monkeypatch.setattr(ro, "PARSERS", [make_parser(processed, "a")])
+    monkeypatch.setattr(ro, "PRE_JOIN_BUILDERS", [])
+    monkeypatch.setattr(ro, "BUILDERS", [(ChangesEveryTime, [])])
+    monkeypatch.setattr(ro, "JOIN_INPUTS", [profile])
+    monkeypatch.setattr(ro, "MAX_JOIN_ITERATIONS", 3)
+    joins = []
+    monkeypatch.setattr(ro, "run_join", lambda: joins.append(1))
+    assert ro.main([]) != 0
+    assert len(joins) == 3
+    assert (processed / "a.csv").read_text(encoding="utf-8") == "old a\n"
+    assert profile.read_text(encoding="utf-8") == "v0"
+    assert "restored from the backup" in capsys.readouterr().out

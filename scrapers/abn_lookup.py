@@ -268,6 +268,42 @@ def name_is_safe(name: str | None, known_org_names: set[str] | None = None) -> b
     return normalise_provider_name(name) in (known_org_names or set()) or not name_is_withheld(name)
 
 
+def cached_business_names(
+    abn: str | None, expected_sha256: str | None = None, cache_dir: Path | None = None
+) -> list[str] | None:
+    """PR #12 round 3: the FULL ABR business-name list of an ABN, from the local gitignored
+    cache (data/raw/abr-lookup/), for the join's uniqueness check. In memory only: the caller
+    must never write it. None when it cannot be restored: no cache, no cached AbnDetails
+    response for the ABN, or a cached response that is not the one the abn-details row was
+    built from (expected_sha256). No network call is made."""
+    digits = re.sub(r"\D", "", abn or "")
+    cache_dir = cache_dir or RAW_DIR / SOURCE
+    # Round 4: with no expected response hash the cache entry cannot be verified: fail closed.
+    if len(digits) != 11 or not expected_sha256 or not cache_dir.exists():
+        return None
+    client = AbnLookupClient(None, cache_dir=cache_dir, offline=True)
+    hit = client.cached(ENDPOINT_ABN, {"abn": digits})
+    if hit is None or hit.sha256 != expected_sha256:
+        return None
+    names = hit.data.get("BusinessName") or []
+    if isinstance(names, str):
+        names = [names]
+    return [n.strip() for n in names if isinstance(n, str) and n.strip()]
+
+
+def business_name_may_name_person(name: str | None) -> bool:
+    """PR #12: an ABR business name is a trading name, so the shared name rule
+    (scrapers.common.name_may_name_person_in_row) applies too, whatever the organisation evidence
+    and even when the name equals a known ACECQA name. In-memory names only."""
+    from scrapers.common import ensure_person_names, name_may_name_person_in_row, note_withheld_name
+
+    ensure_person_names()
+    if name_may_name_person_in_row(name):
+        note_withheld_name(name)  # round 2: withheld in every later output of this process
+        return True
+    return False
+
+
 def safe_business_names(
     names: list[str] | None, known_org_names: set[str] | None = None
 ) -> tuple[list[str], int]:
@@ -275,7 +311,8 @@ def safe_business_names(
 
     A business name is withheld unless it is positively an organisation under the shared
     fail-closed rule, or its normalised form is already an ACECQA organisation name
-    (known_org_names), which is public organisation data.
+    (known_org_names), which is public organisation data. A business name the shared name rule
+    flags as possibly naming an individual is withheld in every case (PR #12).
     """
     kept: list[str] = []
     withheld = 0
@@ -283,7 +320,8 @@ def safe_business_names(
         name = (name or "").strip()
         if not name:
             continue
-        if not name_is_safe(name, known_org_names):
+        # The person check runs first so that a name it flags is always noted (round 2).
+        if business_name_may_name_person(name) or not name_is_safe(name, known_org_names):
             withheld += 1
             continue
         if name not in kept:
@@ -368,7 +406,10 @@ def filter_details_names(row: dict, known: set[str] | None = None) -> dict:
         row["business_names_withheld"] = withheld
         row["name_withheld"] = "false"
         if withheld:
-            notes.append(f"{withheld} business name(s) withheld: not positively an organisation")
+            notes.append(
+                f"{withheld} business name(s) withheld: not positively an organisation or may "
+                "name an individual"
+            )
     row["note"] = "; ".join(notes) or None
     return row
 

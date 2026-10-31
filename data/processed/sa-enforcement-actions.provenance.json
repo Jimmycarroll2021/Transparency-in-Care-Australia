@@ -1,6 +1,6 @@
 {
   "output": "data/processed/sa-enforcement-actions.csv",
-  "written_at": "2026-10-30T23:51:53.399355+00:00",
+  "written_at": "2026-10-31T11:32:30.084267+00:00",
   "rows": 436,
   "schema": "data/schemas/enforcement-action.schema.json",
   "raw_inputs": [
@@ -19,5 +19,11 @@
     "data/raw/sa-enforcement/2026-10-29T0819Z-copyright-disclaimer.html",
     "data/raw/sa-enforcement/2026-10-29T0819Z-historical-index.html"
   ],
-  "notes": "South Australia ESB compliance actions under the National Law, parsed from the HTML current and historical pages (latest snapshot of each). ESB content is All rights reserved; used under the project owner's statement of consent. Pages before 2022 print no SE-/PR- numbers, so those rows cannot be joined on a key. legal_references is a JSON array. Provider names that may be individuals are withheld. Absence of an entry is not evidence of safety."
+  "notes": "South Australia ESB compliance actions under the National Law, parsed from the HTML current and historical pages (latest snapshot of each). ESB content is All rights reserved; used under the project owner's statement of consent. Pages before 2022 print no SE-/PR- numbers, so those rows cannot be joined on a key. legal_references is a JSON array. Provider names that may be individuals are withheld. Absence of an entry is not evidence of safety.",
+  "names_withheld": {
+    "rule": "trading, service and business names withheld when they may name an individual, and free text repeating a withheld name (scrapers.common.withhold_person_named_names)",
+    "counts": {
+      "service_name": 12
+    }
+  }
 }

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T22:46:18.700161+00:00",
+  "generated_at": "2026-10-31T08:13:41.636348+00:00",
   "denominators": {
     "providers_in_provider_abn": 1210,
     "providers_with_accepted_abn": 901,
@@ -8,11 +8,11 @@
   "entity_groups": 0,
   "providers_in_entity_groups": 0,
   "entity_group_size_distribution": {},
-  "business_name_overlap_flags": 21,
-  "providers_named_by_overlap_flags": 26,
+  "business_name_overlap_flags": 17,
+  "providers_named_by_overlap_flags": 22,
   "window": {
-    "start": "2024-10-29",
-    "end": "2026-10-28",
+    "start": "2024-10-31",
+    "end": "2026-10-30",
     "basis": "enforcement-by-provider.csv"
   },
   "largest_10_entity_groups": [],
