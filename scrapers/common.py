@@ -427,7 +427,10 @@ _EXT = r"\.(?:pdf|docx?|html?|json|csv|xlsx?|txt)\b"
 _TOKEN = r"[^\s'\",;()\[\]<>]+"
 # Follow-up to PR #6: a query string after a document name is part of the URL, and a path may
 # hold folder names with spaces. _SEG is one path segment with no space.
-_EXT_Q = _EXT + r"(?:[?#][^\s'\",;()\[\]<>]*)?"
+# PR #7 round 1: a query may hold commas (ids=1,2); a comma or full stop that ends the
+# sentence is trimmed off the match in redact_urls.
+_QUERY = r"(?:[?#][^\s'\"();\[\]<>]*)?"
+_EXT_Q = _EXT + _QUERY
 _SEG = r"[^\s'\",;()\[\]<>:/\\?#]+"
 _SPACED_SEG = _SEG + r"(?:[ ]" + _SEG + r"){0,4}"
 _URL_IN_TEXT = re.compile(
@@ -442,8 +445,8 @@ _URL_IN_TEXT = re.compile(
     + _TOKEN
     + r"){1,8}?"
     + _EXT_Q
-    + r"|https?://"
-    + _TOKEN
+    + r"|https?://[^\s'\",;()\[\]<>?#]+"
+    + _QUERY
     # A path whose folder or file names hold spaces: a first segment with no space, then two or
     # more segments, so that prose such as 'PDF/Word files ... robots.txt' (one slash) is not
     # taken for a path.
@@ -456,10 +459,10 @@ _URL_IN_TEXT = re.compile(
     + r"(?:[ ]"
     + _SEG
     + r"){0,8}?"
-    + _EXT
-    # A path or file name with no spaces.
-    + r"|[^\s'\",;()\[\]<>:]+"
-    + _EXT,
+    + _EXT_Q
+    # A path or file name with no spaces (PR #7 round 1: with any query after it).
+    + r"|[^\s'\",;()\[\]<>:?#]+"
+    + _EXT_Q,
     re.IGNORECASE,
 )
 
@@ -514,9 +517,13 @@ def redact_urls(text: str | None, names=None) -> str | None:
     names = _run_wide_names() if names is None else names
 
     def replace(m):
-        if not url_may_name_person(m.group(0), names):
-            return m.group(0)
-        return URL_TEXT_WITHHELD if _SCHEME.match(m.group(0)) else SNAPSHOT_TEXT_WITHHELD
+        # A comma or full stop that ends the sentence is not part of the URL (PR #7 round 1).
+        found = m.group(0)
+        value = found.rstrip(".,")
+        tail = found[len(value) :]
+        if not value or not url_may_name_person(value, names):
+            return found
+        return (URL_TEXT_WITHHELD if _SCHEME.match(value) else SNAPSHOT_TEXT_WITHHELD) + tail
 
     return _URL_IN_TEXT.sub(replace, text)
 
