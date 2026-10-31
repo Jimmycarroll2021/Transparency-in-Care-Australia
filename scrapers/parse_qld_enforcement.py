@@ -164,6 +164,43 @@ _TIED_FINE = re.compile(
 FINE_NOT_RECORDED_NOTE = (
     "penalty amount not recorded: the printed amount is not tied explicitly and solely to the fine"
 )
+# Follow-up to PR #6: an amount printed with a magnitude word or abbreviation ('$1.5 million',
+# '$15k'), a decimal that is not cents, or digit grouping that is not standard is not a whole,
+# unambiguous figure; nothing is scaled or completed.
+FINE_ABBREVIATED_NOTE = (
+    "penalty amount not recorded: the printed amount is abbreviated or not a whole dollar figure"
+)
+# A per-offence or 'each' amount may not be the total fine.
+FINE_PER_OFFENCE_NOTE = (
+    "penalty amount not recorded: the printed amount may be per offence, not the total fine"
+)
+_MONEY_RAW = re.compile(
+    r"(?i)[$][ ]?([0-9][0-9,]*)(?:[.]([0-9]+))?"
+    r"(?:[ ]?(k|m|bn|b|million|millions|thousand|thousands|billion|mil)(?![a-z]))?"
+)
+_WHOLE_GROUPING = re.compile(r"^(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)$")
+# PR #7 round 1: per-offence wording counts only when it is tied to an amount ('$N each', '$N per
+# offence', '$N for each ...', 'each offence ... $N' or 'for every ... $N' within the same
+# clause). 'each' elsewhere in the sentence does not touch a single tied total.
+_AMT_RAW = r"[$][ ]?[0-9][0-9,]*(?:[.][0-9]+)?"
+_UNITS = r"(?:offences?|offenses?|charges?|counts?|breach(?:es)?|contraventions?|child(?:ren)?|incidents?|days?)"
+_PER_OFFENCE = re.compile(
+    r"(?i)"
+    + _AMT_RAW
+    + r"[ ,]*(?:each|apiece)(?![a-z])"
+    + r"|"
+    + _AMT_RAW
+    + r"[ ]+(?:per|for[ ]+each|for[ ]+every|a|an)[ ]+(?:of[ ]+)?(?:[a-z]+[ ]+)?"
+    + _UNITS
+    + r"(?![a-z])"
+    + r"|(?<![a-z])(?:each|every|per)[ ]+"
+    + _UNITS
+    + r"(?![a-z])[^$;.]{0,40}?"
+    + _AMT_RAW
+    + r"|(?<![a-z])for[ ]+every(?![a-z])[^$;.]{0,40}?"
+    + _AMT_RAW
+)
+_WORD = re.compile(r"\S+")
 
 
 def _dollars(token: str) -> int | float:
@@ -172,21 +209,46 @@ def _dollars(token: str) -> int | float:
     return whole + int(m.group(2)) / 100 if m.group(2) else whole
 
 
-def fine_amount_and_note(text: str | None) -> tuple[int | float | None, str | None]:
-    """(fine in dollars, note) from a printed headline (Codex round 5, finding 3).
+def _phrase_key(text: str, start: int, end: int) -> tuple:
+    """The amount with the three words before it and the three after it, lower-cased: the same
+    phrase printed twice gives the same key, two separate fines do not (PR #7 round 1)."""
+    before = _WORD.findall(text[:start])[-3:]
+    after = _WORD.findall(text[end:])[:3]
+    return (tuple(w.lower() for w in before), text[start:end], tuple(w.lower() for w in after))
 
-    Recorded only when the text prints exactly one dollar amount and ties it explicitly to the
-    fine or penalty ('fined $12,000', 'a fine of $5,000', '$7,500 penalty'). When the text speaks
-    of a fine or penalty and prints an amount that is costs, untied or one of several, the value
-    is None and FINE_NOT_RECORDED_NOTE says so. Never a guess."""
+
+def fine_amount_and_note(text: str | None) -> tuple[int | float | None, str | None]:
+    """(fine in dollars, note) from a printed headline (Codex round 5, finding 3; PR #7).
+
+    Recorded only when the text prints exactly one dollar amount, as a whole figure (cents
+    optional), and ties it explicitly to the fine or penalty ('fined $12,000', 'a fine of
+    $5,000', '$7,500 penalty'). Otherwise the value is None with a note: an abbreviated amount
+    or magnitude word ('$1.5 million', '$15k'), per-offence wording tied to the amount ('$N
+    each', '$N per offence'), costs, an untied amount, or more than one amount occurrence (two
+    separate equal fines count as two; the same phrase printed twice counts once). Never a
+    guess, never scaled."""
     if not text or not _FINE_WORD.search(text):
         return None, None
-    amounts = {_dollars(m.group(0)) for m in _DOLLARS.finditer(text)}
-    if not amounts:
+    raw = list(_MONEY_RAW.finditer(text))
+    if not raw:
         return None, None
-    tied = {_dollars(next(g for g in m.groups() if g)) for m in _TIED_FINE.finditer(text)}
-    if len(amounts) == 1 and tied == amounts:
-        return amounts.pop(), None
+    for m in raw:
+        digits, decimals, magnitude = m.group(1).rstrip(","), m.group(2), m.group(3)
+        if magnitude or (decimals is not None and len(decimals) != 2):
+            return None, FINE_ABBREVIATED_NOTE
+        if not _WHOLE_GROUPING.match(digits):
+            return None, FINE_ABBREVIATED_NOTE
+    if _PER_OFFENCE.search(text):
+        return None, FINE_PER_OFFENCE_NOTE
+    occurrences = {_phrase_key(text, m.start(), m.end()): m for m in _DOLLARS.finditer(text)}
+    if not occurrences:
+        return None, None
+    tied = {}
+    for m in _TIED_FINE.finditer(text):
+        group = next(i for i, g in enumerate(m.groups(), start=1) if g)
+        tied[_phrase_key(text, m.start(group), m.end(group))] = _dollars(m.group(group))
+    if len(occurrences) == 1 and len(tied) == 1 and set(tied) == set(occurrences):
+        return next(iter(tied.values())), None
     return None, FINE_NOT_RECORDED_NOTE
 
 

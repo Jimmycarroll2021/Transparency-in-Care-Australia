@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 import shutil
 import sys
 import tempfile
@@ -197,21 +198,57 @@ class LockHeld(RuntimeError):
     pass
 
 
+# PR #7 round 1: the body this run wrote into the lock (pid and a random nonce). The lock is
+# removed only while it still holds this token, never by path alone.
+_LOCK_TOKEN: str | None = None
+
+
+def _read_lock_text() -> str | None:
+    """The lock file's text, stripped, or None when it cannot be read."""
+    try:
+        return LOCK_PATH.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+
+
+def _remove_own_lock() -> None:
+    """Unlink the lock only when it still holds this run's token; otherwise leave it and log."""
+    global _LOCK_TOKEN
+    token, _LOCK_TOKEN = _LOCK_TOKEN, None
+    if token is None:
+        return
+    if _read_lock_text() == token.strip():
+        LOCK_PATH.unlink(missing_ok=True)
+        return
+    log.warning("lock %s not removed: it does not hold this run's token", LOCK_PATH)
+
+
 def _acquire_lock() -> None:
     """Take the single-writer lock with an exclusive create; raise LockHeld if it exists."""
+    global _LOCK_TOKEN
     LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
     try:
         fd = os.open(LOCK_PATH, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
     except FileExistsError as exc:
         raise LockHeld(str(LOCK_PATH)) from exc
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        fh.write(f"pid {os.getpid()} at {common.utc_now().isoformat()}\n")
-        fh.flush()
-        os.fsync(fh.fileno())
+    # Follow-up to PR #6: this process created the lock, so if its body cannot be written the
+    # lock is removed here, but only while it still holds this run's token (PR #7 round 1).
+    # A lock that already existed never reaches this point.
+    _LOCK_TOKEN = (
+        f"pid {os.getpid()} nonce {secrets.token_hex(8)} at {common.utc_now().isoformat()}\n"
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(_LOCK_TOKEN)
+            fh.flush()
+            os.fsync(fh.fileno())
+    except BaseException:
+        _remove_own_lock()
+        raise
 
 
 def _release_lock() -> None:
-    LOCK_PATH.unlink(missing_ok=True)
+    _remove_own_lock()
 
 
 def main(argv: list[str] | None = None) -> int:
