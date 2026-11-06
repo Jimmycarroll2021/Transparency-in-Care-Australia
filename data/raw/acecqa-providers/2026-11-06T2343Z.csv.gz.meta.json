@@ -1,0 +1,32 @@
+{
+  "source": "acecqa-providers",
+  "url": "https://www.acecqa.gov.au/sites/default/files/national-registers/providers/Approved-providers-au-export.csv?nocache=1794008608701",
+  "final_url": "https://www.acecqa.gov.au/sites/default/files/national-registers/providers/Approved-providers-au-export.csv?nocache=1794008608701",
+  "status": 200,
+  "fetched_at": "2026-11-06T23:43:28.785862+00:00",
+  "content_type": "text/csv",
+  "last_modified": "Fri, 06 Nov 2026 19:28:44 GMT",
+  "etag": null,
+  "bytes": 408252,
+  "sha256": "3badce269ef20ae2fdcb6be4d1f4e7bb9a9298f26b3a2ca88e75554dcf260a54",
+  "user_agent": "TransparencyInCareAustralia/0.1 (+https://github.com/Jimmycarroll2021/Transparency-in-Care-Australia; jimmisound@gmail.com)",
+  "stored_encoding": "gzip",
+  "gzip_level": 9,
+  "sha256_uncompressed": "2a97c07bddb59714c35ffafeff75cca5b7e6135a74669635c5f86079c8aa0666",
+  "sha256_gzip": "3badce269ef20ae2fdcb6be4d1f4e7bb9a9298f26b3a2ca88e75554dcf260a54",
+  "bytes_uncompressed": 1320430,
+  "row_count": 10081,
+  "columns": [
+    "Provider Approval Number",
+    "Service Approval Number",
+    "Legal Name",
+    "Trading Name",
+    "Address",
+    "Suburb",
+    "State",
+    "Postcode",
+    "Date Approval Granted",
+    "Conditions"
+  ],
+  "text_encoding": "utf-8"
+}
