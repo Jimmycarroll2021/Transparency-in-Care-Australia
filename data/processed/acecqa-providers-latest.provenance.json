@@ -1,6 +1,6 @@
 {
   "output": "data/processed/acecqa-providers-latest.csv",
-  "written_at": "2026-11-21T00:47:56.261253+00:00",
+  "written_at": "2026-11-21T23:47:35.893714+00:00",
   "rows": 10041,
   "schema": null,
   "raw_inputs": [
